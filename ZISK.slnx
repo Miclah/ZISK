@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ZISK/ZISK.Client/ZISK.Client.csproj" />
+  <Project Path="ZISK/ZISK/ZISK.csproj" />
+</Solution>
