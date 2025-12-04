@@ -30,7 +30,6 @@
         if (UserId is null || Code is null)
         {
             RedirectManager.RedirectTo("");
-            return;
         }
 
         var user = await UserManager.FindByIdAsync(UserId);
