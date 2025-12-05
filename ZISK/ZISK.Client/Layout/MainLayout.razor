@@ -1,34 +1,44 @@
 ﻿@inherits LayoutComponentBase
+@using ZISK.Client.Layout
 
-@* Required *@
-<MudThemeProvider />
+<MudThemeProvider Theme="AppTheme.SportClubTheme" />
 <MudPopoverProvider />
-
-@* Needed for dialogs *@
-<MudDialogProvider />
-
-@* Needed for snackbars *@
+<MudDialogProvider FullWidth="true" MaxWidth="MaxWidth.Small" CloseButton="true" />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <MudText Typo="Typo.h5" Class="ml-3">ZISK</MudText>
+    <MudAppBar Elevation="1" Fixed="false">
+        <MudIconButton Icon="@Icons.Material.Rounded.Menu"
+                       Color="Color.Inherit"
+                       Edge="Edge.Start"
+                       OnClick="DrawerToggle" />
+
+        <MudText Typo="Typo.h6" Class="ml-2">ZISK</MudText>
+
         <MudSpacer />
     </MudAppBar>
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
-        <NavMenu />
+
+    <MudDrawer @bind-Open="_drawerOpen"
+               ClipMode="DrawerClipMode.Docked"
+               Elevation="1"
+               Variant="DrawerVariant.Persistent"
+               Breakpoint="Breakpoint.Xs"
+               Anchor="Anchor.Left"
+               >
+        <MudDrawerContainer>
+            <NavMenu />
+        </MudDrawerContainer>
     </MudDrawer>
-    <MudMainContent>
-        @*Body*@
+   
+    <MudMainContent Class="pa-6">
+        <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
+            @Body
+        </MudContainer>
     </MudMainContent>
 </MudLayout>
 
 @code {
-    bool _drawerOpen = true;
+    private bool _drawerOpen = true;
 
-    void DrawerToggle()
-    {
-        _drawerOpen = !_drawerOpen;
-    }
+    private void DrawerToggle() => _drawerOpen = !_drawerOpen;
 }
