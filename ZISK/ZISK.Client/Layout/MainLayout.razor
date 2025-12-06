@@ -21,8 +21,8 @@
     <MudDrawer @bind-Open="_drawerOpen"
                ClipMode="DrawerClipMode.Docked"
                Elevation="1"
-               Variant="DrawerVariant.Persistent"
-               Breakpoint="Breakpoint.Xs"
+               Breakpoint="Breakpoint.Sm"
+               Variant="DrawerVariant.Responsive"
                Anchor="Anchor.Left"
                >
         <MudDrawerContainer>
@@ -31,7 +31,7 @@
     </MudDrawer>
    
     <MudMainContent Class="pa-6">
-        <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
+        <MudContainer>
             @Body
         </MudContainer>
     </MudMainContent>
