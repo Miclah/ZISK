@@ -1,10 +1,10 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using ZISK.Client.Pages;
+using MudBlazor.Services;
 using ZISK.Components;
 using ZISK.Components.Account;
 using ZISK.Data;
-using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +35,29 @@ builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.Requ
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
+// AI generated temporary solution
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/login";
+    options.AccessDeniedPath = "/access-denied";
+
+    options.Events = new CookieAuthenticationEvents
+    {
+        OnRedirectToLogin = ctx =>
+        {
+            var returnUrl = ctx.Request.Path + ctx.Request.QueryString;
+            var loginUri = $"/login?ReturnUrl={Uri.EscapeDataString(returnUrl)}";
+            ctx.Response.Redirect(loginUri);
+            return Task.CompletedTask;
+        },
+        OnRedirectToAccessDenied = ctx =>
+        {
+            ctx.Response.Redirect("/access-denied");
+            return Task.CompletedTask;
+        }
+    };
+});
+
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
 builder.Services.AddMudServices();
@@ -61,6 +84,6 @@ app.MapRazorComponents<App>()
     .AddAdditionalAssemblies(typeof(ZISK.Client._Imports).Assembly);
 
 // Add additional endpoints required by the Identity /Account Razor components.
-app.MapAdditionalIdentityEndpoints();
+//app.MapAdditionalIdentityEndpoints();
 
 app.Run();

@@ -1,38 +1,50 @@
 ﻿@page "/login"
 @layout LoginLayout
-@using ZISK.Client.Models
+@attribute [AllowAnonymous]
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center" Style="height: 100vh;">
-    <MudCard Elevation="4" Class="pa-8" Style="width: 100%;">
-        <MudCardHeader>
-            <MudText Typo="Typo.h4" Align="Align.Center">Prihlásenie</MudText>
-        </MudCardHeader>
-        <MudCardContent>
-            <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
-                <DataAnnotationsValidator />
-                
-                <MudTextField @bind-Value="loginModel.Username"
-                              Label="Meno"
+@inject NavigationManager Nav
+
+<div class="login-container">
+    <div class="login-card">
+
+        <EditForm Model="@loginModel" OnValidSubmit="HandleLogin" class="login-form">
+            <DataAnnotationsValidator />
+
+            <div class="login-field">
+                <MudTextField @bind-Value="loginModel.Email"
+                              Label="Email"
                               Variant="Variant.Outlined"
-                              Class="mb-4"
-                              For="@(() => loginModel.Username)" />
+                              InputType="InputType.Email"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Rounded.Email"
+                              For="@(() => loginModel.Email)"
+                              FullWidth="true" />
+            </div>
 
+            <div class="login-field">
                 <MudTextField @bind-Value="loginModel.Password"
                               Label="Heslo"
                               Variant="Variant.Outlined"
                               InputType="InputType.Password"
-                              Class="mb-4"
-                              For="@(() => loginModel.Password)" />
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Rounded.Lock"
+                              For="@(() => loginModel.Password)"
+                              FullWidth="true" />
+            </div>
 
-                @if (!string.IsNullOrEmpty(errorMessage))
-                {
-                    <MudAlert Severity="Severity.Error" Class="mb-4">@errorMessage</MudAlert>
-                }
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="login-error">
+                    <MudAlert Severity="Severity.Error" Dense="true">@errorMessage</MudAlert>
+                </div>
+            }
 
+            <div class="login-button">
                 <MudButton ButtonType="ButtonType.Submit"
                            Variant="Variant.Filled"
                            Color="Color.Primary"
                            FullWidth="true"
+                           Size="Size.Large"
                            Disabled="@isLoading">
                     @if (isLoading)
                     {
@@ -40,10 +52,10 @@
                     }
                     Prihlásiť sa
                 </MudButton>
-            </EditForm>
-        </MudCardContent>
-    </MudCard>
-</MudContainer>
+            </div>
+        </EditForm>
+    </div>
+</div>
 
 @code {
     private LoginModel loginModel = new();
@@ -55,6 +67,28 @@
         isLoading = true;
         errorMessage = null;
 
+        await Task.Delay(300);
+
+        if (loginModel.Email == "example@example.com" && loginModel.Password == "test")
+        {
+            Nav.NavigateTo("/", forceLoad: true);
+        }
+        else
+        {
+            errorMessage = "Neplatný email alebo heslo.";
+        }
+
         isLoading = false;
+    }
+
+    private sealed class LoginModel
+    {
+        [Required(ErrorMessage = "Email je povinný")]
+        [EmailAddress(ErrorMessage = "Neplatný formát emailu")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "Heslo je povinné")]
+        [MinLength(4, ErrorMessage = "Heslo musí mať aspoň 4 znaky")]
+        public string Password { get; set; } = "";
     }
 }
