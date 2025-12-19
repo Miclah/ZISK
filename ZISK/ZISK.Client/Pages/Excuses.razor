@@ -1,0 +1,54 @@
+﻿@page "/ospravedlnenky"
+
+<PageTitle>Ospravedlnenky</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Ospravedlnenky</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Class="mb-4">
+    Vytvoriť novú
+</MudButton>
+
+<MudTable Items="@GetTestExcuses()" Hover="true" Breakpoint="Breakpoint.Sm">
+    <HeaderContent>
+        <MudTh>Dátum</MudTh>
+        <MudTh>Dôvod</MudTh>
+        <MudTh>Stav</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Dátum">@context.Date.ToString("dd.MM.yyyy")</MudTd>
+        <MudTd DataLabel="Dôvod">@context.Reason</MudTd>
+        <MudTd DataLabel="Stav">
+            @* <MudChip Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status</MudChip> *@
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private class TestExcuse
+    {
+        public DateTime Date { get; set; }
+        public string Reason { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+    }
+
+    private List<TestExcuse> GetTestExcuses()
+    {
+        return new List<TestExcuse>
+        {
+            new() { Date = DateTime.Now.AddDays(-2), Reason = "Choroba", Status = "Schválené" },
+            new() { Date = DateTime.Now.AddDays(-1), Reason = "Rodinné dôvody", Status = "Čaká na schválenie" },
+            new() { Date = DateTime.Now, Reason = "Zranenie", Status = "Zamietnuté" }
+        };
+    }
+
+    private Color GetStatusColor(string status)
+    {
+        return status switch
+        {
+            "Schválené" => Color.Success,
+            "Čaká na schválenie" => Color.Warning,
+            "Zamietnuté" => Color.Error,
+            _ => Color.Default
+        };
+    }
+}

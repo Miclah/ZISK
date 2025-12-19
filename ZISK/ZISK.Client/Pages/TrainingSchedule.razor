@@ -1,0 +1,47 @@
+﻿@page "/rozvrh"
+
+<PageTitle>Rozvrh tréningov</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Rozvrh tréningov</MudText>
+
+<MudGrid>
+    @foreach (var training in GetTestTrainings())
+    {
+        <MudItem xs="12" sm="6" md="4">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">@training.Title</MudText>
+                        <MudText Typo="Typo.body2">@training.Date.ToString("dd.MM.yyyy HH:mm")</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">Tréner: @training.Coach</MudText>
+                    <MudText Typo="Typo.body2">Lokácia: @training.Location</MudText>
+                    @* <MudChip Size="Size.Small" Color="Color.Primary">@training.Type</MudChip> *@
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    }
+</MudGrid>
+
+@code {
+    private class TestTraining
+    {
+        public string Title { get; set; } = string.Empty;
+        public DateTime Date { get; set; }
+        public string Coach { get; set; } = string.Empty;
+        public string Location { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+    }
+
+    private List<TestTraining> GetTestTrainings()
+    {
+        return new List<TestTraining>
+        {
+            new() { Title = "Tréning A-tímu", Date = DateTime.Now.AddDays(1), Coach = "Ján Novák", Location = "Hlavná hala", Type = "Kondičný" },
+            new() { Title = "Tréning B-tímu", Date = DateTime.Now.AddDays(2), Coach = "Peter Horváth", Location = "Vedľajšia hala", Type = "Technický" },
+            new() { Title = "Tréning žiakov", Date = DateTime.Now.AddDays(3), Coach = "Mária Kováčová", Location = "Hlavná hala", Type = "Herný" }
+        };
+    }
+}
