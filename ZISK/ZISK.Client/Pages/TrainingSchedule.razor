@@ -33,14 +33,36 @@
                 <MudCardHeader>
                     <CardHeaderContent>
                         <MudText Typo="Typo.h6">@training.Title</MudText>
-                        <MudText Typo="Typo.body2">@training.Date.ToString("dd.MM.yyyy HH:mm")</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" />
+                            @training.Date.ToString("dd.MM.yyyy HH:mm")
+                        </MudText>
                     </CardHeaderContent>
+                    <CardHeaderActions>
+                        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Default" />
+                    </CardHeaderActions>
                 </MudCardHeader>
                 <MudCardContent>
-                    <MudText Typo="Typo.body2">Tréner: @training.Coach</MudText>
-                    <MudText Typo="Typo.body2">Lokácia: @training.Location</MudText>
-                    <MudChip T="string" Size="Size.Small" Color="@GetTrainingTypeColor(training.Type)">@training.Type</MudChip>
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.body2">
+                            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" /> 
+                            Tréner: @training.Coach
+                        </MudText>
+                        <MudText Typo="Typo.body2">
+                            <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" /> 
+                            @training.Location
+                        </MudText>
+                        <MudChip T="string" Size="Size.Small" Color="@GetTrainingTypeColor(training.Type)">@training.Type</MudChip>
+                    </MudStack>
                 </MudCardContent>
+                <MudCardActions>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OpenTrainingDetail(training))">
+                        Detail
+                    </MudButton>
+                    <MudButton Variant="Variant.Text" Color="Color.Secondary" Size="Size.Small" StartIcon="@Icons.Material.Filled.EventBusy">
+                        Ospravedlniť sa
+                    </MudButton>
+                </MudCardActions>
             </MudCard>
         </MudItem>
     }
@@ -93,5 +115,10 @@
             "Herný" => Color.Tertiary,
             _ => Color.Default
         };
+    }
+
+    private void OpenTrainingDetail(TestTraining training)
+    {
+        // TODO
     }
 }

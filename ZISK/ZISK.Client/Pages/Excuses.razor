@@ -4,15 +4,31 @@
 
 <MudText Typo="Typo.h4" Class="mb-4">Ospravedlnenky</MudText>
 
-<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Class="mb-4">
-    Vytvoriť novú
-</MudButton>
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    <MudGrid>
+        <MudItem xs="12" sm="6" md="6">
+            <MudSelect T="string" @bind-Value="_selectedStatus" Label="Filter podľa stavu" Variant="Variant.Outlined">
+                <MudSelectItem Value="@("all")">Všetky</MudSelectItem>
+                <MudSelectItem Value="@("Čaká na schválenie")">Čaká na schválenie</MudSelectItem>
+                <MudSelectItem Value="@("Schválené")">Schválené</MudSelectItem>
+                <MudSelectItem Value="@("Zamietnuté")">Zamietnuté</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="6" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       FullWidth="true" OnClick="@(() => {})">
+                Vytvoriť novú
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
 
-<MudTable Items="@GetTestExcuses()" Hover="true" Breakpoint="Breakpoint.Sm">
+<MudTable Items="@GetFilteredExcuses()" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="3">
     <HeaderContent>
         <MudTh>Dátum</MudTh>
         <MudTh>Dôvod</MudTh>
         <MudTh>Stav</MudTh>
+        <MudTh Style="text-align: right;">Akcie</MudTh>  @* PRIDANÉ *@
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Dátum">@context.Date.ToString("dd.MM.yyyy")</MudTd>
@@ -20,10 +36,29 @@
         <MudTd DataLabel="Stav">
             <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status</MudChip>
         </MudTd>
+        <MudTd DataLabel="Akcie" Style="text-align: right;">  @* PRIDANÉ *@
+            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" Size="Size.Small" />
+            @if (context.Status == "Čaká na schválenie")
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Secondary" Size="Size.Small" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" />
+            }
+        </MudTd>
     </RowTemplate>
 </MudTable>
 
 @code {
+
+    private string _selectedStatus = "all";
+
+    private List<TestExcuse> GetFilteredExcuses()
+    {
+        var excuses = GetTestExcuses();
+        if (_selectedStatus != "all")
+            excuses = excuses.Where(e => e.Status == _selectedStatus).ToList();
+        return excuses;
+    }
+
     private class TestExcuse
     {
         public DateTime Date { get; set; }
