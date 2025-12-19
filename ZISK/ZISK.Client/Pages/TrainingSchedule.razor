@@ -4,8 +4,29 @@
 
 <MudText Typo="Typo.h4" Class="mb-4">Rozvrh tréningov</MudText>
 
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    <MudGrid>
+        <MudItem xs="12" sm="6" md="4">
+            <MudSelect T="string" @bind-Value="_selectedTeam" Label="Tím" Variant="Variant.Outlined">
+                <MudSelectItem Value="@("all")">Všetky</MudSelectItem>
+                <MudSelectItem Value="@("a-team")">A-tím</MudSelectItem>
+                <MudSelectItem Value="@("b-team")">B-tím</MudSelectItem>
+                <MudSelectItem Value="@("youth")">Žiaci</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudSelect T="string" @bind-Value="_selectedType" Label="Typ tréningu" Variant="Variant.Outlined">
+                <MudSelectItem Value="@("all")">Všetky</MudSelectItem>
+                <MudSelectItem Value="@("Kondičný")">Kondičný</MudSelectItem>
+                <MudSelectItem Value="@("Technický")">Technický</MudSelectItem>
+                <MudSelectItem Value="@("Herný")">Herný</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
 <MudGrid>
-    @foreach (var training in GetTestTrainings())
+    @foreach (var training in GetFilteredTrainings())
     {
         <MudItem xs="12" sm="6" md="4">
             <MudCard>
@@ -18,7 +39,7 @@
                 <MudCardContent>
                     <MudText Typo="Typo.body2">Tréner: @training.Coach</MudText>
                     <MudText Typo="Typo.body2">Lokácia: @training.Location</MudText>
-                    @* <MudChip Size="Size.Small" Color="Color.Primary">@training.Type</MudChip> *@
+                    <MudChip T="string" Size="Size.Small" Color="@GetTrainingTypeColor(training.Type)">@training.Type</MudChip>
                 </MudCardContent>
             </MudCard>
         </MudItem>
@@ -26,6 +47,9 @@
 </MudGrid>
 
 @code {
+    private string _selectedTeam = "all";
+    private string _selectedType = "all";
+
     private class TestTraining
     {
         public string Title { get; set; } = string.Empty;
@@ -33,15 +57,41 @@
         public string Coach { get; set; } = string.Empty;
         public string Location { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
+        public string Team { get; set; } = string.Empty;  
     }
 
     private List<TestTraining> GetTestTrainings()
     {
         return new List<TestTraining>
         {
-            new() { Title = "Tréning A-tímu", Date = DateTime.Now.AddDays(1), Coach = "Ján Novák", Location = "Hlavná hala", Type = "Kondičný" },
-            new() { Title = "Tréning B-tímu", Date = DateTime.Now.AddDays(2), Coach = "Peter Horváth", Location = "Vedľajšia hala", Type = "Technický" },
-            new() { Title = "Tréning žiakov", Date = DateTime.Now.AddDays(3), Coach = "Mária Kováčová", Location = "Hlavná hala", Type = "Herný" }
+            new() { Title = "Tréning A-tímu", Date = DateTime.Now.AddDays(1).AddHours(18), Coach = "Ján Novák", Location = "Hlavná hala", Type = "Kondičný", Team = "a-team" },
+            new() { Title = "Tréning B-tímu", Date = DateTime.Now.AddDays(2).AddHours(17), Coach = "Peter Horváth", Location = "Vedľajšia hala", Type = "Technický", Team = "b-team" },
+            new() { Title = "Tréning žiakov", Date = DateTime.Now.AddDays(3).AddHours(16), Coach = "Mária Kováčová", Location = "Hlavná hala", Type = "Herný", Team = "youth" },
+            new() { Title = "Tréning A-tímu", Date = DateTime.Now.AddDays(4).AddHours(18), Coach = "Ján Novák", Location = "Hlavná hala", Type = "Herný", Team = "a-team" }
+        };
+    }
+
+    private List<TestTraining> GetFilteredTrainings()
+    {
+        var trainings = GetTestTrainings();
+
+        if (_selectedTeam != "all")
+            trainings = trainings.Where(t => t.Team == _selectedTeam).ToList();
+
+        if (_selectedType != "all")
+            trainings = trainings.Where(t => t.Type == _selectedType).ToList();
+
+        return trainings;
+    }
+
+    private Color GetTrainingTypeColor(string type)
+    {
+        return type switch
+        {
+            "Kondičný" => Color.Primary,
+            "Technický" => Color.Secondary,
+            "Herný" => Color.Tertiary,
+            _ => Color.Default
         };
     }
 }

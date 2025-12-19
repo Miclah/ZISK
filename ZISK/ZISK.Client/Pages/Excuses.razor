@@ -18,7 +18,7 @@
         <MudTd DataLabel="Dátum">@context.Date.ToString("dd.MM.yyyy")</MudTd>
         <MudTd DataLabel="Dôvod">@context.Reason</MudTd>
         <MudTd DataLabel="Stav">
-            @* <MudChip Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status</MudChip> *@
+            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status</MudChip>
         </MudTd>
     </RowTemplate>
 </MudTable>
