@@ -28,7 +28,7 @@
         <MudTh>Dátum</MudTh>
         <MudTh>Dôvod</MudTh>
         <MudTh>Stav</MudTh>
-        <MudTh Style="text-align: right;">Akcie</MudTh>  @* PRIDANÉ *@
+        <MudTh Style="text-align: right;">Akcie</MudTh>  
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Dátum">@context.Date.ToString("dd.MM.yyyy")</MudTd>
@@ -36,8 +36,9 @@
         <MudTd DataLabel="Stav">
             <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status</MudChip>
         </MudTd>
-        <MudTd DataLabel="Akcie" Style="text-align: right;">  @* PRIDANÉ *@
-            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" Size="Size.Small" />
+        <MudTd DataLabel="Akcie" Style="text-align: right;">  
+            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" Size="Size.Small"
+                           OnClick="@(() => ViewExcuseDetail(context))" />
             @if (context.Status == "Čaká na schválenie")
             {
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Secondary" Size="Size.Small" />
@@ -47,9 +48,38 @@
     </RowTemplate>
 </MudTable>
 
+<MudDialog @bind-IsVisible="_showDetailDialog" Options="_dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Detail ospravedlnenky</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_selectedExcuse != null)
+        {
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.body1"><strong>Dátum:</strong> @_selectedExcuse.Date.ToString("dd.MM.yyyy")</MudText>
+                <MudText Typo="Typo.body1"><strong>Dôvod:</strong> @_selectedExcuse.Reason</MudText>
+                <MudText Typo="Typo.body1">
+                    <strong>Stav:</strong> 
+                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(_selectedExcuse.Status)">
+                        @_selectedExcuse.Status
+                    </MudChip>
+                </MudText>
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => _showDetailDialog = false)">
+            Zavrieť
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
 @code {
 
     private string _selectedStatus = "all";
+    private bool _showDetailDialog = false;  
+    private TestExcuse? _selectedExcuse = null;  
+    private DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Medium, FullWidth = true };  
 
     private List<TestExcuse> GetFilteredExcuses()
     {
@@ -85,5 +115,11 @@
             "Zamietnuté" => Color.Error,
             _ => Color.Default
         };
+    }
+
+    private void ViewExcuseDetail(TestExcuse excuse)
+    {
+        _selectedExcuse = excuse;
+        _showDetailDialog = true;
     }
 }

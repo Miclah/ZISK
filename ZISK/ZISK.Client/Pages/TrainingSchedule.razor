@@ -22,55 +22,100 @@
                 <MudSelectItem Value="@("Herný")">Herný</MudSelectItem>
             </MudSelect>
         </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="string" @bind-Value="_selectedView" Label="Zobrazenie" Variant="Variant.Outlined">
+                <MudSelectItem Value="@("list")">Zoznam</MudSelectItem>
+                <MudSelectItem Value="@("calendar")">Kalendár</MudSelectItem>
+            </MudSelect>
+        </MudItem>
     </MudGrid>
 </MudPaper>
 
-<MudGrid>
-    @foreach (var training in GetFilteredTrainings())
-    {
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard>
-                <MudCardHeader>
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">@training.Title</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">
-                            <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" />
-                            @training.Date.ToString("dd.MM.yyyy HH:mm")
-                        </MudText>
-                    </CardHeaderContent>
-                    <CardHeaderActions>
-                        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Default" />
-                    </CardHeaderActions>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudStack Spacing="2">
-                        <MudText Typo="Typo.body2">
-                            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" /> 
-                            Tréner: @training.Coach
-                        </MudText>
-                        <MudText Typo="Typo.body2">
-                            <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" /> 
-                            @training.Location
-                        </MudText>
-                        <MudChip T="string" Size="Size.Small" Color="@GetTrainingTypeColor(training.Type)">@training.Type</MudChip>
-                    </MudStack>
-                </MudCardContent>
-                <MudCardActions>
-                    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OpenTrainingDetail(training))">
-                        Detail
-                    </MudButton>
-                    <MudButton Variant="Variant.Text" Color="Color.Secondary" Size="Size.Small" StartIcon="@Icons.Material.Filled.EventBusy">
-                        Ospravedlniť sa
-                    </MudButton>
-                </MudCardActions>
-            </MudCard>
-        </MudItem>
-    }
-</MudGrid>
+@if (_selectedView == "list")
+{
+    <MudGrid>
+        @foreach (var training in GetFilteredTrainings())
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard>
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">@training.Title</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" />
+                                @training.Date.ToString("dd.MM.yyyy HH:mm")
+                            </MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Default" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.body2">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" />
+                                Tréner: @training.Coach
+                            </MudText>
+                            <MudText Typo="Typo.body2">
+                                <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" />
+                                @training.Location
+                            </MudText>
+                            <MudChip T="string" Size="Size.Small" Color="@GetTrainingTypeColor(training.Type)">@training.Type</MudChip>
+                        </MudStack>
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OpenTrainingDetail(training))">
+                            Detail
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Secondary" Size="Size.Small" StartIcon="@Icons.Material.Filled.EventBusy">
+                            Ospravedlniť sa
+                        </MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+<MudDialog @bind-IsVisible="_showDetailDialog" Options="_dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Detail tréningu</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_selectedTraining != null)
+        {
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.h5">@_selectedTraining.Title</MudText>
+                <MudDivider />
+                <MudText Typo="Typo.body1">
+                    <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" />
+                    <strong>Dátum:</strong> @_selectedTraining.Date.ToString("dd.MM.yyyy HH:mm")
+                </MudText>
+                <MudText Typo="Typo.body1">
+                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" />
+                    <strong>Tréner:</strong> @_selectedTraining.Coach
+                </MudText>
+                <MudText Typo="Typo.body1">
+                    <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" />
+                    <strong>Lokácia:</strong> @_selectedTraining.Location
+                </MudText>
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => _showDetailDialog = false)">
+            Zavrieť
+        </MudButton>
+    </DialogActions>
+</MudDialog>
 
 @code {
     private string _selectedTeam = "all";
     private string _selectedType = "all";
+    private string _selectedView = "list";
+    private bool _showDetailDialog = false;
+    private TestTraining? _selectedTraining = null;
+    private DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Medium, FullWidth = true };
 
     private class TestTraining
     {
@@ -119,6 +164,7 @@
 
     private void OpenTrainingDetail(TestTraining training)
     {
-        // TODO
+        _selectedTraining = training;
+        _showDetailDialog = true;
     }
 }
