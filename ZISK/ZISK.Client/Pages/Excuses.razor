@@ -1,4 +1,5 @@
 ﻿@page "/ospravedlnenky"
+@using ZISK.Client.Pages.SampleData
 
 <PageTitle>Ospravedlnenky</PageTitle>
 
@@ -28,15 +29,33 @@
         <MudTh>Dátum</MudTh>
         <MudTh>Dôvod</MudTh>
         <MudTh>Stav</MudTh>
-        <MudTh Style="text-align: right;">Akcie</MudTh>  
+        <MudTh>Komentár trénera</MudTh>
+        <MudTh Style="text-align: right;">Akcie</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="Dátum">@context.Date.ToString("dd.MM.yyyy")</MudTd>
-        <MudTd DataLabel="Dôvod">@context.Reason</MudTd>
-        <MudTd DataLabel="Stav">
-            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status</MudChip>
+        <MudTd DataLabel="Dátum">
+            <MudText Typo="Typo.body2">@context.Date.ToString("dd.MM.yyyy")</MudText>
+            @if (context.DateTo.HasValue)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">do @context.DateTo.Value.ToString("dd.MM.yyyy")</MudText>
+            }
         </MudTd>
-        <MudTd DataLabel="Akcie" Style="text-align: right;">  
+        <MudTd DataLabel="Dôvod">
+            <MudText Typo="Typo.body2">@context.Reason</MudText>
+            @if (!string.IsNullOrEmpty(context.Note))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Note</MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="Stav">
+            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)" Variant="Variant.Filled">
+                @context.Status
+            </MudChip>
+        </MudTd>
+        <MudTd DataLabel="Komentár">
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@(context.CoachComment ?? "-")</MudText>
+        </MudTd>
+        <MudTd DataLabel="Akcie" Style="text-align: right;">
             <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" Size="Size.Small"
                            OnClick="@(() => ViewExcuseDetail(context))" />
             @if (context.Status == "Čaká na schválenie")
@@ -56,14 +75,27 @@
         @if (_selectedExcuse != null)
         {
             <MudStack Spacing="3">
-                <MudText Typo="Typo.body1"><strong>Dátum:</strong> @_selectedExcuse.Date.ToString("dd.MM.yyyy")</MudText>
-                <MudText Typo="Typo.body1"><strong>Dôvod:</strong> @_selectedExcuse.Reason</MudText>
                 <MudText Typo="Typo.body1">
-                    <strong>Stav:</strong> 
+                    <strong>Dátum:</strong> @_selectedExcuse.Date.ToString("dd.MM.yyyy")
+                    @if (_selectedExcuse.DateTo.HasValue)
+                    {
+                        <span> - @_selectedExcuse.DateTo.Value.ToString("dd.MM.yyyy")</span>
+                    }
+                </MudText>
+                <MudText Typo="Typo.body1"><strong>Dôvod:</strong> @_selectedExcuse.Reason</MudText>
+                <MudText Typo="Typo.body1"><strong>Poznámka:</strong> @(_selectedExcuse.Note ?? "-")</MudText>
+                <MudText Typo="Typo.body1">
+                    <strong>Stav:</strong>
                     <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(_selectedExcuse.Status)">
                         @_selectedExcuse.Status
                     </MudChip>
                 </MudText>
+                @if (!string.IsNullOrEmpty(_selectedExcuse.CoachComment))
+                {
+                    <MudDivider />
+                    <MudText Typo="Typo.body1"><strong>Komentár trénera:</strong></MudText>
+                    <MudAlert Severity="Severity.Info">@_selectedExcuse.CoachComment</MudAlert>
+                }
             </MudStack>
         }
     </DialogContent>
@@ -75,35 +107,24 @@
 </MudDialog>
 
 @code {
-
     private string _selectedStatus = "all";
-    private bool _showDetailDialog = false;  
-    private TestExcuse? _selectedExcuse = null;  
-    private DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Medium, FullWidth = true };  
+    private bool _showDetailDialog = false;
+    private ExcusesSampleData.Excuse? _selectedExcuse = null;
+    private DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Medium, FullWidth = true };
 
-    private List<TestExcuse> GetFilteredExcuses()
+    private List<ExcusesSampleData.Excuse> GetExcuses()
     {
-        var excuses = GetTestExcuses();
+        return ExcusesSampleData.GetExcuses();
+    }
+
+    private List<ExcusesSampleData.Excuse> GetFilteredExcuses()
+    {
+        var excuses = GetExcuses();
+
         if (_selectedStatus != "all")
             excuses = excuses.Where(e => e.Status == _selectedStatus).ToList();
-        return excuses;
-    }
 
-    private class TestExcuse
-    {
-        public DateTime Date { get; set; }
-        public string Reason { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
-    }
-
-    private List<TestExcuse> GetTestExcuses()
-    {
-        return new List<TestExcuse>
-        {
-            new() { Date = DateTime.Now.AddDays(-2), Reason = "Choroba", Status = "Schválené" },
-            new() { Date = DateTime.Now.AddDays(-1), Reason = "Rodinné dôvody", Status = "Čaká na schválenie" },
-            new() { Date = DateTime.Now, Reason = "Zranenie", Status = "Zamietnuté" }
-        };
+        return excuses.OrderByDescending(e => e.Date).ToList();
     }
 
     private Color GetStatusColor(string status)
@@ -117,7 +138,7 @@
         };
     }
 
-    private void ViewExcuseDetail(TestExcuse excuse)
+    private void ViewExcuseDetail(ExcusesSampleData.Excuse excuse)
     {
         _selectedExcuse = excuse;
         _showDetailDialog = true;

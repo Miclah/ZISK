@@ -1,4 +1,5 @@
 ﻿@page "/rozvrh"
+@using ZISK.Client.Pages.SampleData
 
 <PageTitle>Rozvrh tréningov</PageTitle>
 
@@ -76,6 +77,33 @@
         }
     </MudGrid>
 }
+else
+{
+    <MudPaper Class="pa-4" Elevation="2">
+        <MudText Typo="Typo.h6" Class="mb-4">Týždenný prehľad</MudText>
+        <MudTimeline TimelineOrientation="TimelineOrientation.Vertical">
+            @foreach (var training in GetFilteredTrainings().OrderBy(t => t.Date))
+            {
+                <MudTimelineItem Color="@GetTrainingTypeColor(training.Type)" Size="Size.Small">
+                    <ItemContent>
+                        <MudPaper Class="pa-3 mb-2" Elevation="1">
+                            <MudGrid>
+                                <MudItem xs="12" sm="8">
+                                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@training.Title</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">@training.Date.ToString("dd.MM.yyyy HH:mm")</MudText>
+                                    <MudText Typo="Typo.body2">@training.Coach • @training.Location</MudText>
+                                </MudItem>
+                                <MudItem xs="12" sm="4" Class="d-flex align-end justify-end">
+                                    <MudChip T="string" Size="Size.Small" Color="@GetTrainingTypeColor(training.Type)">@training.Type</MudChip>
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    </ItemContent>
+                </MudTimelineItem>
+            }
+        </MudTimeline>
+    </MudPaper>
+}
 
 <MudDialog @bind-IsVisible="_showDetailDialog" Options="_dialogOptions">
     <TitleContent>
@@ -99,10 +127,20 @@
                     <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" />
                     <strong>Lokácia:</strong> @_selectedTraining.Location
                 </MudText>
+                <MudText Typo="Typo.body1">
+                    <MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Small" />
+                    <strong>Typ:</strong> @_selectedTraining.Type
+                </MudText>
+                <MudText Typo="Typo.body1">
+                    <strong>Poznámky:</strong> @_selectedTraining.Description
+                </MudText>
             </MudStack>
         }
     </DialogContent>
     <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.EventBusy">
+            Ospravedlniť sa
+        </MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => _showDetailDialog = false)">
             Zavrieť
         </MudButton>
@@ -114,33 +152,17 @@
     private string _selectedType = "all";
     private string _selectedView = "list";
     private bool _showDetailDialog = false;
-    private TestTraining? _selectedTraining = null;
+    private TrainingScheduleSampleData.Training? _selectedTraining = null;
     private DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Medium, FullWidth = true };
 
-    private class TestTraining
+    private List<TrainingScheduleSampleData.Training> GetTrainings()
     {
-        public string Title { get; set; } = string.Empty;
-        public DateTime Date { get; set; }
-        public string Coach { get; set; } = string.Empty;
-        public string Location { get; set; } = string.Empty;
-        public string Type { get; set; } = string.Empty;
-        public string Team { get; set; } = string.Empty;  
+        return TrainingScheduleSampleData.GetTrainings();
     }
 
-    private List<TestTraining> GetTestTrainings()
+    private List<TrainingScheduleSampleData.Training> GetFilteredTrainings()
     {
-        return new List<TestTraining>
-        {
-            new() { Title = "Tréning A-tímu", Date = DateTime.Now.AddDays(1).AddHours(18), Coach = "Ján Novák", Location = "Hlavná hala", Type = "Kondičný", Team = "a-team" },
-            new() { Title = "Tréning B-tímu", Date = DateTime.Now.AddDays(2).AddHours(17), Coach = "Peter Horváth", Location = "Vedľajšia hala", Type = "Technický", Team = "b-team" },
-            new() { Title = "Tréning žiakov", Date = DateTime.Now.AddDays(3).AddHours(16), Coach = "Mária Kováčová", Location = "Hlavná hala", Type = "Herný", Team = "youth" },
-            new() { Title = "Tréning A-tímu", Date = DateTime.Now.AddDays(4).AddHours(18), Coach = "Ján Novák", Location = "Hlavná hala", Type = "Herný", Team = "a-team" }
-        };
-    }
-
-    private List<TestTraining> GetFilteredTrainings()
-    {
-        var trainings = GetTestTrainings();
+        var trainings = GetTrainings();
 
         if (_selectedTeam != "all")
             trainings = trainings.Where(t => t.Team == _selectedTeam).ToList();
@@ -162,7 +184,7 @@
         };
     }
 
-    private void OpenTrainingDetail(TestTraining training)
+    private void OpenTrainingDetail(TrainingScheduleSampleData.Training training)
     {
         _selectedTraining = training;
         _showDetailDialog = true;
