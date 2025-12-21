@@ -1,0 +1,41 @@
+﻿@page "/dochadzka/prehlad"
+
+<PageTitle>Moja dochádzka</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Moja dochádzka</MudText>
+
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    <MudGrid>
+        <MudItem xs="12" sm="6" md="4">
+            <MudSelect T="string" Label="Mesiac" Variant="Variant.Outlined">
+                <MudSelectItem Value="@("current")">Aktuálny mesiac</MudSelectItem>
+                <MudSelectItem Value="@("previous")">Predchádzajúci mesiac</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudPaper Class="pa-4" Elevation="2">
+    <MudText Typo="Typo.h6" Class="mb-4">Prehľad dochádzky</MudText>
+
+    <MudSimpleTable Hover="true" Dense="true" Bordered="true">
+        <thead>
+            <tr>
+                <th>Dátum</th>
+                <th>Tréning</th>
+                <th>Stav</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+            </tr>
+        </tbody>
+    </MudSimpleTable>
+</MudPaper>
+
+@code {
+
+}

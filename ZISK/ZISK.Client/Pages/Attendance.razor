@@ -1,0 +1,43 @@
+﻿@page "/dochadzka"
+
+<PageTitle>Dochádzka</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Dochádzka</MudText>
+
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    <MudGrid>
+        <MudItem xs="12" sm="6" md="4">
+            <MudDatePicker Label="Dátum tréningu" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudSelect T="string" Label="Tím" Variant="Variant.Outlined">
+                <MudSelectItem Value="@("all")">Všetky</MudSelectItem>
+                <MudSelectItem Value="@("a-team")">A-tím</MudSelectItem>
+                <MudSelectItem Value="@("b-team")">B-tím</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudTable T="object" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="3">
+    <HeaderContent>
+        <MudTh>Meno</MudTh>
+        <MudTh>Stav</MudTh>
+        <MudTh Style="text-align: right;">Akcie</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Meno">
+            <MudText Typo="Typo.body2">-</MudText>
+        </MudTd>
+        <MudTd DataLabel="Stav">
+            <MudChip T="string" Size="Size.Small" Color="Color.Default">-</MudChip>
+        </MudTd>
+        <MudTd DataLabel="Akcie" Style="text-align: right;">
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+
+}
