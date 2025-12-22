@@ -1,4 +1,5 @@
 ﻿@page "/dochadzka/prehlad"
+@using ZISK.Client.Pages.SampleData
 
 <PageTitle>Moja dochádzka</PageTitle>
 
@@ -12,85 +13,163 @@
                 <MudSelectItem Value="@("previous")">Predchádzajúci mesiac</MudSelectItem>
             </MudSelect>
         </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_searchText" Label="Hľadať" Variant="Variant.Outlined"
+                          Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" />
+        </MudItem>
     </MudGrid>
 </MudPaper>
 
 <MudPaper Class="pa-4 mb-4" Elevation="2">
-    <MudText Typo="Typo.h6" Class="mb-2">Štatistika</MudText>
+    <MudText Typo="Typo.h6" Class="mb-3">Štatistika za obdobie</MudText>
     <MudGrid>
         <MudItem xs="6" sm="3">
-            <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-success-lighten);">
+            <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-success-lighten); border-left: 4px solid var(--mud-palette-success);">
                 <MudText Typo="Typo.h4" Color="Color.Success">@GetStatCount("Prítomný")</MudText>
                 <MudText Typo="Typo.body2">Prítomný</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@GetPercentage("Prítomný")%</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="6" sm="3">
-            <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-error-lighten);">
+            <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-error-lighten); border-left: 4px solid var(--mud-palette-error);">
                 <MudText Typo="Typo.h4" Color="Color.Error">@GetStatCount("Neprítomný")</MudText>
                 <MudText Typo="Typo.body2">Neprítomný</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@GetPercentage("Neprítomný")%</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="6" sm="3">
-            <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-warning-lighten);">
+            <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-warning-lighten); border-left: 4px solid var(--mud-palette-warning);">
                 <MudText Typo="Typo.h4" Color="Color.Warning">@GetStatCount("Meškanie")</MudText>
                 <MudText Typo="Typo.body2">Meškanie</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@GetPercentage("Meškanie")%</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="6" sm="3">
-            <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-info-lighten);">
+            <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-info-lighten); border-left: 4px solid var(--mud-palette-info);">
                 <MudText Typo="Typo.h4" Color="Color.Info">@GetStatCount("Ospravedlnený")</MudText>
                 <MudText Typo="Typo.body2">Ospravedlnený</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@GetPercentage("Ospravedlnený")%</MudText>
             </MudPaper>
         </MudItem>
     </MudGrid>
 </MudPaper>
 
 <MudPaper Class="pa-4" Elevation="2">
-    <MudText Typo="Typo.h6" Class="mb-4">Prehľad dochádzky</MudText>
+    <MudText Typo="Typo.h6" Class="mb-4">Detailný prehľad</MudText>
 
-    <MudTable Items="@GetTestAttendance()" Hover="true" Dense="true" Striped="true">
+    <MudTable Items="@GetFilteredAttendance()" Hover="true" Dense="false" Striped="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
             <MudTh>Dátum</MudTh>
             <MudTh>Tréning</MudTh>
             <MudTh>Stav</MudTh>
             <MudTh>Poznámka</MudTh>
+            <MudTh Style="text-align: right;">Akcie</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Dátum">@context.Date.ToString("dd.MM.yyyy")</MudTd>
-            <MudTd DataLabel="Tréning">@context.TrainingName</MudTd>
+            <MudTd DataLabel="Dátum">
+                <MudText Typo="Typo.body2">@context.Date.ToString("dd.MM.yyyy")</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Date.ToString("dddd", new System.Globalization.CultureInfo("sk-SK"))</MudText>
+            </MudTd>
+            <MudTd DataLabel="Tréning">
+                <MudText Typo="Typo.body2">@context.TrainingName</MudText>
+            </MudTd>
             <MudTd DataLabel="Stav">
-                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)" Icon="@GetStatusIcon(context.Status)">
                     @context.Status
                 </MudChip>
             </MudTd>
-            <MudTd DataLabel="Poznámka">@(context.Note ?? "-")</MudTd>
+            <MudTd DataLabel="Poznámka">
+                <MudText Typo="Typo.body2">@(context.Note ?? "-")</MudText>
+                @if (!string.IsNullOrEmpty(context.CoachComment))
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        <MudIcon Icon="@Icons.Material.Filled.Comment" Size="Size.Small" />
+                        Komentár: @context.CoachComment
+                    </MudText>
+                }
+            </MudTd>
+            <MudTd DataLabel="Akcie" Style="text-align: right;">
+                <MudIconButton Icon="@Icons.Material.Filled.Info" Size="Size.Small" Color="Color.Primary"
+                               OnClick="@(() => ViewDetail(context))" />
+            </MudTd>
         </RowTemplate>
     </MudTable>
 </MudPaper>
 
+<MudDialog @bind-IsVisible="_showDetailDialog" Options="_dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Detail dochádzky</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_selectedRecord != null)
+        {
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.h6">@_selectedRecord.TrainingName</MudText>
+                <MudDivider />
+                <MudText Typo="Typo.body1">
+                    <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" />
+                    <strong>Dátum:</strong> @_selectedRecord.Date.ToString("dd.MM.yyyy HH:mm")
+                </MudText>
+                <MudText Typo="Typo.body1">
+                    <strong>Stav:</strong>
+                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(_selectedRecord.Status)">
+                        @_selectedRecord.Status
+                    </MudChip>
+                </MudText>
+                @if (!string.IsNullOrEmpty(_selectedRecord.Note))
+                {
+                    <MudText Typo="Typo.body1"><strong>Poznámka:</strong> @_selectedRecord.Note</MudText>
+                }
+                @if (!string.IsNullOrEmpty(_selectedRecord.CoachComment))
+                {
+                    <MudDivider />
+                    <MudText Typo="Typo.body1"><strong>Komentár trénera:</strong></MudText>
+                    <MudAlert Severity="Severity.Info">@_selectedRecord.CoachComment</MudAlert>
+                }
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => _showDetailDialog = false)">
+            Zavrieť
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
 @code {
     private string _selectedMonth = "current";
+    private string _searchText = string.Empty;
+    private bool _showDetailDialog = false;
+    private AttendanceSampleData.AttendanceRecord? _selectedRecord = null;
+    private DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Medium, FullWidth = true };
 
-    private class TestAttendanceRecord
+    private List<AttendanceSampleData.AttendanceRecord> GetAttendance()
     {
-        public DateTime Date { get; set; }
-        public string TrainingName { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
-        public string? Note { get; set; }
+        return AttendanceSampleData.GetUserAttendance();
     }
 
-    private List<TestAttendanceRecord> GetTestAttendance()
+    private List<AttendanceSampleData.AttendanceRecord> GetFilteredAttendance()
     {
-        return new List<TestAttendanceRecord>
+        var records = GetAttendance();
+
+        if (!string.IsNullOrWhiteSpace(_searchText))
         {
-            new() { Date = DateTime.Now.AddDays(-1), TrainingName = "Tréning A-tímu", Status = "Prítomný" },
-            new() { Date = DateTime.Now.AddDays(-3), TrainingName = "Tréning A-tímu", Status = "Meškanie", Note = "Meškal 10 minút" },
-            new() { Date = DateTime.Now.AddDays(-5), TrainingName = "Tréning A-tímu", Status = "Neprítomný", Note = "Choroba" },
-            new() { Date = DateTime.Now.AddDays(-7), TrainingName = "Tréning A-tímu", Status = "Prítomný" }
-        };
+            records = records.Where(r => r.TrainingName.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
+                                         (r.Note?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false))
+                           .ToList();
+        }
+
+        return records.OrderByDescending(r => r.Date).ToList();
     }
 
-    private int GetStatCount(string status) => GetTestAttendance().Count(a => a.Status == status);
+    private int GetStatCount(string status) => GetAttendance().Count(a => a.Status == status);
+
+    private int GetPercentage(string status)
+    {
+        var total = GetAttendance().Count;
+        if (total == 0) return 0;
+        return (int)Math.Round((double)GetStatCount(status) / total * 100);
+    }
 
     private Color GetStatusColor(string status)
     {
@@ -102,5 +181,23 @@
             "Ospravedlnený" => Color.Info,
             _ => Color.Default
         };
+    }
+
+    private string GetStatusIcon(string status)
+    {
+        return status switch
+        {
+            "Prítomný" => Icons.Material.Filled.CheckCircle,
+            "Neprítomný" => Icons.Material.Filled.Cancel,
+            "Meškanie" => Icons.Material.Filled.Schedule,
+            "Ospravedlnený" => Icons.Material.Filled.EventBusy,
+            _ => Icons.Material.Filled.Help
+        };
+    }
+
+    private void ViewDetail(AttendanceSampleData.AttendanceRecord record)
+    {
+        _selectedRecord = record;
+        _showDetailDialog = true;
     }
 }
