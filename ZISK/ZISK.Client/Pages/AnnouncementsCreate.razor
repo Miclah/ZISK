@@ -1,0 +1,31 @@
+﻿@page "/oznamy/vytvorit"
+
+<PageTitle>Vytvoriť oznam</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Vytvoriť nový oznam</MudText>
+
+<MudPaper Class="pa-4" Elevation="2">
+    <MudForm>
+        <MudStack Spacing="3">
+            <MudTextField T="string" Label="Nadpis" Variant="Variant.Outlined" />
+            <MudTextField T="string" Label="Obsah" Lines="5" Variant="Variant.Outlined" />
+            <MudSelect T="string" Label="Tím" Variant="Variant.Outlined">
+                <MudSelectItem Value="@("all")">Všetky</MudSelectItem>
+                <MudSelectItem Value="@("a-team")">A-tím</MudSelectItem>
+            </MudSelect>
+        </MudStack>
+    </MudForm>
+</MudPaper>
+
+<MudPaper Class="pa-4 mt-4" Elevation="0">
+    <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+        <MudButton Variant="Variant.Text" Color="Color.Default">Zrušiť</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send">
+            Zverejniť
+        </MudButton>
+    </MudStack>
+</MudPaper>
+
+@code {
+
+}

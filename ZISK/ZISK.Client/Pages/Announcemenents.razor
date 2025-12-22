@@ -1,0 +1,25 @@
+﻿@page "/oznamy"
+
+<PageTitle>Oznamy</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Oznamy</MudText>
+
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <MudTextField T="string" Placeholder="Hľadať v oznamoch..." Variant="Variant.Outlined"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudStack Spacing="3">
+    <MudPaper Class="pa-4" Elevation="2">
+        <MudText Typo="Typo.body1" Color="Color.Secondary">Žiadne oznamy</MudText>
+    </MudPaper>
+</MudStack>
+
+@code {
+
+}
