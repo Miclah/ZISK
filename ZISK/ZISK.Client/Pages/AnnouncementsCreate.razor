@@ -1,31 +1,90 @@
 ﻿@page "/oznamy/vytvorit"
+@inject NavigationManager NavigationManager
 
 <PageTitle>Vytvoriť oznam</PageTitle>
 
 <MudText Typo="Typo.h4" Class="mb-4">Vytvoriť nový oznam</MudText>
 
 <MudPaper Class="pa-4" Elevation="2">
-    <MudForm>
+    <MudForm @ref="_form" @bind-IsValid="_formIsValid">
         <MudStack Spacing="3">
-            <MudTextField T="string" Label="Nadpis" Variant="Variant.Outlined" />
-            <MudTextField T="string" Label="Obsah" Lines="5" Variant="Variant.Outlined" />
-            <MudSelect T="string" Label="Tím" Variant="Variant.Outlined">
-                <MudSelectItem Value="@("all")">Všetky</MudSelectItem>
-                <MudSelectItem Value="@("a-team")">A-tím</MudSelectItem>
+            <MudTextField @bind-Value="_announcement.Title" Label="Nadpis" Variant="Variant.Outlined"
+                          Required="true" RequiredError="Nadpis je povinný" />
+
+            <MudTextField @bind-Value="_announcement.Content" Label="Obsah" Lines="6" Variant="Variant.Outlined"
+                          Required="true" RequiredError="Obsah je povinný" />
+
+            <MudSelect @bind-Value="_announcement.Team" Label="Určené pre tím" Variant="Variant.Outlined" Required="true">
+                <MudSelectItem Value="@("Všetky")">Všetky tímy</MudSelectItem>
+                <MudSelectItem Value="@("A-tím")">A-tím</MudSelectItem>
+                <MudSelectItem Value="@("B-tím")">B-tím</MudSelectItem>
+                <MudSelectItem Value="@("Žiaci")">Žiaci</MudSelectItem>
             </MudSelect>
+
+            <MudSelect @bind-Value="_announcement.Priority" Label="Priorita" Variant="Variant.Outlined" Required="true">
+                <MudSelectItem Value="@("Nízka")">
+                    <div style="display: flex; align-items: center;">
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Color="Color.Info" Size="Size.Small" Class="mr-2" />
+                        <span>Nízka</span>
+                    </div>
+                </MudSelectItem>
+                <MudSelectItem Value="@("Stredná")">
+                    <div style="display: flex; align-items: center;">
+                        <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small" Class="mr-2" />
+                        <span>Stredná</span>
+                    </div>
+                </MudSelectItem>
+                <MudSelectItem Value="@("Vysoká")">
+                    <div style="display: flex; align-items: center;">
+                        <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Small" Class="mr-2" />
+                        <span>Vysoká</span>
+                    </div>
+                </MudSelectItem>
+            </MudSelect>
+
+            <MudCheckBox @bind-Value="_announcement.PinToTop" Label="Pripnúť hore (dôležité oznamy)" Color="Color.Primary" />
         </MudStack>
     </MudForm>
 </MudPaper>
 
 <MudPaper Class="pa-4 mt-4" Elevation="0">
-    <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
-        <MudButton Variant="Variant.Text" Color="Color.Default">Zrušiť</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send">
-            Zverejniť
-        </MudButton>
+    <MudStack Row="true" Spacing="2" Justify="Justify.SpaceBetween">
+        <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="Cancel">Zrušiť</MudButton>
+        <MudStack Row="true" Spacing="2">
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Disabled="@(!_formIsValid)">
+                Náhľad
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send"
+                       Disabled="@(!_formIsValid)" OnClick="Publish">
+                Zverejniť
+            </MudButton>
+        </MudStack>
     </MudStack>
 </MudPaper>
 
 @code {
+    private MudForm? _form;
+    private bool _formIsValid;
 
+    private class TestAnnouncementForm
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+        public string Team { get; set; } = "Všetky";
+        public string Priority { get; set; } = "Stredná";
+        public bool PinToTop { get; set; } = false;
+    }
+
+    private TestAnnouncementForm _announcement = new();
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/oznamy");
+    }
+
+    private void Publish()
+    {
+        // TODO
+        NavigationManager.NavigateTo("/oznamy");
+    }
 }

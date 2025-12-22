@@ -6,20 +6,100 @@
 
 <MudPaper Class="pa-4 mb-4" Elevation="2">
     <MudGrid>
-        <MudItem xs="12" sm="6">
-            <MudTextField T="string" Placeholder="Hľadať v oznamoch..." Variant="Variant.Outlined"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
-
+        <MudItem xs="12" sm="8" md="6">
+            <MudTextField @bind-Value="_searchText" Placeholder="Hľadať v oznamoch..." Variant="Variant.Outlined"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true" />
+        </MudItem>
+        <MudItem xs="12" sm="4" md="6" Class="d-flex align-end justify-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       Href="/oznamy/vytvorit">
+                Nový oznam
+            </MudButton>
         </MudItem>
     </MudGrid>
 </MudPaper>
 
 <MudStack Spacing="3">
-    <MudPaper Class="pa-4" Elevation="2">
-        <MudText Typo="Typo.body1" Color="Color.Secondary">Žiadne oznamy</MudText>
-    </MudPaper>
+    @foreach (var announcement in GetFilteredAnnouncements())
+    {
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack Spacing="2">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.h6">@announcement.Title</MudText>
+                    <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(announcement.Priority)">
+                        @announcement.Priority
+                    </MudChip>
+                </MudStack>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" />
+                    @announcement.Author • @announcement.CreatedAt.ToString("dd.MM.yyyy HH:mm")
+                </MudText>
+                <MudDivider />
+                <MudText Typo="Typo.body1">@announcement.Content</MudText>
+                <MudStack Row="true" Spacing="1">
+                    <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Group">@announcement.Team</MudChip>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    }
 </MudStack>
 
-@code {
+@if (!GetFilteredAnnouncements().Any())
+{
+    <MudPaper Class="pa-6 text-center" Elevation="0">
+        <MudIcon Icon="@Icons.Material.Filled.Announcement" Size="Size.Large" Color="Color.Secondary" />
+        <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mt-2">Žiadne oznamy</MudText>
+    </MudPaper>
+}
 
+@code {
+    private string _searchText = string.Empty;
+
+    private class TestAnnouncement
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+        public string Author { get; set; } = string.Empty;
+        public string Team { get; set; } = string.Empty;
+        public string Priority { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+    }
+
+    private List<TestAnnouncement> GetTestAnnouncements()
+    {
+        return new List<TestAnnouncement>
+        {
+            new() { Id = 1, Title = "Zrušený tréning", Content = "Dnešný tréning je zrušený kvôli počasiu.", Author = "Ján Novák", Team = "Všetky", Priority = "Vysoká", CreatedAt = DateTime.Now.AddHours(-1) },
+            new() { Id = 2, Title = "Nový rozvrh", Content = "Od pondelka nový rozvrh tréningov.", Author = "Mária Kováčová", Team = "A-tím", Priority = "Stredná", CreatedAt = DateTime.Now.AddDays(-1) },
+            new() { Id = 3, Title = "Turnaj", Content = "Registrácia na turnaj do piatku.", Author = "Peter Horváth", Team = "Všetky", Priority = "Nízka", CreatedAt = DateTime.Now.AddDays(-3) }
+        };
+    }
+
+    private List<TestAnnouncement> GetFilteredAnnouncements()
+    {
+        var announcements = GetTestAnnouncements();
+
+        if (!string.IsNullOrWhiteSpace(_searchText))
+        {
+            announcements = announcements.Where(a =>
+                a.Title.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
+                a.Content.Contains(_searchText, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        return announcements.OrderByDescending(a => a.CreatedAt).ToList();
+    }
+
+    private Color GetPriorityColor(string priority)
+    {
+        return priority switch
+        {
+            "Vysoká" => Color.Error,
+            "Stredná" => Color.Warning,
+            "Nízka" => Color.Info,
+            _ => Color.Default
+        };
+    }
 }
