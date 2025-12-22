@@ -7,7 +7,7 @@
 <MudPaper Class="pa-4 mb-4" Elevation="2">
     <MudGrid>
         <MudItem xs="12" sm="6" md="4">
-            <MudSelect T="string" Label="Mesiac" Variant="Variant.Outlined">
+            <MudSelect T="string" @bind-Value="_selectedMonth" Label="Mesiac" Variant="Variant.Outlined">
                 <MudSelectItem Value="@("current")">Aktuálny mesiac</MudSelectItem>
                 <MudSelectItem Value="@("previous")">Predchádzajúci mesiac</MudSelectItem>
             </MudSelect>
@@ -15,27 +15,92 @@
     </MudGrid>
 </MudPaper>
 
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    <MudText Typo="Typo.h6" Class="mb-2">Štatistika</MudText>
+    <MudGrid>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-success-lighten);">
+                <MudText Typo="Typo.h4" Color="Color.Success">@GetStatCount("Prítomný")</MudText>
+                <MudText Typo="Typo.body2">Prítomný</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-error-lighten);">
+                <MudText Typo="Typo.h4" Color="Color.Error">@GetStatCount("Neprítomný")</MudText>
+                <MudText Typo="Typo.body2">Neprítomný</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-warning-lighten);">
+                <MudText Typo="Typo.h4" Color="Color.Warning">@GetStatCount("Meškanie")</MudText>
+                <MudText Typo="Typo.body2">Meškanie</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-info-lighten);">
+                <MudText Typo="Typo.h4" Color="Color.Info">@GetStatCount("Ospravedlnený")</MudText>
+                <MudText Typo="Typo.body2">Ospravedlnený</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
 <MudPaper Class="pa-4" Elevation="2">
     <MudText Typo="Typo.h6" Class="mb-4">Prehľad dochádzky</MudText>
 
-    <MudSimpleTable Hover="true" Dense="true" Bordered="true">
-        <thead>
-            <tr>
-                <th>Dátum</th>
-                <th>Tréning</th>
-                <th>Stav</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-            </tr>
-        </tbody>
-    </MudSimpleTable>
+    <MudTable Items="@GetTestAttendance()" Hover="true" Dense="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Dátum</MudTh>
+            <MudTh>Tréning</MudTh>
+            <MudTh>Stav</MudTh>
+            <MudTh>Poznámka</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Dátum">@context.Date.ToString("dd.MM.yyyy")</MudTd>
+            <MudTd DataLabel="Tréning">@context.TrainingName</MudTd>
+            <MudTd DataLabel="Stav">
+                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+                    @context.Status
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Poznámka">@(context.Note ?? "-")</MudTd>
+        </RowTemplate>
+    </MudTable>
 </MudPaper>
 
 @code {
+    private string _selectedMonth = "current";
 
+    private class TestAttendanceRecord
+    {
+        public DateTime Date { get; set; }
+        public string TrainingName { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string? Note { get; set; }
+    }
+
+    private List<TestAttendanceRecord> GetTestAttendance()
+    {
+        return new List<TestAttendanceRecord>
+        {
+            new() { Date = DateTime.Now.AddDays(-1), TrainingName = "Tréning A-tímu", Status = "Prítomný" },
+            new() { Date = DateTime.Now.AddDays(-3), TrainingName = "Tréning A-tímu", Status = "Meškanie", Note = "Meškal 10 minút" },
+            new() { Date = DateTime.Now.AddDays(-5), TrainingName = "Tréning A-tímu", Status = "Neprítomný", Note = "Choroba" },
+            new() { Date = DateTime.Now.AddDays(-7), TrainingName = "Tréning A-tímu", Status = "Prítomný" }
+        };
+    }
+
+    private int GetStatCount(string status) => GetTestAttendance().Count(a => a.Status == status);
+
+    private Color GetStatusColor(string status)
+    {
+        return status switch
+        {
+            "Prítomný" => Color.Success,
+            "Neprítomný" => Color.Error,
+            "Meškanie" => Color.Warning,
+            "Ospravedlnený" => Color.Info,
+            _ => Color.Default
+        };
+    }
 }

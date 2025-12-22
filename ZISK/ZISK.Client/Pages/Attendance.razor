@@ -7,37 +7,96 @@
 <MudPaper Class="pa-4 mb-4" Elevation="2">
     <MudGrid>
         <MudItem xs="12" sm="6" md="4">
-            <MudDatePicker Label="Dátum tréningu" Variant="Variant.Outlined" />
+            <MudDatePicker @bind-Date="_selectedDate" Label="Dátum tréningu" Variant="Variant.Outlined" />
         </MudItem>
         <MudItem xs="12" sm="6" md="4">
-            <MudSelect T="string" Label="Tím" Variant="Variant.Outlined">
+            <MudSelect T="string" @bind-Value="_selectedTeam" Label="Tím" Variant="Variant.Outlined">
                 <MudSelectItem Value="@("all")">Všetky</MudSelectItem>
                 <MudSelectItem Value="@("a-team")">A-tím</MudSelectItem>
                 <MudSelectItem Value="@("b-team")">B-tím</MudSelectItem>
+                <MudSelectItem Value="@("youth")">Žiaci</MudSelectItem>
             </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="12" md="4" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Save" FullWidth="true">
+                Uložiť dochádzku
+            </MudButton>
         </MudItem>
     </MudGrid>
 </MudPaper>
 
-<MudTable T="object" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="3">
+<MudTable Items="@GetFilteredMembers()" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="3" Dense="true">
     <HeaderContent>
         <MudTh>Meno</MudTh>
         <MudTh>Stav</MudTh>
-        <MudTh Style="text-align: right;">Akcie</MudTh>
+        <MudTh>Poznámka</MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Meno">
-            <MudText Typo="Typo.body2">-</MudText>
+            <MudText Typo="Typo.body2">@context.Name</MudText>
         </MudTd>
         <MudTd DataLabel="Stav">
-            <MudChip T="string" Size="Size.Small" Color="Color.Default">-</MudChip>
+            <MudSelect T="string" @bind-Value="context.Status" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense">
+                <MudSelectItem Value="@("Prítomný")">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success">Prítomný</MudChip>
+                </MudSelectItem>
+                <MudSelectItem Value="@("Neprítomný")">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Error">Neprítomný</MudChip>
+                </MudSelectItem>
+                <MudSelectItem Value="@("Meškanie")">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Warning">Meškanie</MudChip>
+                </MudSelectItem>
+                <MudSelectItem Value="@("Ospravedlnený")">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info">Ospravedlnený</MudChip>
+                </MudSelectItem>
+            </MudSelect>
         </MudTd>
-        <MudTd DataLabel="Akcie" Style="text-align: right;">
-            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" />
+        <MudTd DataLabel="Poznámka">
+            <MudTextField @bind-Value="context.Note" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" />
         </MudTd>
     </RowTemplate>
 </MudTable>
 
-@code {
+<MudPaper Class="pa-4 mt-4" Elevation="2">
+    <MudText Typo="Typo.body2">
+        <strong>Štatistika:</strong> Prítomných: @GetPresentCount() | Neprítomných: @GetAbsentCount()
+    </MudText>
+</MudPaper>
 
+@code {
+    private DateTime? _selectedDate = DateTime.Now;
+    private string _selectedTeam = "all";
+
+    private class TestMember
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Team { get; set; } = string.Empty;
+        public string Status { get; set; } = "Prítomný";
+        public string Note { get; set; } = string.Empty;
+    }
+
+    private List<TestMember> GetTestMembers()
+    {
+        return new List<TestMember>
+        {
+            new() { Id = 1, Name = "Ján Novák", Team = "a-team", Status = "Prítomný" },
+            new() { Id = 2, Name = "Peter Horváth", Team = "a-team", Status = "Neprítomný" },
+            new() { Id = 3, Name = "Mária Kováčová", Team = "b-team", Status = "Meškanie" },
+            new() { Id = 4, Name = "Lucia Varga", Team = "youth", Status = "Ospravedlnený" }
+        };
+    }
+
+    private List<TestMember> GetFilteredMembers()
+    {
+        var members = GetTestMembers();
+
+        if (_selectedTeam != "all")
+            members = members.Where(m => m.Team == _selectedTeam).ToList();
+
+        return members;
+    }
+
+    private int GetPresentCount() => GetFilteredMembers().Count(m => m.Status == "Prítomný");
+    private int GetAbsentCount() => GetFilteredMembers().Count(m => m.Status == "Neprítomný");
 }
