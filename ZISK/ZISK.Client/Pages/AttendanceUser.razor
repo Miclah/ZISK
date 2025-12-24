@@ -20,6 +20,24 @@
     </MudGrid>
 </MudPaper>
 
+@if (HasPendingExcuses())
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-4" Elevation="2">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <div>
+                <MudText Typo="Typo.body1">
+                    <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" />
+                    Máte <strong>@GetPendingExcusesCount()</strong> čakajúce ospravedlnenky
+                </MudText>
+            </div>
+            <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.OpenInNew"
+                       Href="/ospravedlnenky">
+                Zobraziť
+            </MudButton>
+        </MudStack>
+    </MudAlert>
+}
+
 <MudPaper Class="pa-4 mb-4" Elevation="2">
     <MudText Typo="Typo.h6" Class="mb-3">Štatistika za obdobie</MudText>
     <MudGrid>
@@ -79,14 +97,30 @@
                 </MudChip>
             </MudTd>
             <MudTd DataLabel="Poznámka">
-                <MudText Typo="Typo.body2">@(context.Note ?? "-")</MudText>
-                @if (!string.IsNullOrEmpty(context.CoachComment))
-                {
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                        <MudIcon Icon="@Icons.Material.Filled.Comment" Size="Size.Small" />
-                        Komentár: @context.CoachComment
-                    </MudText>
-                }
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.body2">@(context.Note ?? "-")</MudText>
+                    @if (!string.IsNullOrEmpty(context.CoachComment))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            <MudIcon Icon="@Icons.Material.Filled.Comment" Size="Size.Small" />
+                            Komentár: @context.CoachComment
+                        </MudText>
+                    }
+                    @if (context.Status == "Ospravedlnený" && HasExcuseForTraining(context.TrainingId))
+                    {
+                        <MudLink Href="/ospravedlnenky" Typo="Typo.caption" Color="Color.Info">
+                            <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" />
+                            Zobraziť ospravedlnenku
+                        </MudLink>
+                    }
+                    else if (context.Status == "Neprítomný" && !HasExcuseForTraining(context.TrainingId))
+                    {
+                        <MudLink Href="/ospravedlnenky" Typo="Typo.caption" Color="Color.Warning">
+                            <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Small" />
+                            Podať ospravedlnenku
+                        </MudLink>
+                    }
+                </MudStack>
             </MudTd>
             <MudTd DataLabel="Akcie" Style="text-align: right;">
                 <MudIconButton Icon="@Icons.Material.Filled.Info" Size="Size.Small" Color="Color.Primary"
@@ -199,5 +233,23 @@
     {
         _selectedRecord = record;
         _showDetailDialog = true;
+    }
+
+    private bool HasPendingExcuses()
+    {
+        // TODO
+        return true;
+    }
+
+    private int GetPendingExcusesCount()
+    {
+        // TODO
+        return 2;
+    }
+
+    private bool HasExcuseForTraining(int trainingId)
+    {
+        // TODO
+        return trainingId % 2 == 0; 
     }
 }
