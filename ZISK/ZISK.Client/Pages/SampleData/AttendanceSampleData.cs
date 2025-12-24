@@ -10,6 +10,19 @@ public static class AttendanceSampleData
         public string Status { get; set; } = "Prítomný";
         public string Note { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+        public bool HasExcuse { get; set; } = false;  
+        public string? ExcuseReason { get; set; }  
+    }
+
+    public class Training  
+    {
+        public int Id { get; set; }
+        public DateTime Date { get; set; }
+        public string Team { get; set; } = string.Empty;
+        public string TeamName { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public bool IsLocked { get; set; } = false;
+        public string? CoachNote { get; set; }
     }
 
     public class AttendanceRecord
@@ -24,18 +37,31 @@ public static class AttendanceSampleData
         public DateTime CreatedAt { get; set; }
         public string? CoachComment { get; set; }
     }
+
+    public static List<Training> GetTrainings()
+    {
+        return new List<Training>
+        {
+            new() { Id = 1, Date = DateTime.Now, Team = "a-team", TeamName = "A-tím", Type = "Kondičný", IsLocked = false },
+            new() { Id = 2, Date = DateTime.Now.AddDays(-1), Team = "a-team", TeamName = "A-tím", Type = "Technický", IsLocked = false, CoachNote = "Tréning skrátený o 15 minút" },
+            new() { Id = 3, Date = DateTime.Now.AddDays(-3), Team = "b-team", TeamName = "B-tím", Type = "Herný", IsLocked = true },
+            new() { Id = 4, Date = DateTime.Now.AddDays(-7), Team = "a-team", TeamName = "A-tím", Type = "Kondičný", IsLocked = true },
+            new() { Id = 5, Date = DateTime.Now.AddDays(1), Team = "youth", TeamName = "Žiaci", Type = "Technický", IsLocked = false }
+        };
+    }
+
     public static List<Member> GetMembers()
     {
         return new List<Member>
         {
-            new() { Id = 1, Name = "Ján Novák", Team = "a-team", Status = "Prítomný", Email = "jan.novak@example.com" },
-            new() { Id = 2, Name = "Peter Horváth", Team = "a-team", Status = "Neprítomný", Email = "peter.horvath@example.com" },
-            new() { Id = 3, Name = "Mária Kováčová", Team = "b-team", Status = "Meškanie", Email = "maria.kovacova@example.com" },
-            new() { Id = 4, Name = "Lucia Varga", Team = "youth", Status = "Ospravedlnený", Email = "lucia.varga@example.com" },
-            new() { Id = 5, Name = "Martin Balog", Team = "a-team", Status = "Prítomný", Email = "martin.balog@example.com" },
-            new() { Id = 6, Name = "Eva Tóthová", Team = "b-team", Status = "Prítomný", Email = "eva.tothova@example.com" },
-            new() { Id = 7, Name = "Tomáš Németh", Team = "youth", Status = "Meškanie", Email = "tomas.nemeth@example.com" },
-            new() { Id = 8, Name = "Zuzana Králová", Team = "a-team", Status = "Prítomný", Email = "zuzana.kralova@example.com" }
+            new() { Id = 1, Name = "Ján Novák", Team = "a-team", Status = "Prítomný", Email = "jan.novak@example.com", HasExcuse = false },
+            new() { Id = 2, Name = "Peter Horváth", Team = "a-team", Status = "Neprítomný", Email = "peter.horvath@example.com", HasExcuse = false },
+            new() { Id = 3, Name = "Mária Kováčová", Team = "b-team", Status = "Meškanie", Email = "maria.kovacova@example.com", HasExcuse = false },
+            new() { Id = 4, Name = "Lucia Varga", Team = "youth", Status = "Ospravedlnený", Email = "lucia.varga@example.com", HasExcuse = true, ExcuseReason = "Choroba" },
+            new() { Id = 5, Name = "Martin Balog", Team = "a-team", Status = "Prítomný", Email = "martin.balog@example.com", HasExcuse = false },
+            new() { Id = 6, Name = "Eva Tóthová", Team = "b-team", Status = "Prítomný", Email = "eva.tothova@example.com", HasExcuse = false },
+            new() { Id = 7, Name = "Tomáš Németh", Team = "youth", Status = "Meškanie", Email = "tomas.nemeth@example.com", HasExcuse = false },
+            new() { Id = 8, Name = "Zuzana Králová", Team = "a-team", Status = "Ospravedlnený", Email = "zuzana.kralova@example.com", HasExcuse = true, ExcuseReason = "Rodinné dôvody" }
         };
     }
 
