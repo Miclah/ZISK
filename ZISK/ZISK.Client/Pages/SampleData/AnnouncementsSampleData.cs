@@ -13,7 +13,22 @@ public static class AnnouncementsSampleData
         public bool IsPinned { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public DateTime? ValidUntil { get; set; }  
         public int ViewCount { get; set; }
+
+        public string TargetAudience { get; set; } = "Všetci";  
+        public List<Attachment> Attachments { get; set; } = new();
+
+        public bool IsRead { get; set; } = false;
+    }
+
+    public class Attachment  
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty; 
+        public string Url { get; set; } = string.Empty;
+        public long SizeBytes { get; set; }
     }
 
     public static List<Announcement> GetAnnouncements()
@@ -23,16 +38,18 @@ public static class AnnouncementsSampleData
             new()
             {
                 Id = 1,
-                Title = "DÔLEŽITÉ: Zrušený tréning dnes večer",
+                Title = "⚠️ DÔLEŽITÉ: Zrušený tréning dnes večer",
                 Content = "Dnešný večerný tréning o 18:00 je zrušený z dôvodu nepriaznivého počasia. " +
                           "Tréning sa preloží na zajtrajší deň o 17:00. Prosím všetkých členov o potvrdenie účasti.",
                 AuthorId = "coach1",
                 AuthorName = "Ján Novák",
                 Team = "Všetky",
+                TargetAudience = "Všetci",
                 Priority = "Vysoká",
                 IsPinned = true,
                 CreatedAt = DateTime.Now.AddHours(-1),
-                ViewCount = 24
+                ViewCount = 24,
+                IsRead = false
             },
             new()
             {
@@ -44,25 +61,40 @@ public static class AnnouncementsSampleData
                 AuthorName = "Mária Kováčová",
                 AuthorId = "coach2",
                 Team = "Všetky",
+                TargetAudience = "Všetci",
                 Priority = "Stredná",
                 IsPinned = false,
                 CreatedAt = DateTime.Now.AddDays(-1),
-                ViewCount = 45
+                ValidUntil = DateTime.Now.AddDays(7),
+                ViewCount = 45,
+                IsRead = true,
+                Attachments = new List<Attachment>
+                {
+                    new() { Id = 1, Name = "Rozvrh_2024.pdf", Type = "pdf", Url = "/files/rozvrh.pdf", SizeBytes = 245000 }
+                }
             },
             new()
             {
                 Id = 3,
                 Title = "Registrácia na letný turnaj",
-                Content = "Prebiehala registrácia na letný turnaj v Bratislave (15.-17. jún). " +
+                Content = "Prebieha registrácia na letný turnaj v Bratislave (15.-17. jún). " +
                           "Uzávierka prihlášok je tento piatok. Registrujte sa prosím cez formulár " +
                           "alebo kontaktujte trénera Petra Horvátha.",
                 AuthorName = "Peter Horváth",
                 AuthorId = "coach3",
                 Team = "A-tím",
+                TargetAudience = "Športovci",
                 Priority = "Stredná",
                 IsPinned = false,
                 CreatedAt = DateTime.Now.AddDays(-3),
-                ViewCount = 32
+                ValidUntil = DateTime.Now.AddDays(2),
+                ViewCount = 32,
+                IsRead = true,
+                Attachments = new List<Attachment>
+                {
+                    new() { Id = 2, Name = "Prihláška_turnaj.pdf", Type = "pdf", Url = "/files/prihlaska.pdf", SizeBytes = 128000 },
+                    new() { Id = 3, Name = "Info_turnaj.docx", Type = "doc", Url = "/files/info.docx", SizeBytes = 56000 }
+                }
             },
             new()
             {
@@ -73,10 +105,16 @@ public static class AnnouncementsSampleData
                 AuthorName = "Ján Novák",
                 AuthorId = "coach1",
                 Team = "Všetky",
+                TargetAudience = "Rodičia",
                 Priority = "Nízka",
                 IsPinned = false,
                 CreatedAt = DateTime.Now.AddDays(-5),
-                ViewCount = 67
+                ViewCount = 67,
+                IsRead = true,
+                Attachments = new List<Attachment>
+                {
+                    new() { Id = 4, Name = "dresy_foto.jpg", Type = "image", Url = "/files/dresy.jpg", SizeBytes = 1200000 }
+                }
             },
             new()
             {
@@ -87,24 +125,28 @@ public static class AnnouncementsSampleData
                 AuthorName = "Admin Systém",
                 AuthorId = "admin1",
                 Team = "Všetky",
+                TargetAudience = "Všetci",
                 Priority = "Nízka",
                 IsPinned = false,
                 CreatedAt = DateTime.Now.AddDays(-7),
-                ViewCount = 15
+                ViewCount = 15,
+                IsRead = false
             },
             new()
             {
                 Id = 6,
                 Title = "Žiaci: Príprava na súťaž",
                 Content = "Pripomíname žiakom extra tréning v sobotu 9:00 ako prípravu na regionálnu súťaž. " +
-                          "Prosíme rodičov o včasnú dopravy detí.",
+                          "Prosíme rodičov o včasnú dopravu detí. Nezabudnite na pitný režim a vhodnú výbavu.",
                 AuthorName = "Mária Kováčová",
                 AuthorId = "coach2",
                 Team = "Žiaci",
+                TargetAudience = "Rodičia",
                 Priority = "Vysoká",
                 IsPinned = false,
                 CreatedAt = DateTime.Now.AddDays(-2),
-                ViewCount = 28
+                ViewCount = 28,
+                IsRead = false
             }
         };
     }
