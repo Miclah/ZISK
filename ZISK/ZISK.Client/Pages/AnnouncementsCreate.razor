@@ -19,43 +19,113 @@
 
                     <MudTextField @bind-Value="_announcement.Content" Label="Obsah oznamu" Lines="8" Variant="Variant.Outlined"
                                   Required="true" RequiredError="Obsah je povinný"
-                                  Counter="500" MaxLength="500"
+                                  Counter="1000" MaxLength="1000"
                                   HelperText="Detailný popis oznamu" />
 
-                    <MudSelect @bind-Value="_announcement.Team" Label="Určené pre tím" Variant="Variant.Outlined"
-                               Required="true" HelperText="Ktorému tímu je oznam určený">
-                        <MudSelectItem Value="@("Všetky")">
-                            <div style="display: flex; align-items: center;">
-                                <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Small" Class="mr-2" />
-                                <span>Všetky tímy</span>
-                            </div>
-                        </MudSelectItem>
-                        <MudSelectItem Value="@("A-tím")">A-tím</MudSelectItem>
-                        <MudSelectItem Value="@("B-tím")">B-tím</MudSelectItem>
-                        <MudSelectItem Value="@("Žiaci")">Žiaci</MudSelectItem>
-                    </MudSelect>
+                    <MudGrid>
+                        <MudItem xs="12" sm="6">
+                            <MudSelect @bind-Value="_announcement.Team" Label="Určené pre tím" Variant="Variant.Outlined"
+                                       Required="true" HelperText="Ktorému tímu je oznam určený">
+                                <MudSelectItem Value="@("Všetky")">
+                                    <div style="display: flex; align-items: center;">
+                                        <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Small" Class="mr-2" />
+                                        <span>Všetky tímy</span>
+                                    </div>
+                                </MudSelectItem>
+                                <MudSelectItem Value="@("A-tím")">A-tím</MudSelectItem>
+                                <MudSelectItem Value="@("B-tím")">B-tím</MudSelectItem>
+                                <MudSelectItem Value="@("Žiaci")">Žiaci</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudSelect @bind-Value="_announcement.TargetAudience" Label="Cieľová skupina" Variant="Variant.Outlined"
+                                       Required="true" HelperText="Komu je oznam určený">
+                                <MudSelectItem Value="@("Všetci")">
+                                    <div style="display: flex; align-items: center;">
+                                        <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Small" Class="mr-2" />
+                                        <span>Všetci</span>
+                                    </div>
+                                </MudSelectItem>
+                                <MudSelectItem Value="@("Rodičia")">
+                                    <div style="display: flex; align-items: center;">
+                                        <MudIcon Icon="@Icons.Material.Filled.FamilyRestroom" Size="Size.Small" Class="mr-2" />
+                                        <span>Rodičia</span>
+                                    </div>
+                                </MudSelectItem>
+                                <MudSelectItem Value="@("Športovci")">
+                                    <div style="display: flex; align-items: center;">
+                                        <MudIcon Icon="@Icons.Material.Filled.SportsHandball" Size="Size.Small" Class="mr-2" />
+                                        <span>Športovci</span>
+                                    </div>
+                                </MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                    </MudGrid>
 
-                    <MudSelect @bind-Value="_announcement.Priority" Label="Priorita" Variant="Variant.Outlined"
-                               Required="true" HelperText="Dôležitosť oznamu">
-                        <MudSelectItem Value="@("Nízka")">
-                            <div style="display: flex; align-items: center;">
-                                <MudIcon Icon="@Icons.Material.Filled.Info" Color="Color.Info" Size="Size.Small" Class="mr-2" />
-                                <span>Nízka (informačné)</span>
-                            </div>
-                        </MudSelectItem>
-                        <MudSelectItem Value="@("Stredná")">
-                            <div style="display: flex; align-items: center;">
-                                <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small" Class="mr-2" />
-                                <span>Stredná (dôležité)</span>
-                            </div>
-                        </MudSelectItem>
-                        <MudSelectItem Value="@("Vysoká")">
-                            <div style="display: flex; align-items: center;">
-                                <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Small" Class="mr-2" />
-                                <span>Vysoká (urgentné)</span>
-                            </div>
-                        </MudSelectItem>
-                    </MudSelect>
+                    <MudGrid>
+                        <MudItem xs="12" sm="6">
+                            <MudSelect @bind-Value="_announcement.Priority" Label="Priorita" Variant="Variant.Outlined"
+                                       Required="true" HelperText="Dôležitosť oznamu">
+                                <MudSelectItem Value="@("Nízka")">
+                                    <div style="display: flex; align-items: center;">
+                                        <MudIcon Icon="@Icons.Material.Filled.Info" Color="Color.Info" Size="Size.Small" Class="mr-2" />
+                                        <span>Nízka (informačné)</span>
+                                    </div>
+                                </MudSelectItem>
+                                <MudSelectItem Value="@("Stredná")">
+                                    <div style="display: flex; align-items: center;">
+                                        <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small" Class="mr-2" />
+                                        <span>Stredná (dôležité)</span>
+                                    </div>
+                                </MudSelectItem>
+                                <MudSelectItem Value="@("Vysoká")">
+                                    <div style="display: flex; align-items: center;">
+                                        <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Small" Class="mr-2" />
+                                        <span>Vysoká (urgentné)</span>
+                                    </div>
+                                </MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudDatePicker @bind-Date="_announcement.ValidUntil" Label="Platí do (voliteľné)" Variant="Variant.Outlined"
+                                           HelperText="Dátum kedy oznam stratí platnosť"
+                                           MinDate="DateTime.Now" />
+                        </MudItem>
+                    </MudGrid>
+
+                    <MudDivider />
+
+                    <MudText Typo="Typo.subtitle1">
+                        <MudIcon Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small" />
+                        Prílohy
+                    </MudText>
+
+                    <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="OnFilesChanged" MaximumFileCount="5">
+                        <ActivatorContent>
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload">
+                                Pridať prílohy
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+
+                    @if (_uploadedFiles.Any())
+                    {
+                        <MudStack Spacing="1">
+                            @foreach (var file in _uploadedFiles)
+                            {
+                                <MudChip T="string" Size="Size.Medium" Color="Color.Default"
+                                         Icon="@GetFileIcon(file.Name)"
+                                         OnClose="@(() => RemoveFile(file))">
+                                    @file.Name (@FormatFileSize(file.Size))
+                                </MudChip>
+                            }
+                        </MudStack>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Max. 5 súborov, podporované formáty: PDF, DOC, DOCX, JPG, PNG
+                        </MudText>
+                    }
+
+                    <MudDivider />
 
                     <MudCheckBox @bind-Value="_announcement.PinToTop" Label="Pripnúť hore (zobrazí sa na začiatku feedu)"
                                  Color="Color.Primary" />
@@ -87,7 +157,7 @@
         @if (_showPreview)
         {
             <MudPaper Class="pa-4" Elevation="2">
-                <MudText Typo="Typo.h6" Class="mb-3">Náhľad</MudText>
+                <MudText Typo="Typo.h6" Class="mb-3">Náhľad oznamu</MudText>
                 <MudDivider Class="mb-3" />
 
                 <MudStack Spacing="2">
@@ -115,23 +185,66 @@
                         @(_announcement.Content ?? "Obsah oznamu...")
                     </MudText>
 
-                    <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Group" Color="Color.Default">
-                        @_announcement.Team
-                    </MudChip>
+                    @if (_uploadedFiles.Any())
+                    {
+                        <MudDivider />
+                        <MudText Typo="Typo.caption">
+                            <MudIcon Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small" />
+                            @_uploadedFiles.Count prílohy
+                        </MudText>
+                    }
+
+                    <MudStack Row="true" Spacing="1">
+                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Group" Color="Color.Default">
+                            @_announcement.Team
+                        </MudChip>
+                        <MudChip T="string" Size="Size.Small" Icon="@GetAudienceIcon(_announcement.TargetAudience)" Color="Color.Default">
+                            @_announcement.TargetAudience
+                        </MudChip>
+                    </MudStack>
+
+                    @if (_announcement.ValidUntil.HasValue)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" />
+                            Platí do: @_announcement.ValidUntil.Value.ToString("dd.MM.yyyy")
+                        </MudText>
+                    }
                 </MudStack>
             </MudPaper>
         }
         else
         {
             <MudPaper Class="pa-4" Elevation="1">
-                <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
+                <MudStack AlignItems="AlignItems.Center" Spacing="2">
                     <MudIcon Icon="@Icons.Material.Filled.Visibility" Size="Size.Large" Color="Color.Secondary" />
-                </MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center" Class="mt-2">
-                    Kliknite na "Zobraziť náhľad" pre zobrazenie ako bude oznam vyzerať
-                </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
+                        Kliknite na "Zobraziť náhľad" pre zobrazenie ako bude oznam vyzerať
+                    </MudText>
+                </MudStack>
             </MudPaper>
         }
+
+        <MudPaper Class="pa-4 mt-4" Elevation="1">
+            <MudText Typo="Typo.subtitle2" Class="mb-2">
+                <MudIcon Icon="@Icons.Material.Filled.Help" Size="Size.Small" />
+                Tipy pre oznam
+            </MudText>
+            <MudList T="string" Dense="true">
+                <MudListItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                    Použite jasný a stručný nadpis
+                </MudListItem>
+                <MudListItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                    Urgentné oznamy označte ako "Vysoká" priorita
+                </MudListItem>
+                <MudListItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                    Pripnite dôležité oznamy
+                </MudListItem>
+                <MudListItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                    Nastavte dátum platnosti ak je relevantný
+                </MudListItem>
+            </MudList>
+        </MudPaper>
     </MudItem>
 </MudGrid>
 
@@ -139,13 +252,16 @@
     private MudForm? _form;
     private bool _formIsValid;
     private bool _showPreview = false;
+    private List<IBrowserFile> _uploadedFiles = new();
 
     private class AnnouncementForm
     {
         public string Title { get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
         public string Team { get; set; } = "Všetky";
+        public string TargetAudience { get; set; } = "Všetci";
         public string Priority { get; set; } = "Stredná";
+        public DateTime? ValidUntil { get; set; }
         public bool PinToTop { get; set; } = false;
     }
 
@@ -163,6 +279,43 @@
         NavigationManager.NavigateTo("/oznamy");
     }
 
+    private void OnFilesChanged(IReadOnlyList<IBrowserFile> files)
+    {
+        foreach (var file in files)
+        {
+            if (_uploadedFiles.Count >= 5)
+            {
+                Snackbar.Add("Maximálny počet príloh je 5", Severity.Warning);
+                break;
+            }
+            _uploadedFiles.Add(file);
+        }
+    }
+
+    private void RemoveFile(IBrowserFile file)
+    {
+        _uploadedFiles.Remove(file);
+    }
+
+    private string GetFileIcon(string fileName)
+    {
+        var extension = Path.GetExtension(fileName).ToLower();
+        return extension switch
+        {
+            ".pdf" => Icons.Material.Filled.PictureAsPdf,
+            ".jpg" or ".jpeg" or ".png" or ".gif" => Icons.Material.Filled.Image,
+            ".doc" or ".docx" => Icons.Material.Filled.Description,
+            _ => Icons.Material.Filled.AttachFile
+        };
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024} KB";
+        return $"{bytes / 1024 / 1024} MB";
+    }
+
     private Color GetPriorityColor(string priority)
     {
         return priority switch
@@ -171,6 +324,16 @@
             "Stredná" => Color.Warning,
             "Nízka" => Color.Info,
             _ => Color.Default
+        };
+    }
+
+    private string GetAudienceIcon(string audience)
+    {
+        return audience switch
+        {
+            "Rodičia" => Icons.Material.Filled.FamilyRestroom,
+            "Športovci" => Icons.Material.Filled.SportsHandball,
+            _ => Icons.Material.Filled.Groups
         };
     }
 }
