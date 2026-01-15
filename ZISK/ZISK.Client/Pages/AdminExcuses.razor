@@ -1,0 +1,143 @@
+﻿@page "/admin/ospravedlnenky"
+@inject ISnackbar Snackbar
+
+<PageTitle>Správa ospravedlneniek</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Správa ospravedlneniek</MudText>
+
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    <MudGrid>
+        <MudItem xs="12" sm="6" md="4">
+            <MudSelect T="string" @bind-Value="_selectedStatus" Label="Stav" Variant="Variant.Outlined">
+                <MudSelectItem Value="@("all")">Všetky</MudSelectItem>
+                <MudSelectItem Value="@("Čaká na schválenie")">Čaká na schválenie</MudSelectItem>
+                <MudSelectItem Value="@("Schválené")">Schválené</MudSelectItem>
+                <MudSelectItem Value="@("Zamietnuté")">Zamietnuté</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_searchText" Placeholder="Hľadať..." Variant="Variant.Outlined"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (GetPendingCount() > 0)
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-4">
+        <strong>@GetPendingCount()</strong> ospravedlneniek čaká na schválenie
+    </MudAlert>
+}
+
+<MudTable Items="@GetFilteredExcuses()" Hover="true" Striped="true" Elevation="3">
+    <HeaderContent>
+        <MudTh>Člen</MudTh>
+        <MudTh>Dátum</MudTh>
+        <MudTh>Dôvod</MudTh>
+        <MudTh>Stav</MudTh>
+        <MudTh>Podané</MudTh>
+        <MudTh Style="text-align: right;">Akcie</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Člen">
+            <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.MemberName</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Team</MudText>
+        </MudTd>
+        <MudTd DataLabel="Dátum">
+            <MudText Typo="Typo.body2">@context.Date.ToString("dd.MM.yyyy")</MudText>
+        </MudTd>
+        <MudTd DataLabel="Dôvod">
+            <MudText Typo="Typo.body2">@context.Reason</MudText>
+            @if (!string.IsNullOrEmpty(context.Note))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Note</MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="Stav">
+            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)" Variant="Variant.Filled">
+                @context.Status
+            </MudChip>
+        </MudTd>
+        <MudTd DataLabel="Podané">
+            <MudText Typo="Typo.body2">@context.CreatedAt.ToString("dd.MM.yyyy")</MudText>
+        </MudTd>
+        <MudTd DataLabel="Akcie" Style="text-align: right;">
+            @if (context.Status == "Čaká na schválenie")
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success"
+                               OnClick="@(() => ApproveExcuse(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Cancel" Size="Size.Small" Color="Color.Error"
+                               OnClick="@(() => RejectExcuse(context))" />
+            }
+            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Color="Color.Primary"
+                           OnClick="@(() => ViewExcuse(context))" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private string _selectedStatus = "all";
+    private string _searchText = string.Empty;
+
+    private List<ExcuseModel> _excuses = new();
+
+    protected override void OnInitialized()
+    {
+        _excuses = new List<ExcuseModel>
+        {
+            new() { Id = 1, MemberName = "Peter Horváth", Team = "A-tím", Date = DateTime.Now.AddDays(-1), Reason = "Choroba", Note = "Vysoká teplota", Status = "Čaká na schválenie", CreatedAt = DateTime.Now.AddDays(-1) },
+            new() { Id = 2, MemberName = "Lucia Varga", Team = "Žiaci", Date = DateTime.Now, Reason = "Rodinné dôvody", Status = "Čaká na schválenie", CreatedAt = DateTime.Now },
+            new() { Id = 3, MemberName = "Martin Balog", Team = "A-tím", Date = DateTime.Now.AddDays(-3), Reason = "Zranenie", Status = "Schválené", CreatedAt = DateTime.Now.AddDays(-4) },
+            new() { Id = 4, MemberName = "Eva Tóthová", Team = "B-tím", Date = DateTime.Now.AddDays(-5), Reason = "Škola", Status = "Zamietnuté", CreatedAt = DateTime.Now.AddDays(-6) }
+        };
+    }
+
+    private List<ExcuseModel> GetFilteredExcuses()
+    {
+        var excuses = _excuses.AsEnumerable();
+
+        if (_selectedStatus != "all")
+            excuses = excuses.Where(e => e.Status == _selectedStatus);
+
+        if (!string.IsNullOrWhiteSpace(_searchText))
+            excuses = excuses.Where(e => e.MemberName.Contains(_searchText, StringComparison.OrdinalIgnoreCase));
+
+        return excuses.OrderByDescending(e => e.CreatedAt).ToList();
+    }
+
+    private int GetPendingCount() => _excuses.Count(e => e.Status == "Čaká na schválenie");
+
+    private Color GetStatusColor(string status) => status switch
+    {
+        "Schválené" => Color.Success,
+        "Čaká na schválenie" => Color.Warning,
+        "Zamietnuté" => Color.Error,
+        _ => Color.Default
+    };
+
+    private void ApproveExcuse(ExcuseModel excuse)
+    {
+        excuse.Status = "Schválené";
+        Snackbar.Add($"Ospravedlnenka pre {excuse.MemberName} schválená", Severity.Success);
+    }
+
+    private void RejectExcuse(ExcuseModel excuse)
+    {
+        excuse.Status = "Zamietnuté";
+        Snackbar.Add($"Ospravedlnenka pre {excuse.MemberName} zamietnutá", Severity.Error);
+    }
+
+    private void ViewExcuse(ExcuseModel excuse) { /* TODO: Show detail */ }
+
+    private class ExcuseModel
+    {
+        public int Id { get; set; }
+        public string MemberName { get; set; } = "";
+        public string Team { get; set; } = "";
+        public DateTime Date { get; set; }
+        public string Reason { get; set; } = "";
+        public string? Note { get; set; }
+        public string Status { get; set; } = "";
+        public DateTime CreatedAt { get; set; }
+    }
+}
