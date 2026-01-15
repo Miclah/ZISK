@@ -1,0 +1,132 @@
+﻿@page "/admin"
+
+<PageTitle>Administrácia</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Administrátorský panel</MudText>
+
+<MudGrid>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Primary" />
+                <MudText Typo="Typo.h4">@_stats.TotalUsers</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Celkom používateľov</MudText>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/admin/pouzivatelia" Size="Size.Small">
+                    Spravovať
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Large" Color="Color.Secondary" />
+                <MudText Typo="Typo.h4">@_stats.ActiveMembers</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Aktívnych členov</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Success">+@_stats.NewMembersThisMonth tento mesiac</MudText>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" Color="Color.Warning" />
+                <MudText Typo="Typo.h4">@_stats.PendingExcuses</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Čakajúce ospravedlnenky</MudText>
+                <MudButton Variant="Variant.Text" Color="Color.Warning" Href="/admin/ospravedlnenky" Size="Size.Small">
+                    Skontrolovať
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Announcement" Size="Size.Large" Color="Color.Info" />
+                <MudText Typo="Typo.h4">@_stats.ActiveAnnouncements</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Aktívnych oznamov</MudText>
+                <MudButton Variant="Variant.Text" Color="Color.Info" Href="/admin/oznamy" Size="Size.Small">
+                    Spravovať
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudGrid Class="mt-4">
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Rýchle akcie</MudText>
+            <MudStack Spacing="2">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd"
+                           FullWidth="true" Href="/admin/pouzivatelia/vytvorit">
+                    Pridať nového používateľa
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Announcement"
+                           FullWidth="true" Href="/oznamy/vytvorit">
+                    Vytvoriť oznam
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Info" StartIcon="@Icons.Material.Filled.Analytics"
+                           FullWidth="true" Href="/admin/statistiky">
+                    Zobraziť štatistiky
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Posledná aktivita</MudText>
+            <MudList T="string" Dense="true">
+                @foreach (var activity in _recentActivities)
+                {
+                    <MudListItem Icon="@activity.Icon" IconColor="@activity.Color">
+                        <MudText Typo="Typo.body2">@activity.Description</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@activity.Time</MudText>
+                    </MudListItem>
+                }
+            </MudList>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private AdminStats _stats = new();
+    private List<ActivityItem> _recentActivities = new();
+
+    protected override void OnInitialized()
+    {
+        _stats = new AdminStats
+        {
+            TotalUsers = 45,
+            ActiveMembers = 38,
+            NewMembersThisMonth = 3,
+            PendingExcuses = 5,
+            ActiveAnnouncements = 8
+        };
+
+        _recentActivities = new List<ActivityItem>
+        {
+            new() { Icon = Icons.Material.Filled.PersonAdd, Color = Color.Success, Description = "Nový používateľ: Ján Novák", Time = "pred 2 hodinami" },
+            new() { Icon = Icons.Material.Filled.Edit, Color = Color.Info, Description = "Upravený oznam: Rozvrh tréningov", Time = "pred 5 hodinami" },
+            new() { Icon = Icons.Material.Filled.CheckCircle, Color = Color.Success, Description = "Schválená ospravedlnenka: Peter Horváth", Time = "pred 1 dňom" },
+            new() { Icon = Icons.Material.Filled.Warning, Color = Color.Warning, Description = "Nová ospravedlnenka čaká na schválenie", Time = "pred 1 dňom" }
+        };
+    }
+
+    private class AdminStats
+    {
+        public int TotalUsers { get; set; }
+        public int ActiveMembers { get; set; }
+        public int NewMembersThisMonth { get; set; }
+        public int PendingExcuses { get; set; }
+        public int ActiveAnnouncements { get; set; }
+    }
+
+    private class ActivityItem
+    {
+        public string Icon { get; set; } = string.Empty;
+        public Color Color { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public string Time { get; set; } = string.Empty;
+    }
+}

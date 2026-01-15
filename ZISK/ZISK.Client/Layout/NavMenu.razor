@@ -1,5 +1,5 @@
 ﻿<MudNavMenu Rounded="true" Margin="Margin.Dense" Color="Color.Primary" Class="pa-2">
-    
+
     <MudNavLink Href="/dashboard"
                 Icon="@Icons.Material.Rounded.Dashboard"
                 Match="NavLinkMatch.All">
@@ -29,4 +29,34 @@
                 Match="NavLinkMatch.Prefix">
         Oznamy
     </MudNavLink>
+
+    <MudDivider Class="my-2" />
+
+    <MudNavGroup Title="Administrácia" Icon="@Icons.Material.Rounded.AdminPanelSettings" Expanded="false">
+        <MudNavLink Href="/admin"
+                    Icon="@Icons.Material.Rounded.Dashboard"
+                    Match="NavLinkMatch.All">
+            Prehľad
+        </MudNavLink>
+        <MudNavLink Href="/admin/pouzivatelia"
+                    Icon="@Icons.Material.Rounded.People"
+                    Match="NavLinkMatch.Prefix">
+            Používatelia
+        </MudNavLink>
+        <MudNavLink Href="/admin/oznamy"
+                    Icon="@Icons.Material.Rounded.Announcement"
+                    Match="NavLinkMatch.Prefix">
+            Správa oznamov
+        </MudNavLink>
+        <MudNavLink Href="/admin/ospravedlnenky"
+                    Icon="@Icons.Material.Rounded.Description"
+                    Match="NavLinkMatch.Prefix">
+            Ospravedlnenky
+        </MudNavLink>
+        <MudNavLink Href="/admin/statistiky"
+                    Icon="@Icons.Material.Rounded.Analytics"
+                    Match="NavLinkMatch.Prefix">
+            Štatistiky
+        </MudNavLink>
+    </MudNavGroup>
 </MudNavMenu>
