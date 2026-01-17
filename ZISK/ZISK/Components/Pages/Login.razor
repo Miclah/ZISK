@@ -1,19 +1,24 @@
 ﻿@page "/login"
 @attribute [ExcludeFromInteractiveRouting]
-@layout ZISK.Components.Layout.LoginLayout
 @attribute [AllowAnonymous]
-
+@layout ZISK.Components.Layout.LoginLayout
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using ZISK.Data
 
 @inject SignInManager<ApplicationUser> SignInManager
-@inject UserManager<ApplicationUser> UserManager
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 
 <PageTitle>Prihlásenie - ZISK</PageTitle>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @errorMessage
+    </div>
+}
 
 <div class="login-container">
     <div class="login-card">
@@ -22,56 +27,46 @@
             <div class="login-logo-subtitle">Žiarský Informačný Systém pre Kluby</div>
         </div>
 
-        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login" class="login-form">
-            <DataAnnotationsValidator />
+        <div class="login-form-wrapper">
+            <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" role="alert" />
 
-            <div class="login-field">
-                <MudTextField @bind-Value="Input.Email"
-                              Label="Email"
-                              Variant="Variant.Outlined"
-                              InputType="InputType.Email"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Rounded.Email"
-                              For="@(() => Input.Email)"
-                              FullWidth="true"
-                              id="Input.Email"
-                              autocomplete="username" />
-            </div>
-
-            <div class="login-field">
-                <MudTextField @bind-Value="Input.Password"
-                              Label="Heslo"
-                              Variant="Variant.Outlined"
-                              InputType="InputType.Password"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Rounded.Lock"
-                              For="@(() => Input.Password)"
-                              FullWidth="true"
-                              id="Input.Password"
-                              autocomplete="current-password" />
-            </div>
-
-            <div class="login-remember">
-                <MudCheckBox @bind-Value="Input.RememberMe" Label="Zapamätať si ma" Color="Color.Primary" />
-            </div>
-
-            @if (!string.IsNullOrEmpty(errorMessage))
-            {
-                <div class="login-error">
-                    <MudAlert Severity="Severity.Error" Dense="true">@errorMessage</MudAlert>
+                <div class="login-field">
+                    <label for="Input.Email" class="form-label">Email</label>
+                    <InputText @bind-Value="Input.Email"
+                               id="Input.Email"
+                               class="form-control"
+                               autocomplete="username"
+                               aria-required="true"
+                               placeholder="meno@priklad.sk" />
+                    <ValidationMessage For="() => Input.Email" class="text-danger" />
                 </div>
-            }
 
-            <div class="login-button">
-                <MudButton ButtonType="ButtonType.Submit"
-                           Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           FullWidth="true"
-                           Size="Size.Large">
-                    Prihlásiť sa
-                </MudButton>
-            </div>
-        </EditForm>
+                <div class="login-field">
+                    <label for="Input.Password" class="form-label">Heslo</label>
+                    <InputText type="password"
+                               id="Input.Password"
+                               @bind-Value="Input.Password"
+                               class="form-control"
+                               autocomplete="current-password"
+                               aria-required="true"
+                               placeholder="heslo" />
+                    <ValidationMessage For="() => Input.Password" class="text-danger" />
+                </div>
+
+                <div class="login-remember">
+                    <label class="form-label">
+                        <InputCheckbox @bind-Value="Input.RememberMe" class="form-check-input" />
+                        Zapamätať si ma
+                    </label>
+                </div>
+
+                <div class="login-button">
+                    <button type="submit" class="w-100 btn btn-lg btn-primary">Prihlásiť sa</button>
+                </div>
+            </EditForm>
+        </div>
     </div>
 </div>
 
@@ -91,42 +86,71 @@
     {
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
+            if (HttpContext.User.Identity?.IsAuthenticated == true)
+            {
+                NavigationManager.NavigateTo(GetSafeRedirectUrl(), forceLoad: true);
+                return;
+            }
+
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
         }
     }
 
     public async Task LoginUser()
     {
-        var result = await SignInManager.PasswordSignInAsync(
-            Input.Email,
-            Input.Password,
-            Input.RememberMe,
-            lockoutOnFailure: false);
+        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
 
         if (result.Succeeded)
         {
-            Logger.LogInformation("Používateľ sa prihlásil.");
+            Logger.LogInformation("User {Email} logged in successfully.", Input.Email);
 
-            var redirectUrl = string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl;
-            NavigationManager.NavigateTo(redirectUrl, forceLoad: true);
+            NavigationManager.NavigateTo(GetSafeRedirectUrl(), forceLoad: true);
+            return;
         }
-        else if (result.RequiresTwoFactor)
+
+        if (result.RequiresTwoFactor)
         {
-            NavigationManager.NavigateTo($"Account/LoginWith2fa?returnUrl={ReturnUrl}&rememberMe={Input.RememberMe}", forceLoad: true);
+            errorMessage = "Vyžaduje sa dvojfaktorové overenie.";
+            return;
         }
-        else if (result.IsLockedOut)
+
+        if (result.IsLockedOut)
         {
-            Logger.LogWarning("Účet používateľa je uzamknutý.");
-            errorMessage = "Váš účet je dočasne uzamknutý. Skúste to neskôr.";
+            Logger.LogWarning("User account {Email} locked out.", Input.Email);
+            errorMessage = "Váš účet je dočasne uzamknutý.";
+            return;
         }
-        else if (result.IsNotAllowed)
+
+        errorMessage = "Neplatný email alebo heslo.";
+    }
+
+    private string GetSafeRedirectUrl()
+    {
+        if (string.IsNullOrEmpty(ReturnUrl))
+            return "/";
+
+        var decodedUrl = Uri.UnescapeDataString(ReturnUrl);
+
+        if (Uri.IsWellFormedUriString(decodedUrl, UriKind.Absolute))
         {
-            errorMessage = "Prihlásenie nie je povolené. Potvrďte prosím svoj email.";
+            try
+            {
+                var uri = new Uri(decodedUrl);
+                var currentUri = new Uri(NavigationManager.BaseUri);
+                if (uri.Host != currentUri.Host)
+                    return "/";
+                return uri.PathAndQuery;
+            }
+            catch
+            {
+                return "/";
+            }
         }
-        else
-        {
-            errorMessage = "Neplatný email alebo heslo.";
-        }
+
+        if (decodedUrl.StartsWith("/"))
+            return decodedUrl;
+
+        return "/" + decodedUrl;
     }
 
     private sealed class InputModel
@@ -139,7 +163,7 @@
         [DataType(DataType.Password)]
         public string Password { get; set; } = "";
 
-        [Display(Name = "Zapamätať si ma")]
+        [Display(Name = "Zapamätať si ma?")]
         public bool RememberMe { get; set; }
     }
 }

@@ -3,7 +3,16 @@
 @code {
     protected override void OnInitialized()
     {
-        var returnUrl = Uri.EscapeDataString(Nav.Uri);
-        Nav.NavigateTo($"/login?ReturnUrl={returnUrl}", forceLoad: true);
+        var returnUrl = Nav.ToBaseRelativePath(Nav.Uri);
+
+        if (string.IsNullOrEmpty(returnUrl))
+        {
+            returnUrl = "/";
+        }
+
+
+        var encodedReturnUrl = Uri.EscapeDataString(returnUrl);
+
+        Nav.NavigateTo($"/login?ReturnUrl={encodedReturnUrl}", forceLoad: true);
     }
 }
