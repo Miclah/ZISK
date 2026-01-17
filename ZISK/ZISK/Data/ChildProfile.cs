@@ -1,10 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ZISK.Data
 {
     public class ChildProfile
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         [Required]
         [MaxLength(100)]
@@ -15,9 +16,18 @@ namespace ZISK.Data
         public string LastName { get; set; } = string.Empty;
 
         [Required]
-        public DateTime DateOfBirth { get; set; }
+        public DateOnly DateOfBirth { get; set; }
+
+        public Guid? TeamId { get; set; }
+
+        // TODO: Pridať FK na Team entitu keď bude vytvorená
 
         public bool IsActive { get; set; } = true;
 
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public ICollection<ParentChild> Parents { get; set; } = [];
+        public ICollection<AttendanceRecord> AttendanceRecords { get; set; } = [];
+        public ICollection<AbsenceRequest> AbsenceRequests { get; set; } = [];
     }
 }
