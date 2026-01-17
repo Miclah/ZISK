@@ -1,7 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
-namespace ZISK.Data
+namespace ZISK.Data.Entities
 {
     public enum ExcuseStatus
     {
@@ -17,13 +16,13 @@ namespace ZISK.Data
 
         public Guid SubjectUserProfileId { get; set; }
 
-        [ForeignKey(nameof(SubjectUserProfileId))]
-        public UserProfile SubjectUserProfile { get; set; } = null!;
+        //[ForeignKey(nameof(SubjectUserProfileId))]
+        //public UserProfile SubjectUserProfile { get; set; } = null!;
 
         public Guid ReporterUserProfileId { get; set; }
 
-        [ForeignKey(nameof(ReporterUserProfileId))]
-        public UserProfile ReporterUserProfile { get; set; } = null!;
+        //[ForeignKey(nameof(ReporterUserProfileId))]
+        //public UserProfile ReporterUserProfile { get; set; } = null!;
 
         public Guid? TrainingSessionId { get; set; }
 
@@ -40,8 +39,8 @@ namespace ZISK.Data
 
         public Guid? ReviewedByUserProfileId { get; set; }
 
-        [ForeignKey(nameof(ReviewedByUserProfileId))]
-        public UserProfile? ReviewedByUserProfile { get; set; }
+        //[ForeignKey(nameof(ReviewedByUserProfileId))]
+        //public UserProfile? ReviewedByUserProfile { get; set; }
 
         [MaxLength(500)]
         public string? ReviewNote { get; set; }

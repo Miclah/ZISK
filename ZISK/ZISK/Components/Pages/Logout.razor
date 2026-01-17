@@ -1,0 +1,33 @@
+﻿@page "/logout"
+@attribute [AllowAnonymous]
+
+@using Microsoft.AspNetCore.Identity
+@using ZISK.Data
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager NavigationManager
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpMethods.IsPost(HttpContext.Request.Method))
+        {
+            await SignInManager.SignOutAsync();
+            NavigationManager.NavigateTo("/login", forceLoad: true);
+        }
+    }
+}
+
+<PageTitle>Odhlásenie</PageTitle>
+
+<div style="display: flex; justify-content: center; align-items: center; min-height: 100vh;">
+    <form method="post">
+        <AntiforgeryToken />
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">
+            Odhlásiť sa
+        </MudButton>
+    </form>
+</div>

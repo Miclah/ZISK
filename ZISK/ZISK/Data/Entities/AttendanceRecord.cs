@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace ZISK.Data
+namespace ZISK.Data.Entities
 {
     public enum AttendanceStatus
     {
