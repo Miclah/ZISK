@@ -16,10 +16,12 @@ namespace ZISK.Controllers;
 public class AnnouncementsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly IWebHostEnvironment _environment;
 
-    public AnnouncementsController(ApplicationDbContext context)
+    public AnnouncementsController(ApplicationDbContext context, IWebHostEnvironment environment)
     {
         _context = context;
+        _environment = environment;
     }
 
     [HttpGet]
@@ -213,5 +215,100 @@ public class AnnouncementsController : ControllerBase
             .CountAsync(a => a.PublishDate >= DateTime.UtcNow.AddDays(-7));
 
         return Ok(count);
+    }
+
+    [HttpPost("{id:guid}/attachments")]
+    [Authorize(Roles = "Admin,Coach")]
+    public async Task<ActionResult<AttachmentDto>> UploadAttachment(Guid id, IFormFile file)
+    {
+        var announcement = await _context.Announcements.FindAsync(id);
+        if (announcement == null)
+            return NotFound();
+
+        if (file == null || file.Length == 0)
+            return BadRequest("Súbor je prázdny");
+
+        var allowedExtensions = new[] { ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".jpg", ".jpeg", ".png", ".gif" };
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        
+        if (!allowedExtensions.Contains(extension))
+            return BadRequest("Nepodporovaný typ súboru");
+
+        // Max 10MB
+        if (file.Length > 10 * 1024 * 1024)
+            return BadRequest("Súbor je príliš veľký (max 10MB)");
+
+        var uploadsFolder = Path.Combine(_environment.WebRootPath ?? "wwwroot", "uploads", "attachments");
+        Directory.CreateDirectory(uploadsFolder);
+
+        var uniqueFileName = $"{Guid.NewGuid()}{extension}";
+        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        var attachment = new AnnouncementAttachment
+        {
+            Id = Guid.NewGuid(),
+            AnnouncementId = id,
+            FileName = file.FileName,
+            FilePath = $"/uploads/attachments/{uniqueFileName}",
+            ContentType = file.ContentType,
+            FileSize = file.Length,
+            UploadedAt = DateTime.UtcNow
+        };
+
+        _context.AnnouncementAttachments.Add(attachment);
+        await _context.SaveChangesAsync();
+
+        return Ok(new AttachmentDto(
+            attachment.Id,
+            attachment.FileName,
+            attachment.ContentType,
+            attachment.FileSize
+        ));
+    }
+
+    [HttpGet("{announcementId:guid}/attachments/{attachmentId:guid}/download")]
+    public async Task<IActionResult> DownloadAttachment(Guid announcementId, Guid attachmentId)
+    {
+        var attachment = await _context.AnnouncementAttachments
+            .FirstOrDefaultAsync(a => a.Id == attachmentId && a.AnnouncementId == announcementId);
+
+        if (attachment == null)
+            return NotFound();
+
+        var fullPath = Path.Combine(_environment.WebRootPath ?? "wwwroot", attachment.FilePath.TrimStart('/'));
+        if (!System.IO.File.Exists(fullPath))
+            return NotFound("Súbor neexistuje");
+
+        return PhysicalFile(fullPath, attachment.ContentType ?? "application/octet-stream", attachment.FileName);
+    }
+
+    [HttpDelete("{announcementId:guid}/attachments/{attachmentId:guid}")]
+    [Authorize(Roles = "Admin,Coach")]
+    public async Task<IActionResult> DeleteAttachment(Guid announcementId, Guid attachmentId)
+    {
+        var attachment = await _context.AnnouncementAttachments
+            .FirstOrDefaultAsync(a => a.Id == attachmentId && a.AnnouncementId == announcementId);
+
+        if (attachment == null)
+            return NotFound();
+
+        if (!string.IsNullOrEmpty(attachment.FilePath))
+        {
+            var fullPath = Path.Combine(_environment.WebRootPath ?? "wwwroot", attachment.FilePath.TrimStart('/'));
+            if (System.IO.File.Exists(fullPath))
+            {
+                System.IO.File.Delete(fullPath);
+            }
+        }
+
+        _context.AnnouncementAttachments.Remove(attachment);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
     }
 }

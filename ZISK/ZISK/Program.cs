@@ -60,7 +60,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
-// Cookie konfigurácia
+// Cookie konfiguracia
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/login";
@@ -153,9 +153,52 @@ using (var scope = app.Services.CreateScope())
             await userManager.AddToRoleAsync(admin, "Admin");
         }
     }
+
+    // Seed coach user
+    var coachEmail = "trener@zisk.sk";
+    if (await userManager.FindByEmailAsync(coachEmail) == null)
+    {
+        var coach = new ApplicationUser
+        {
+            UserName = coachEmail,
+            Email = coachEmail,
+            FirstName = "Ján",
+            LastName = "Tréner",
+            EmailConfirmed = true,
+            IsActive = true
+        };
+
+        var result = await userManager.CreateAsync(coach, "trener123");
+        if (result.Succeeded)
+        {
+            await userManager.AddToRoleAsync(coach, "Coach");
+        }
+    }
+
+    // Seed parent user
+    var parentEmail = "rodic@zisk.sk";
+    ApplicationUser? parent = null;
+    if (await userManager.FindByEmailAsync(parentEmail) == null)
+    {
+        parent = new ApplicationUser
+        {
+            UserName = parentEmail,
+            Email = parentEmail,
+            FirstName = "Peter",
+            LastName = "Rodič",
+            EmailConfirmed = true,
+            IsActive = true
+        };
+
+        var result = await userManager.CreateAsync(parent, "rodic123");
+        if (result.Succeeded)
+        {
+            await userManager.AddToRoleAsync(parent, "Parent");
+        }
+    }
     else
     {
-        admin = await userManager.FindByEmailAsync(adminEmail);
+        parent = await userManager.FindByEmailAsync(parentEmail);
     }
 
     // Seed teams
@@ -192,13 +235,12 @@ using (var scope = app.Services.CreateScope())
         context.ChildProfiles.AddRange(children);
         await context.SaveChangesAsync();
 
-        if (admin != null)
+        if (parent != null)
         {
-            var firstChild = children.First();
             context.ParentChildren.Add(new ParentChild
             {
-                ParentId = admin.Id,
-                ChildId = firstChild.Id,
+                ParentId = parent.Id,
+                ChildId = children.First().Id,
                 IsPrimary = true
             });
             await context.SaveChangesAsync();

@@ -18,34 +18,62 @@
     }
     else
     {
-        <MudStack Spacing="3">
-            <MudSelect T="Guid?" @bind-Value="_selectedChildId" Label="Dieťa" Variant="Variant.Outlined" Required="true">
-                @foreach (var child in _children)
+        <MudForm @ref="_form" @bind-IsValid="_formIsValid">
+            <MudStack Spacing="3">
+                <MudSelect T="Guid?" @bind-Value="_selectedChildId" Label="Dieťa" Variant="Variant.Outlined" 
+                           Required="true" RequiredError="Vyberte dieťa">
+                    @foreach (var child in _children)
+                    {
+                        <MudSelectItem Value="@((Guid?)child.Id)">@child.FirstName @child.LastName</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudDatePicker @bind-Date="_dateFrom" Label="Od dátumu" Variant="Variant.Outlined" 
+                               Required="true" RequiredError="Zadajte dátum"
+                               MinDate="DateTime.Now.AddDays(-30)" MaxDate="DateTime.Now.AddDays(30)" />
+
+                <MudDatePicker @bind-Date="_dateTo" Label="Do dátumu (voliteľné)" Variant="Variant.Outlined"
+                               MinDate="_dateFrom ?? DateTime.Now" />
+
+                <MudTextField @bind-Value="_reason" Label="Dôvod" Variant="Variant.Outlined" 
+                              Required="true" RequiredError="Zadajte dôvod"
+                              Counter="200" MaxLength="200" />
+
+                <MudTextField @bind-Value="_note" Label="Poznámka (voliteľné)" Variant="Variant.Outlined" 
+                              Lines="3" Counter="500" MaxLength="500" />
+
+                @if (_validationErrors.Any())
                 {
-                    <MudSelectItem Value="@((Guid?)child.Id)">@child.FirstName @child.LastName</MudSelectItem>
+                    <MudAlert Severity="Severity.Error">
+                        @foreach (var error in _validationErrors)
+                        {
+                            <div>@error</div>
+                        }
+                    </MudAlert>
                 }
-            </MudSelect>
 
-            <MudDatePicker @bind-Date="_dateFrom" Label="Od dátumu" Variant="Variant.Outlined" Required="true" />
-
-            <MudDatePicker @bind-Date="_dateTo" Label="Do dátumu" Variant="Variant.Outlined" />
-
-            <MudTextField @bind-Value="_reason" Label="Dôvod" Variant="Variant.Outlined" Required="true" />
-
-            <MudTextField @bind-Value="_note" Label="Poznámka" Variant="Variant.Outlined" Lines="3" />
-
-            <MudStack Row="true" Justify="Justify.SpaceBetween">
-                <MudButton Variant="Variant.Text" OnClick="Cancel">Zrušiť</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" Disabled="@(!CanSubmit())">
-                    Odoslať
-                </MudButton>
+                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                    <MudButton Variant="Variant.Text" OnClick="Cancel">Zrušiť</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" 
+                               Disabled="@(!_formIsValid || _isSubmitting)">
+                        @if (_isSubmitting)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        }
+                        Odoslať
+                    </MudButton>
+                </MudStack>
             </MudStack>
-        </MudStack>
+        </MudForm>
     }
 </MudPaper>
 
 @code {
+    private MudForm _form = default!;
+    private bool _formIsValid;
     private bool _isLoading = true;
+    private bool _isSubmitting = false;
+    private List<string> _validationErrors = new();
     private List<ChildDto> _children = new();
     
     private Guid? _selectedChildId;
@@ -74,9 +102,26 @@
         }
     }
 
-    private bool CanSubmit()
+    private bool ValidateForm()
     {
-        return _selectedChildId.HasValue && _dateFrom.HasValue && !string.IsNullOrWhiteSpace(_reason);
+        _validationErrors.Clear();
+
+        if (!_selectedChildId.HasValue)
+            _validationErrors.Add("Vyberte dieťa");
+
+        if (!_dateFrom.HasValue)
+            _validationErrors.Add("Zadajte dátum absencie");
+
+        if (string.IsNullOrWhiteSpace(_reason))
+            _validationErrors.Add("Zadajte dôvod ospravedlnenky");
+
+        if (_reason.Length < 3)
+            _validationErrors.Add("Dôvod musí mať aspoň 3 znaky");
+
+        if (_dateTo.HasValue && _dateTo < _dateFrom)
+            _validationErrors.Add("Dátum 'Do' nemôže byť pred dátumom 'Od'");
+
+        return !_validationErrors.Any();
     }
 
     private void Cancel()
@@ -86,7 +131,10 @@
 
     private async Task Submit()
     {
-        if (!CanSubmit()) return;
+        await _form.Validate();
+        if (!ValidateForm()) return;
+
+        _isSubmitting = true;
 
         try
         {
@@ -95,8 +143,8 @@
                 TrainingEventId: null,
                 DateFrom: _dateFrom,
                 DateTo: _dateTo,
-                Reason: _reason,
-                Note: _note
+                Reason: _reason.Trim(),
+                Note: string.IsNullOrWhiteSpace(_note) ? null : _note.Trim()
             );
 
             await ExcusesApi.CreateExcuseAsync(request);
@@ -106,6 +154,10 @@
         catch (Exception ex)
         {
             Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
         }
     }
 }

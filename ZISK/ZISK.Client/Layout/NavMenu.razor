@@ -12,51 +12,75 @@
         Rozvrh tréningov
     </MudNavLink>
 
-    <MudNavLink Href="/ospravedlnenky"
-                Icon="@Icons.Material.Rounded.Description"
-                Match="NavLinkMatch.Prefix">
-        Ospravedlnenky
-    </MudNavLink>
-
-    <MudNavLink Href="/dochadzka"
-                Icon="@Icons.Material.Rounded.CheckCircle"
-                Match="NavLinkMatch.Prefix">
-        Dochádzka
-    </MudNavLink>
-
     <MudNavLink Href="/oznamy"
                 Icon="@Icons.Material.Rounded.Announcement"
                 Match="NavLinkMatch.Prefix">
         Oznamy
     </MudNavLink>
 
-    <MudDivider Class="my-2" />
+    <AuthorizeView Roles="Parent">
+        <MudDivider Class="my-2" />
+        <MudText Typo="Typo.caption" Class="px-4 py-1" Color="Color.Secondary">Rodič</MudText>
+        
+        <MudNavLink Href="/dochadzka/prehlad"
+                    Icon="@Icons.Material.Rounded.EventNote"
+                    Match="NavLinkMatch.Prefix">
+            Prehľad dochádzky
+        </MudNavLink>
 
-    <MudNavGroup Title="Administrácia" Icon="@Icons.Material.Rounded.AdminPanelSettings" Expanded="false">
+        <MudNavLink Href="/ospravedlnenky"
+                    Icon="@Icons.Material.Rounded.Description"
+                    Match="NavLinkMatch.Prefix">
+            Ospravedlnenky
+        </MudNavLink>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="Coach,Admin">
+        <MudDivider Class="my-2" />
+        <MudText Typo="Typo.caption" Class="px-4 py-1" Color="Color.Secondary">Tréner</MudText>
+        
+        <MudNavLink Href="/dochadzka"
+                    Icon="@Icons.Material.Rounded.CheckCircle"
+                    Match="NavLinkMatch.Prefix">
+            Označiť dochádzku
+        </MudNavLink>
+
+        <MudNavLink Href="/admin/ospravedlnenky"
+                    Icon="@Icons.Material.Rounded.Description"
+                    Match="NavLinkMatch.Prefix">
+            Schváliť ospravedlnenky
+        </MudNavLink>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="Admin">
+        <MudDivider Class="my-2" />
+        <MudText Typo="Typo.caption" Class="px-4 py-1" Color="Color.Secondary">Administrácia</MudText>
+        
         <MudNavLink Href="/admin"
-                    Icon="@Icons.Material.Rounded.Dashboard"
+                    Icon="@Icons.Material.Rounded.AdminPanelSettings"
                     Match="NavLinkMatch.All">
-            Prehľad
+            Admin panel
         </MudNavLink>
         <MudNavLink Href="/admin/pouzivatelia"
                     Icon="@Icons.Material.Rounded.People"
                     Match="NavLinkMatch.Prefix">
             Používatelia
         </MudNavLink>
-        <MudNavLink Href="/admin/oznamy"
-                    Icon="@Icons.Material.Rounded.Announcement"
-                    Match="NavLinkMatch.Prefix">
-            Správa oznamov
-        </MudNavLink>
-        <MudNavLink Href="/admin/ospravedlnenky"
-                    Icon="@Icons.Material.Rounded.Description"
-                    Match="NavLinkMatch.Prefix">
-            Ospravedlnenky
-        </MudNavLink>
         <MudNavLink Href="/admin/statistiky"
                     Icon="@Icons.Material.Rounded.Analytics"
                     Match="NavLinkMatch.Prefix">
             Štatistiky
         </MudNavLink>
-    </MudNavGroup>
+    </AuthorizeView>
+
+    <MudDivider Class="my-2" />
+    
+    <form action="/logout" method="post">
+        <AntiforgeryToken />
+        <input type="hidden" name="ReturnUrl" value="/" />
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Text" Color="Color.Error" 
+                   StartIcon="@Icons.Material.Rounded.Logout" FullWidth="true" Class="justify-start">
+            Odhlásiť sa
+        </MudButton>
+    </form>
 </MudNavMenu>

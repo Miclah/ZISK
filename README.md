@@ -10,11 +10,18 @@ Webová aplikácia pre správu dochádzky, ospravedlneniek a komunikácie v špo
 - **Databáza:** SQL Server
 - **Autentifikácia:** ASP.NET Core Identity
 
+## Architektúra
+
+**Client-Server architektúru s REST API**:
+- **Server (ZISK):** ASP.NET Core s Controllers (API endpoints)
+- **Klient (ZISK.Client):** Blazor WebAssembly
+- **Zdieľané (ZISK.Shared):** DTOs a Enumy
+
 ## Požiadavky
 
 - .NET 9 SDK
 - SQL Server (LocalDB alebo full)
-- Visual Studio 2022 (odporúčané) alebo VS Code
+- Visual Studio 2022/2026 alebo VS Code
 
 ## Inštalácia
 
@@ -54,11 +61,13 @@ Aplikácia bude dostupná na: `http://localhost:5224`
 
 ## Prihlasovacie údaje
 
-Po prvom spustení sa automaticky vytvoria seed dáta vrátane admin účtu:
+Po prvom spustení sa automaticky vytvoria používatelia:
 
 | Email | Heslo | Rola |
 |-------|-------|------|
 | admin@zisk.sk | admin123 | Admin |
+| trener@zisk.sk | trener123 | Coach |
+| rodic@zisk.sk | rodic123 | Parent |
 
 ## Štruktúra projektu
 
@@ -75,6 +84,25 @@ ZISK/
 │   └── Services/            # API služby (Refit)
 └── ZISK.Shared/             # Zdieľané DTO a enumy
 ```
+
+### Vzťahy medzi entitami
+- **1:N:** Team → ChildProfile, Team → TrainingEvent, ChildProfile → AttendanceRecord
+- **M:N:** ApplicationUser ↔ ChildProfile (cez ParentChild)
+
+## Bezpečnosť
+
+- **Heslá:** Uložené pomocou ASP.NET Core Identity (hashované s PBKDF2)
+- **SQL Injection:** Ošetrené pomocou Entity Framework (parametrizované dotazy)
+- **Autorizácia:** Role-based ([Authorize(Roles = "Admin,Coach")])
+- **Validácia:** Na strane klienta (MudForm) aj servera (Controllers)
+
+## AJAX komunikácia
+
+Klient komunikuje so serverom asynchrónne pomocou Refit (HTTP client):
+- Načítavanie obsahu tabuliek (GetExcuses, GetAnnouncements, ...)
+- Odosielanie formulárov (CreateExcuse, CreateAnnouncement, ...)
+- Filtrovanie záznamov (GetExcuses?status=Pending)
+- Aktualizácia stavu (UpdateExcuseStatus)
 
 ## Funkcie
 
@@ -94,6 +122,11 @@ ZISK/
 - Priorita oznamov (nízka, stredná, vysoká)
 - Cielenie na tímy/skupiny
 - Platnosť oznamov
+
+### Dokumenty
+- Upload a správa dokumentov
+- Kategorizácia (všeobecné, zmluvy, tréningové plány)
+- Sťahovanie dokumentov
 
 ### Administrácia
 - Správa používateľov

@@ -7,6 +7,7 @@
 @inject ITeamsApi TeamsApi
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
+@inject HttpClient Http
 @attribute [Authorize(Roles = "Admin,Coach")]
 
 <PageTitle>Nový oznam</PageTitle>
@@ -57,6 +58,48 @@
                 </MudGrid>
 
                 <MudCheckBox @bind-Value="_isPinned" Label="Pripnúť na začiatok" Color="Color.Primary" />
+
+                <MudDivider Class="my-2" />
+
+                @* File Upload Section *@
+                <MudText Typo="Typo.subtitle1">Prílohy (voliteľné)</MudText>
+                
+                <MudFileUpload T="IReadOnlyList<IBrowserFile>" 
+                               FilesChanged="OnFilesSelected"
+                               Accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
+                               MaximumFileCount="5">
+                    <ActivatorContent>
+                        <MudButton Variant="Variant.Outlined" 
+                                   Color="Color.Primary" 
+                                   StartIcon="@Icons.Material.Filled.CloudUpload">
+                            Vybrať súbory
+                        </MudButton>
+                    </ActivatorContent>
+                </MudFileUpload>
+
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Podporované formáty: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF (max 10MB)
+                </MudText>
+
+                @if (_selectedFiles.Any())
+                {
+                    <MudStack Spacing="1">
+                        @foreach (var file in _selectedFiles)
+                        {
+                            <MudPaper Class="pa-2" Elevation="0" Style="background-color: #f5f5f5;">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@GetFileIcon(file.Name)" Size="Size.Small" Color="Color.Primary" />
+                                        <MudText Typo="Typo.body2">@file.Name</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">(@FormatFileSize(file.Size))</MudText>
+                                    </MudStack>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" 
+                                                   OnClick="@(() => RemoveFile(file))" />
+                                </MudStack>
+                            </MudPaper>
+                        }
+                    </MudStack>
+                }
             </MudStack>
         </MudPaper>
 
@@ -82,6 +125,7 @@
                 <MudListItem>Vysoká priorita - pre urgentné správy (zrušený tréning)</MudListItem>
                 <MudListItem>Stredná priorita - pre dôležité informácie</MudListItem>
                 <MudListItem>Nízka priorita - pre bežné oznamy</MudListItem>
+                <MudListItem>K oznamom môžete priložiť dokumenty (PDF, Word, Excel, obrázky)</MudListItem>
             </MudList>
         </MudPaper>
     </MudItem>
@@ -90,6 +134,7 @@
 @code {
     private bool _isSubmitting = false;
     private List<TeamDto> _teams = new();
+    private List<IBrowserFile> _selectedFiles = new();
 
     private string _title = "";
     private string _content = "";
@@ -121,6 +166,48 @@
         NavigationManager.NavigateTo("/oznamy");
     }
 
+    private void OnFilesSelected(IReadOnlyList<IBrowserFile> files)
+    {
+        foreach (var file in files)
+        {
+            if (file.Size > 10 * 1024 * 1024)
+            {
+                Snackbar.Add($"Súbor {file.Name} je príliš veľký (max 10MB)", Severity.Warning);
+                continue;
+            }
+
+            if (!_selectedFiles.Any(f => f.Name == file.Name))
+            {
+                _selectedFiles.Add(file);
+            }
+        }
+    }
+
+    private void RemoveFile(IBrowserFile file)
+    {
+        _selectedFiles.Remove(file);
+    }
+
+    private string GetFileIcon(string fileName)
+    {
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        return ext switch
+        {
+            ".pdf" => Icons.Material.Filled.PictureAsPdf,
+            ".doc" or ".docx" => Icons.Material.Filled.Description,
+            ".xls" or ".xlsx" => Icons.Material.Filled.TableChart,
+            ".jpg" or ".jpeg" or ".png" or ".gif" => Icons.Material.Filled.Image,
+            _ => Icons.Material.Filled.InsertDriveFile
+        };
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        return $"{bytes / (1024.0 * 1024.0):F1} MB";
+    }
+
     private async Task Submit()
     {
         if (!CanSubmit()) return;
@@ -139,7 +226,38 @@
                 ValidUntil: _validUntil
             );
 
-            await AnnouncementsApi.CreateAnnouncementAsync(request);
+            var announcement = await AnnouncementsApi.CreateAnnouncementAsync(request);
+
+            if (_selectedFiles.Any())
+            {
+                foreach (var file in _selectedFiles)
+                {
+                    try
+                    {
+                        using var content = new MultipartFormDataContent();
+                        using var fileStream = file.OpenReadStream(10 * 1024 * 1024);
+                        using var memoryStream = new MemoryStream();
+                        await fileStream.CopyToAsync(memoryStream);
+                        memoryStream.Position = 0;
+                        
+                        var fileContent = new ByteArrayContent(memoryStream.ToArray());
+                        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(
+                            file.ContentType ?? "application/octet-stream");
+                        content.Add(fileContent, "file", file.Name);
+
+                        var response = await Http.PostAsync($"/api/announcements/{announcement.Id}/attachments", content);
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            Snackbar.Add($"Nepodarilo sa nahrať súbor {file.Name}", Severity.Warning);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Snackbar.Add($"Chyba pri nahrávaní {file.Name}: {ex.Message}", Severity.Warning);
+                    }
+                }
+            }
+
             Snackbar.Add("Oznam bol zverejnený", Severity.Success);
             NavigationManager.NavigateTo("/oznamy");
         }
