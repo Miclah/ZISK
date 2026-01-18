@@ -1,174 +1,65 @@
 ﻿@page "/admin/pouzivatelia"
 @inject ISnackbar Snackbar
-@inject IDialogService DialogService
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Admin")]
 
 <PageTitle>Správa používateľov</PageTitle>
 
 <MudText Typo="Typo.h4" Class="mb-4">Správa používateľov</MudText>
 
-<MudPaper Class="pa-4 mb-4" Elevation="2">
-    <MudGrid>
-        <MudItem xs="12" sm="6" md="4">
-            <MudTextField @bind-Value="_searchText" Placeholder="Hľadať používateľa..." Variant="Variant.Outlined"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" />
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudSelect T="string" @bind-Value="_selectedRole" Label="Rola" Variant="Variant.Outlined">
-                <MudSelectItem Value="@("all")">Všetky</MudSelectItem>
-                <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
-                <MudSelectItem Value="@("Tréner")">Tréner</MudSelectItem>
-                <MudSelectItem Value="@("Rodič")">Rodič</MudSelectItem>
-                <MudSelectItem Value="@("Člen")">Člen</MudSelectItem>
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="2">
-            <MudSelect T="string" @bind-Value="_selectedStatus" Label="Stav" Variant="Variant.Outlined">
-                <MudSelectItem Value="@("all")">Všetky</MudSelectItem>
-                <MudSelectItem Value="@("active")">Aktívni</MudSelectItem>
-                <MudSelectItem Value="@("inactive")">Neaktívni</MudSelectItem>
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3" Class="d-flex align-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd"
-                       FullWidth="true" Href="/admin/pouzivatelia/vytvorit">
-                Pridať používateľa
-            </MudButton>
-        </MudItem>
-    </MudGrid>
-</MudPaper>
-
-<MudTable Items="@GetFilteredUsers()" Hover="true" Striped="true" Elevation="3" Dense="false">
+<MudTable Items="@_users" Hover="true">
     <HeaderContent>
-        <MudTh>Používateľ</MudTh>
+        <MudTh>Meno</MudTh>
         <MudTh>Email</MudTh>
         <MudTh>Rola</MudTh>
         <MudTh>Stav</MudTh>
-        <MudTh>Vytvorený</MudTh>
-        <MudTh Style="text-align: right;">Akcie</MudTh>
+        <MudTh>Akcie</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="Používateľ">
-            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                <MudAvatar Color="@GetRoleColor(context.Role)" Size="Size.Small">
-                    @context.FirstName[0]@context.LastName[0]
-                </MudAvatar>
-                <div>
-                    <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.FirstName @context.LastName</MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Username</MudText>
-                </div>
-            </MudStack>
-        </MudTd>
-        <MudTd DataLabel="Email">
-            <MudText Typo="Typo.body2">@context.Email</MudText>
-        </MudTd>
-        <MudTd DataLabel="Rola">
-            <MudChip T="string" Size="Size.Small" Color="@GetRoleColor(context.Role)" Variant="Variant.Filled">
+        <MudTd>@context.FirstName @context.LastName</MudTd>
+        <MudTd>@context.Email</MudTd>
+        <MudTd>
+            <MudChip T="string" Size="Size.Small" Color="@GetRoleColor(context.Role)">
                 @context.Role
             </MudChip>
         </MudTd>
-        <MudTd DataLabel="Stav">
+        <MudTd>
             @if (context.IsActive)
             {
-                <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle">Aktívny</MudChip>
+                <MudChip T="string" Size="Size.Small" Color="Color.Success">Aktívny</MudChip>
             }
             else
             {
-                <MudChip T="string" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Filled.Cancel">Neaktívny</MudChip>
+                <MudChip T="string" Size="Size.Small" Color="Color.Error">Neaktívny</MudChip>
             }
         </MudTd>
-        <MudTd DataLabel="Vytvorený">
-            <MudText Typo="Typo.body2">@context.CreatedAt.ToString("dd.MM.yyyy")</MudText>
-        </MudTd>
-        <MudTd DataLabel="Akcie" Style="text-align: right;">
-            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
-                           OnClick="@(() => EditUser(context))" />
-            <MudIconButton Icon="@Icons.Material.Filled.Key" Size="Size.Small" Color="Color.Warning"
-                           OnClick="@(() => ResetPassword(context))" />
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" />
             @if (context.IsActive)
             {
                 <MudIconButton Icon="@Icons.Material.Filled.Block" Size="Size.Small" Color="Color.Error"
-                               OnClick="@(() => ToggleUserStatus(context))" />
+                               OnClick="@(() => ToggleStatus(context))" />
             }
             else
             {
-                <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success"
-                               OnClick="@(() => ToggleUserStatus(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Check" Size="Size.Small" Color="Color.Success"
+                               OnClick="@(() => ToggleStatus(context))" />
             }
         </MudTd>
     </RowTemplate>
 </MudTable>
 
-<MudDialog @bind-IsVisible="_showEditDialog" Options="_dialogOptions">
-    <TitleContent>
-        <MudText Typo="Typo.h6">Upraviť používateľa</MudText>
-    </TitleContent>
-    <DialogContent>
-        @if (_selectedUser != null)
-        {
-            <MudStack Spacing="3">
-                <MudTextField @bind-Value="_selectedUser.FirstName" Label="Meno" Variant="Variant.Outlined" />
-                <MudTextField @bind-Value="_selectedUser.LastName" Label="Priezvisko" Variant="Variant.Outlined" />
-                <MudTextField @bind-Value="_selectedUser.Email" Label="Email" Variant="Variant.Outlined" />
-                <MudSelect T="string" @bind-Value="_selectedUser.Role" Label="Rola" Variant="Variant.Outlined">
-                    <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
-                    <MudSelectItem Value="@("Tréner")">Tréner</MudSelectItem>
-                    <MudSelectItem Value="@("Rodič")">Rodič</MudSelectItem>
-                    <MudSelectItem Value="@("Člen")">Člen</MudSelectItem>
-                </MudSelect>
-            </MudStack>
-        }
-    </DialogContent>
-    <DialogActions>
-        <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="@(() => _showEditDialog = false)">Zrušiť</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveUser">Uložiť</MudButton>
-    </DialogActions>
-</MudDialog>
-
 @code {
-    private string _searchText = string.Empty;
-    private string _selectedRole = "all";
-    private string _selectedStatus = "all";
-    private bool _showEditDialog = false;
-    private UserModel? _selectedUser = null;
-    private DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
-
     private List<UserModel> _users = new();
 
     protected override void OnInitialized()
     {
+        // TODO: Load from API
         _users = new List<UserModel>
         {
-            new() { Id = 1, Username = "admin", FirstName = "Admin", LastName = "Systém", Email = "admin@zisk.sk", Role = "Admin", IsActive = true, CreatedAt = DateTime.Now.AddMonths(-12) },
-            new() { Id = 2, Username = "jnovak", FirstName = "Ján", LastName = "Novák", Email = "jan.novak@zisk.sk", Role = "Tréner", IsActive = true, CreatedAt = DateTime.Now.AddMonths(-6) },
-            new() { Id = 3, Username = "mkovac", FirstName = "Mária", LastName = "Kováčová", Email = "maria.kovacova@zisk.sk", Role = "Tréner", IsActive = true, CreatedAt = DateTime.Now.AddMonths(-4) },
-            new() { Id = 4, Username = "phorvath", FirstName = "Peter", LastName = "Horváth", Email = "peter.horvath@example.com", Role = "Rodič", IsActive = true, CreatedAt = DateTime.Now.AddMonths(-2) },
-            new() { Id = 5, Username = "lvarga", FirstName = "Lucia", LastName = "Varga", Email = "lucia.varga@example.com", Role = "Člen", IsActive = false, CreatedAt = DateTime.Now.AddMonths(-1) },
-            new() { Id = 6, Username = "mbalog", FirstName = "Martin", LastName = "Balog", Email = "martin.balog@example.com", Role = "Člen", IsActive = true, CreatedAt = DateTime.Now.AddDays(-14) }
+            new() { Id = 1, FirstName = "Admin", LastName = "ZISK", Email = "admin@zisk.sk", Role = "Admin", IsActive = true },
+            new() { Id = 2, FirstName = "Ján", LastName = "Novák", Email = "jan.novak@zisk.sk", Role = "Tréner", IsActive = true },
+            new() { Id = 3, FirstName = "Peter", LastName = "Horváth", Email = "peter.horvath@example.com", Role = "Rodič", IsActive = true }
         };
-    }
-
-    private List<UserModel> GetFilteredUsers()
-    {
-        var users = _users.AsEnumerable();
-
-        if (!string.IsNullOrWhiteSpace(_searchText))
-        {
-            users = users.Where(u =>
-                u.FirstName.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
-                u.LastName.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
-                u.Email.Contains(_searchText, StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (_selectedRole != "all")
-            users = users.Where(u => u.Role == _selectedRole);
-
-        if (_selectedStatus == "active")
-            users = users.Where(u => u.IsActive);
-        else if (_selectedStatus == "inactive")
-            users = users.Where(u => !u.IsActive);
-
-        return users.OrderBy(u => u.LastName).ToList();
     }
 
     private Color GetRoleColor(string role) => role switch
@@ -176,63 +67,22 @@
         "Admin" => Color.Error,
         "Tréner" => Color.Primary,
         "Rodič" => Color.Secondary,
-        "Člen" => Color.Info,
         _ => Color.Default
     };
 
-    private void EditUser(UserModel user)
-    {
-        _selectedUser = new UserModel
-        {
-            Id = user.Id,
-            Username = user.Username,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Email = user.Email,
-            Role = user.Role,
-            IsActive = user.IsActive,
-            CreatedAt = user.CreatedAt
-        };
-        _showEditDialog = true;
-    }
-
-    private void SaveUser()
-    {
-        if (_selectedUser != null)
-        {
-            var user = _users.FirstOrDefault(u => u.Id == _selectedUser.Id);
-            if (user != null)
-            {
-                user.FirstName = _selectedUser.FirstName;
-                user.LastName = _selectedUser.LastName;
-                user.Email = _selectedUser.Email;
-                user.Role = _selectedUser.Role;
-            }
-        }
-        _showEditDialog = false;
-        Snackbar.Add("Používateľ bol aktualizovaný", Severity.Success);
-    }
-
-    private void ToggleUserStatus(UserModel user)
+    private void ToggleStatus(UserModel user)
     {
         user.IsActive = !user.IsActive;
-        Snackbar.Add(user.IsActive ? "Používateľ aktivovaný" : "Používateľ deaktivovaný", Severity.Info);
-    }
-
-    private void ResetPassword(UserModel user)
-    {
-        Snackbar.Add($"Email s resetom hesla odoslaný na {user.Email}", Severity.Success);
+        Snackbar.Add(user.IsActive ? "Aktivovaný" : "Deaktivovaný", Severity.Info);
     }
 
     private class UserModel
     {
         public int Id { get; set; }
-        public string Username { get; set; } = string.Empty;
-        public string FirstName { get; set; } = string.Empty;
-        public string LastName { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string Role { get; set; } = string.Empty;
+        public string FirstName { get; set; } = "";
+        public string LastName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Role { get; set; } = "";
         public bool IsActive { get; set; }
-        public DateTime CreatedAt { get; set; }
     }
 }

@@ -5,10 +5,10 @@ namespace ZISK.Data.Entities
 {
     public enum AttendanceStatus
     {
-        Present,
-        Absent,
-        Excused,
-        Late
+        Present,    
+        Absent,     
+        Excused,   
+        Late        
     }
 
     public class AttendanceRecord
@@ -17,7 +17,8 @@ namespace ZISK.Data.Entities
 
         public Guid TrainingEventId { get; set; }
 
-        // TODO: Pridať FK na TrainingEvent keď bude vytvorená
+        [ForeignKey(nameof(TrainingEventId))]
+        public TrainingEvent TrainingEvent { get; set; } = null!;
 
         public Guid ChildId { get; set; }
 
@@ -26,6 +27,12 @@ namespace ZISK.Data.Entities
 
         [Required]
         public AttendanceStatus Status { get; set; }
+
+        [MaxLength(500)]
+        public string? Note { get; set; }
+
+        [MaxLength(500)]
+        public string? CoachComment { get; set; }
 
         public string? MarkedByUserId { get; set; }
 

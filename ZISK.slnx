@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="ZISK/ZISK.Client/ZISK.Client.csproj" />
+  <Project Path="ZISK/ZISK.Shared/ZISK.Shared.csproj" Id="8fda8518-d514-4440-9a29-dd5f3ba1c63d" />
   <Project Path="ZISK/ZISK/ZISK.csproj" />
 </Solution>

@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using ZISK.Data.Entities;
 
 namespace ZISK.Data
@@ -20,7 +21,11 @@ namespace ZISK.Data
 
         public Guid? TeamId { get; set; }
 
-        // TODO: Pridať FK na Team entitu keď bude vytvorená
+        [ForeignKey(nameof(TeamId))]
+        public Team? Team { get; set; }
+
+        [MaxLength(100)]
+        public string? Email { get; set; }
 
         public bool IsActive { get; set; } = true;
 

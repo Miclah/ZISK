@@ -1,126 +1,119 @@
 ﻿@page "/admin/statistiky"
-@attribute [Authorize]
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Teams
+@inject ITeamsApi TeamsApi
+@inject ISnackbar Snackbar
+@attribute [Authorize(Roles = "Admin")]
 
 <PageTitle>Štatistiky</PageTitle>
 
 <MudText Typo="Typo.h4" Class="mb-4">Štatistiky klubu</MudText>
 
-<MudGrid>
-    <MudItem xs="12" md="6">
-        <MudPaper Class="pa-4" Elevation="2">
-            <MudText Typo="Typo.h6" Class="mb-4">Členovia podľa tímu</MudText>
-            <MudStack Spacing="3">
-                @foreach (var team in _teamStats)
-                {
-                    <div>
-                        <MudStack Row="true" Justify="Justify.SpaceBetween">
-                            <MudText Typo="Typo.body2">@team.Name</MudText>
-                            <MudText Typo="Typo.body2">@team.Count členov</MudText>
-                        </MudStack>
-                        <MudProgressLinear Value="@team.Percentage" Color="@team.Color" Size="Size.Medium" Rounded="true" />
-                    </div>
-                }
-            </MudStack>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="12" md="6">
-        <MudPaper Class="pa-4" Elevation="2">
-            <MudText Typo="Typo.h6" Class="mb-4">Priemerná účasť</MudText>
-            <MudStack Spacing="3">
-                @foreach (var attendance in _attendanceStats)
-                {
-                    <div>
-                        <MudStack Row="true" Justify="Justify.SpaceBetween">
-                            <MudText Typo="Typo.body2">@attendance.Month</MudText>
-                            <MudText Typo="Typo.body2">@attendance.Percentage%</MudText>
-                        </MudStack>
-                        <MudProgressLinear Value="@attendance.Percentage" Color="@GetAttendanceColor(attendance.Percentage)"
-                                           Size="Size.Medium" Rounded="true" />
-                    </div>
-                }
-            </MudStack>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-<MudGrid Class="mt-4">
-    <MudItem xs="12" md="4">
-        <MudPaper Class="pa-4" Elevation="2">
-            <MudText Typo="Typo.h6" Class="mb-3">Súhrn</MudText>
-            <MudSimpleTable Dense="true">
-                <tbody>
-                    <tr><td>Celkom tréningov (mesiac)</td><td><strong>24</strong></td></tr>
-                    <tr><td>Zrušených tréningov</td><td><strong>2</strong></td></tr>
-                    <tr><td>Ospravedlneniek</td><td><strong>18</strong></td></tr>
-                    <tr><td>Schválených</td><td><strong>15</strong></td></tr>
-                    <tr><td>Zamietnutých</td><td><strong>1</strong></td></tr>
-                </tbody>
-            </MudSimpleTable>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="12" md="8">
-        <MudPaper Class="pa-4" Elevation="2">
-            <MudText Typo="Typo.h6" Class="mb-3">Aktivita za posledných 7 dní</MudText>
-            <MudSimpleTable Dense="true" Striped="true">
-                <thead>
-                    <tr><th>Deň</th><th>Tréningy</th><th>Účasť</th><th>Ospravedlnenky</th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var day in _weekActivity)
-                    {
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3">Členovia podľa tímu</MudText>
+                <MudSimpleTable Dense="true" Hover="true">
+                    <thead>
                         <tr>
-                            <td>@day.DayName</td>
-                            <td>@day.Trainings</td>
-                            <td>@day.AttendancePercent%</td>
-                            <td>@day.Excuses</td>
+                            <th>Tím</th>
+                            <th>Počet členov</th>
+                            <th>Stav</th>
                         </tr>
-                    }
-                </tbody>
-            </MudSimpleTable>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
+                    </thead>
+                    <tbody>
+                        @foreach (var team in _teams)
+                        {
+                            <tr>
+                                <td>@team.Name</td>
+                                <td>@team.MemberCount</td>
+                                <td>
+                                    @if (team.IsActive)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Success">Aktívny</MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Error">Neaktívny</MudChip>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3">Súhrn</MudText>
+                <MudSimpleTable Dense="true">
+                    <tbody>
+                        <tr>
+                            <td>Celkom tímov</td>
+                            <td><strong>@_teams.Count</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Celkom členov</td>
+                            <td><strong>@_teams.Sum(t => t.MemberCount)</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Aktívnych tímov</td>
+                            <td><strong>@_teams.Count(t => t.IsActive)</strong></td>
+                        </tr>
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3">Priemerná účasť za posledný mesiac</MudText>
+                <MudGrid>
+                    <MudItem xs="6" sm="3">
+                        <MudText Typo="Typo.h4" Color="Color.Success">85%</MudText>
+                        <MudText Typo="Typo.body2">Celková účasť</MudText>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudText Typo="Typo.h4" Color="Color.Error">8%</MudText>
+                        <MudText Typo="Typo.body2">Neospravedlnené absencie</MudText>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudText Typo="Typo.h4" Color="Color.Info">5%</MudText>
+                        <MudText Typo="Typo.body2">Ospravedlnené</MudText>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudText Typo="Typo.h4" Color="Color.Warning">2%</MudText>
+                        <MudText Typo="Typo.body2">Meškanie</MudText>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
 
 @code {
-    private List<TeamStat> _teamStats = new();
-    private List<AttendanceStat> _attendanceStats = new();
-    private List<DayActivity> _weekActivity = new();
+    private bool _isLoading = true;
+    private List<TeamDto> _teams = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _teamStats = new List<TeamStat>
+        try
         {
-            new() { Name = "A-tím", Count = 12, Percentage = 32, Color = Color.Primary },
-            new() { Name = "B-tím", Count = 10, Percentage = 26, Color = Color.Secondary },
-            new() { Name = "Žiaci", Count = 16, Percentage = 42, Color = Color.Tertiary }
-        };
-
-        _attendanceStats = new List<AttendanceStat>
+            _teams = await TeamsApi.GetTeamsAsync(null);
+        }
+        catch (Exception ex)
         {
-            new() { Month = "Január", Percentage = 85 },
-            new() { Month = "December", Percentage = 78 },
-            new() { Month = "November", Percentage = 82 },
-            new() { Month = "Október", Percentage = 88 }
-        };
-
-        _weekActivity = new List<DayActivity>
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+        }
+        finally
         {
-            new() { DayName = "Pondelok", Trainings = 2, AttendancePercent = 90, Excuses = 1 },
-            new() { DayName = "Utorok", Trainings = 1, AttendancePercent = 85, Excuses = 2 },
-            new() { DayName = "Streda", Trainings = 2, AttendancePercent = 88, Excuses = 0 },
-            new() { DayName = "Štvrtok", Trainings = 1, AttendancePercent = 92, Excuses = 1 },
-            new() { DayName = "Piatok", Trainings = 1, AttendancePercent = 80, Excuses = 3 }
-        };
+            _isLoading = false;
+        }
     }
-
-    private Color GetAttendanceColor(int percentage) => percentage switch
-    {
-        >= 85 => Color.Success,
-        >= 70 => Color.Warning,
-        _ => Color.Error
-    };
-
-    private class TeamStat { public string Name { get; set; } = ""; public int Count { get; set; } public int Percentage { get; set; } public Color Color { get; set; } }
-    private class AttendanceStat { public string Month { get; set; } = ""; public int Percentage { get; set; } }
-    private class DayActivity { public string DayName { get; set; } = ""; public int Trainings { get; set; } public int AttendancePercent { get; set; } public int Excuses { get; set; } }
 }

@@ -1,0 +1,111 @@
+﻿@page "/ospravedlnenky/vytvorit"
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Excuses
+@inject IExcusesApi ExcusesApi
+@inject IChildrenApi ChildrenApi
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@attribute [Authorize]
+
+<PageTitle>Nová ospravedlnenka</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Nová ospravedlnenka</MudText>
+
+<MudPaper Class="pa-4" Elevation="2" MaxWidth="600px">
+    @if (_isLoading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <MudStack Spacing="3">
+            <MudSelect T="Guid?" @bind-Value="_selectedChildId" Label="Dieťa" Variant="Variant.Outlined" Required="true">
+                @foreach (var child in _children)
+                {
+                    <MudSelectItem Value="@((Guid?)child.Id)">@child.FirstName @child.LastName</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudDatePicker @bind-Date="_dateFrom" Label="Od dátumu" Variant="Variant.Outlined" Required="true" />
+
+            <MudDatePicker @bind-Date="_dateTo" Label="Do dátumu" Variant="Variant.Outlined" />
+
+            <MudTextField @bind-Value="_reason" Label="Dôvod" Variant="Variant.Outlined" Required="true" />
+
+            <MudTextField @bind-Value="_note" Label="Poznámka" Variant="Variant.Outlined" Lines="3" />
+
+            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                <MudButton Variant="Variant.Text" OnClick="Cancel">Zrušiť</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" Disabled="@(!CanSubmit())">
+                    Odoslať
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    }
+</MudPaper>
+
+@code {
+    private bool _isLoading = true;
+    private List<ChildDto> _children = new();
+    
+    private Guid? _selectedChildId;
+    private DateTime? _dateFrom;
+    private DateTime? _dateTo;
+    private string _reason = "";
+    private string _note = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _children = await ChildrenApi.GetMyChildrenAsync();
+            if (_children.Count == 1)
+            {
+                _selectedChildId = _children[0].Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private bool CanSubmit()
+    {
+        return _selectedChildId.HasValue && _dateFrom.HasValue && !string.IsNullOrWhiteSpace(_reason);
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/ospravedlnenky");
+    }
+
+    private async Task Submit()
+    {
+        if (!CanSubmit()) return;
+
+        try
+        {
+            var request = new CreateExcuseRequest(
+                ChildId: _selectedChildId!.Value,
+                TrainingEventId: null,
+                DateFrom: _dateFrom,
+                DateTo: _dateTo,
+                Reason: _reason,
+                Note: _note
+            );
+
+            await ExcusesApi.CreateExcuseAsync(request);
+            Snackbar.Add("Ospravedlnenka odoslaná", Severity.Success);
+            NavigationManager.NavigateTo("/ospravedlnenky");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+        }
+    }
+}

@@ -24,10 +24,11 @@ namespace ZISK.Data.Entities
         [ForeignKey(nameof(ParentId))]
         public ApplicationUser Parent { get; set; } = null!;
 
-        /// Ak NULL = > dlhodobá absencia
+
         public Guid? TrainingEventId { get; set; }
 
-        // TODO: Pridať FK na TrainingEvent
+        [ForeignKey(nameof(TrainingEventId))]
+        public TrainingEvent? TrainingEvent { get; set; }
 
         public DateTime? DateFrom { get; set; }
 
@@ -36,7 +37,19 @@ namespace ZISK.Data.Entities
         [MaxLength(1000)]
         public string? Reason { get; set; }
 
+        [MaxLength(500)]
+        public string? Note { get; set; }
+
         public AbsenceRequestStatus Status { get; set; } = AbsenceRequestStatus.Pending;
+
+
+        public string? ReviewedByUserId { get; set; }
+
+        [ForeignKey(nameof(ReviewedByUserId))]
+        public ApplicationUser? ReviewedByUser { get; set; }
+
+        [MaxLength(500)]
+        public string? ReviewNote { get; set; }
 
         public DateTime? ProcessedAt { get; set; }
 

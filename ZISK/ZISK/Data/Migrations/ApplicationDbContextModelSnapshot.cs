@@ -248,6 +248,10 @@ namespace ZISK.Migrations
                     b.Property<DateOnly>("DateOfBirth")
                         .HasColumnType("date");
 
+                    b.Property<string>("Email")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -289,6 +293,10 @@ namespace ZISK.Migrations
                     b.Property<DateTime?>("DateTo")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("ParentId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
@@ -299,6 +307,13 @@ namespace ZISK.Migrations
                     b.Property<string>("Reason")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ReviewedByUserId")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -311,6 +326,10 @@ namespace ZISK.Migrations
                     b.HasIndex("ChildId");
 
                     b.HasIndex("ParentId");
+
+                    b.HasIndex("ReviewedByUserId");
+
+                    b.HasIndex("TrainingEventId");
 
                     b.ToTable("AbsenceRequests");
                 });
@@ -329,10 +348,19 @@ namespace ZISK.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("PublishDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("TargetGroupId")
+                    b.Property<int>("TargetAudience")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("TargetTeamId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Title")
@@ -340,11 +368,57 @@ namespace ZISK.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ValidUntil")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AuthorUserId");
 
+                    b.HasIndex("PublishDate");
+
+                    b.HasIndex("TargetTeamId");
+
                     b.ToTable("Announcements");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.AnnouncementAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AnnouncementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AnnouncementId");
+
+                    b.ToTable("AnnouncementAttachments");
                 });
 
             modelBuilder.Entity("ZISK.Data.Entities.AttendanceRecord", b =>
@@ -356,8 +430,16 @@ namespace ZISK.Migrations
                     b.Property<Guid>("ChildId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("CoachComment")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("MarkedByUserId")
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime>("RecordedAt")
                         .HasColumnType("datetime2");
@@ -409,6 +491,83 @@ namespace ZISK.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Documents");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.Team", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ShortName")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Teams");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.TrainingEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CoachNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("EndTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeamId", "StartTime");
+
+                    b.ToTable("TrainingEvents");
                 });
 
             modelBuilder.Entity("ZISK.Data.ParentChild", b =>
@@ -480,6 +639,16 @@ namespace ZISK.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("ZISK.Data.ChildProfile", b =>
+                {
+                    b.HasOne("ZISK.Data.Entities.Team", "Team")
+                        .WithMany("Members")
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Team");
+                });
+
             modelBuilder.Entity("ZISK.Data.Entities.AbsenceRequest", b =>
                 {
                     b.HasOne("ZISK.Data.ChildProfile", "Child")
@@ -494,9 +663,23 @@ namespace ZISK.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("ZISK.Data.ApplicationUser", "ReviewedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReviewedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ZISK.Data.Entities.TrainingEvent", "TrainingEvent")
+                        .WithMany("AbsenceRequests")
+                        .HasForeignKey("TrainingEventId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Child");
 
                     b.Navigation("Parent");
+
+                    b.Navigation("ReviewedByUser");
+
+                    b.Navigation("TrainingEvent");
                 });
 
             modelBuilder.Entity("ZISK.Data.Entities.Announcement", b =>
@@ -507,7 +690,25 @@ namespace ZISK.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("ZISK.Data.Entities.Team", "TargetTeam")
+                        .WithMany()
+                        .HasForeignKey("TargetTeamId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("AuthorUser");
+
+                    b.Navigation("TargetTeam");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.AnnouncementAttachment", b =>
+                {
+                    b.HasOne("ZISK.Data.Entities.Announcement", "Announcement")
+                        .WithMany("Attachments")
+                        .HasForeignKey("AnnouncementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Announcement");
                 });
 
             modelBuilder.Entity("ZISK.Data.Entities.AttendanceRecord", b =>
@@ -523,9 +724,28 @@ namespace ZISK.Migrations
                         .HasForeignKey("MarkedByUserId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("ZISK.Data.Entities.TrainingEvent", "TrainingEvent")
+                        .WithMany("AttendanceRecords")
+                        .HasForeignKey("TrainingEventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Child");
 
                     b.Navigation("MarkedByUser");
+
+                    b.Navigation("TrainingEvent");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.TrainingEvent", b =>
+                {
+                    b.HasOne("ZISK.Data.Entities.Team", "Team")
+                        .WithMany("TrainingEvents")
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Team");
                 });
 
             modelBuilder.Entity("ZISK.Data.ParentChild", b =>
@@ -559,6 +779,25 @@ namespace ZISK.Migrations
                     b.Navigation("AttendanceRecords");
 
                     b.Navigation("Parents");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.Announcement", b =>
+                {
+                    b.Navigation("Attachments");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.Team", b =>
+                {
+                    b.Navigation("Members");
+
+                    b.Navigation("TrainingEvents");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.TrainingEvent", b =>
+                {
+                    b.Navigation("AbsenceRequests");
+
+                    b.Navigation("AttendanceRecords");
                 });
 #pragma warning restore 612, 618
         }
