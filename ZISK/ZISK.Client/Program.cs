@@ -44,4 +44,10 @@ builder.Services.AddRefitClient<IDocumentsApi>(refitSettings)
 builder.Services.AddRefitClient<IChildrenApi>(refitSettings)
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress);
 
+builder.Services.AddRefitClient<IUsersApi>(refitSettings)
+    .ConfigureHttpClient(c => c.BaseAddress = baseAddress);
+
+builder.Services.AddRefitClient<IStatsApi>(refitSettings)
+    .ConfigureHttpClient(c => c.BaseAddress = baseAddress);
+
 await builder.Build().RunAsync();

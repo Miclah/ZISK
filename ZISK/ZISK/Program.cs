@@ -90,6 +90,10 @@ builder.Services.AddRefitClient<IDocumentsApi>()
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress);
 builder.Services.AddRefitClient<IChildrenApi>()
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress);
+builder.Services.AddRefitClient<IUsersApi>()
+    .ConfigureHttpClient(c => c.BaseAddress = baseAddress);
+builder.Services.AddRefitClient<IStatsApi>()
+    .ConfigureHttpClient(c => c.BaseAddress = baseAddress);
 
 var app = builder.Build();
 
@@ -213,7 +217,7 @@ using (var scope = app.Services.CreateScope())
             new() { Id = Guid.NewGuid(), Name = "Žiaci", ShortName = "Ž", Description = "Mládežnícky tím", IsActive = true },
             new() { Id = Guid.NewGuid(), Name = "Prípravka", ShortName = "P", Description = "Najmenší športovci", IsActive = true }
         };
-        
+
         context.Teams.AddRange(teams);
         await context.SaveChangesAsync();
     }

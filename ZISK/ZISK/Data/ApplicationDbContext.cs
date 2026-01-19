@@ -20,6 +20,7 @@ namespace ZISK.Data
         public DbSet<Announcement> Announcements => Set<Announcement>();
         public DbSet<AnnouncementAttachment> AnnouncementAttachments => Set<AnnouncementAttachment>();
         public DbSet<Document> Documents => Set<Document>();
+        public DbSet<CoachTeam> CoachTeams => Set<CoachTeam>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -107,6 +108,7 @@ namespace ZISK.Data
                 .WithMany()
                 .HasForeignKey(ar => ar.ReviewedByUserId)
                 .OnDelete(DeleteBehavior.SetNull);
+
             builder.Entity<Announcement>()
                 .HasOne(a => a.AuthorUser)
                 .WithMany()
@@ -122,11 +124,26 @@ namespace ZISK.Data
             builder.Entity<Announcement>()
                 .HasIndex(a => a.PublishDate);
 
-
             builder.Entity<AnnouncementAttachment>()
                 .HasOne(aa => aa.Announcement)
                 .WithMany(a => a.Attachments)
                 .HasForeignKey(aa => aa.AnnouncementId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<CoachTeam>()
+                .HasIndex(ct => new { ct.CoachId, ct.TeamId })
+                .IsUnique();
+
+            builder.Entity<CoachTeam>()
+                .HasOne(ct => ct.Coach)
+                .WithMany()
+                .HasForeignKey(ct => ct.CoachId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<CoachTeam>()
+                .HasOne(ct => ct.Team)
+                .WithMany()
+                .HasForeignKey(ct => ct.TeamId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }
