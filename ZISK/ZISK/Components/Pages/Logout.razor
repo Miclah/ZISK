@@ -1,11 +1,16 @@
 ﻿@page "/logout"
+@attribute [ExcludeFromInteractiveRouting]
 @attribute [AllowAnonymous]
 
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
 @using ZISK.Data
 
 @inject SignInManager<ApplicationUser> SignInManager
 @inject NavigationManager NavigationManager
+@inject ILogger<Logout> Logger
+
+<PageTitle>Odhlásenie</PageTitle>
 
 @code {
     [CascadingParameter]
@@ -13,21 +18,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (HttpMethods.IsPost(HttpContext.Request.Method))
+        if (HttpContext.User.Identity?.IsAuthenticated == true)
         {
+            var userName = HttpContext.User.Identity.Name;
             await SignInManager.SignOutAsync();
-            NavigationManager.NavigateTo("/login", forceLoad: true);
+            Logger.LogInformation("User {UserName} logged out.", userName);
         }
+        
+        NavigationManager.NavigateTo("/login", forceLoad: true);
     }
 }
-
-<PageTitle>Odhlásenie</PageTitle>
-
-<div style="display: flex; justify-content: center; align-items: center; min-height: 100vh;">
-    <form method="post">
-        <AntiforgeryToken />
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">
-            Odhlásiť sa
-        </MudButton>
-    </form>
-</div>

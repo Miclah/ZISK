@@ -75,12 +75,10 @@
 
     <MudDivider Class="my-2" />
     
-    <form action="/logout" method="post">
-        <AntiforgeryToken />
-        <input type="hidden" name="ReturnUrl" value="/" />
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Text" Color="Color.Error" 
-                   StartIcon="@Icons.Material.Rounded.Logout" FullWidth="true" Class="justify-start">
-            Odhlásiť sa
-        </MudButton>
-    </form>
+    <MudNavLink Href="/logout"
+                Icon="@Icons.Material.Rounded.Logout"
+                Match="NavLinkMatch.All"
+                ForceLoad="true">
+        Odhlásiť sa
+    </MudNavLink>
 </MudNavMenu>

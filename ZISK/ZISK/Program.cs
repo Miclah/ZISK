@@ -115,6 +115,8 @@ app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(ZISK.Client._Imports).Assembly);
 
+app.MapAdditionalIdentityEndpoints();
+
 // Seed data
 using (var scope = app.Services.CreateScope())
 {
