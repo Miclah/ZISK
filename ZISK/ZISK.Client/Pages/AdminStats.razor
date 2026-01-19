@@ -1,7 +1,7 @@
 ﻿@page "/admin/statistiky"
 @using ZISK.Client.Services
-@using ZISK.Shared.DTOs.Teams
-@inject ITeamsApi TeamsApi
+@using ZISK.Shared.DTOs.Stats
+@inject IStatsApi StatsApi
 @inject ISnackbar Snackbar
 @attribute [Authorize(Roles = "Admin")]
 
@@ -12,6 +12,10 @@
 @if (_isLoading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
 }
 else
 {
@@ -24,15 +28,23 @@ else
                         <tr>
                             <th>Tím</th>
                             <th>Počet členov</th>
+                            <th>Tréningy</th>
+                            <th>Priem. účasť</th>
                             <th>Stav</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var team in _teams)
+                        @foreach (var team in _teamStats)
                         {
                             <tr>
-                                <td>@team.Name</td>
+                                <td>@team.TeamName</td>
                                 <td>@team.MemberCount</td>
+                                <td>@team.TrainingCount</td>
+                                <td>
+                                    <MudChip T="string" Size="Size.Small" Color="@GetAttendanceColor(team.AverageAttendance)">
+                                        @team.AverageAttendance%
+                                    </MudChip>
+                                </td>
                                 <td>
                                     @if (team.IsActive)
                                     {
@@ -57,38 +69,64 @@ else
                     <tbody>
                         <tr>
                             <td>Celkom tímov</td>
-                            <td><strong>@_teams.Count</strong></td>
-                        </tr>
-                        <tr>
-                            <td>Celkom členov</td>
-                            <td><strong>@_teams.Sum(t => t.MemberCount)</strong></td>
+                            <td><strong>@_dashboardStats?.TotalTeams</strong></td>
                         </tr>
                         <tr>
                             <td>Aktívnych tímov</td>
-                            <td><strong>@_teams.Count(t => t.IsActive)</strong></td>
+                            <td><strong>@_dashboardStats?.ActiveTeams</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Celkom členov</td>
+                            <td><strong>@_dashboardStats?.TotalMembers</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Aktívnych členov</td>
+                            <td><strong>@_dashboardStats?.ActiveMembers</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Používatelia</td>
+                            <td><strong>@_dashboardStats?.TotalUsers</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Čakajúce ospravedlnenky</td>
+                            <td>
+                                <MudChip T="string" Size="Size.Small" Color="@(_dashboardStats?.PendingExcuses > 0 ? Color.Warning : Color.Default)">
+                                    @_dashboardStats?.PendingExcuses
+                                </MudChip>
+                            </td>
                         </tr>
                     </tbody>
                 </MudSimpleTable>
             </MudPaper>
         </MudItem>
+
         <MudItem xs="12">
             <MudPaper Class="pa-4" Elevation="2">
-                <MudText Typo="Typo.h6" Class="mb-3">Priemerná účasť za posledný mesiac</MudText>
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                    <MudText Typo="Typo.h6">Priemerná účasť za posledných @_selectedDays dní</MudText>
+                    <MudSelect T="int" @bind-Value="_selectedDays" @bind-Value:after="LoadAttendanceStats"
+                               Label="Obdobie" Variant="Variant.Outlined" Style="width: 150px;">
+                        <MudSelectItem Value="7">7 dní</MudSelectItem>
+                        <MudSelectItem Value="30">30 dní</MudSelectItem>
+                        <MudSelectItem Value="90">90 dní</MudSelectItem>
+                        <MudSelectItem Value="365">1 rok</MudSelectItem>
+                    </MudSelect>
+                </MudStack>
                 <MudGrid>
                     <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.h4" Color="Color.Success">85%</MudText>
+                        <MudText Typo="Typo.h4" Color="Color.Success">@(_attendanceStats?.PresentPercent ?? 0)%</MudText>
                         <MudText Typo="Typo.body2">Celková účasť</MudText>
                     </MudItem>
                     <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.h4" Color="Color.Error">8%</MudText>
+                        <MudText Typo="Typo.h4" Color="Color.Error">@(_attendanceStats?.AbsentPercent ?? 0)%</MudText>
                         <MudText Typo="Typo.body2">Neospravedlnené absencie</MudText>
                     </MudItem>
                     <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.h4" Color="Color.Info">5%</MudText>
+                        <MudText Typo="Typo.h4" Color="Color.Info">@(_attendanceStats?.ExcusedPercent ?? 0)%</MudText>
                         <MudText Typo="Typo.body2">Ospravedlnené</MudText>
                     </MudItem>
                     <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.h4" Color="Color.Warning">2%</MudText>
+                        <MudText Typo="Typo.h4" Color="Color.Warning">@(_attendanceStats?.LatePercent ?? 0)%</MudText>
                         <MudText Typo="Typo.body2">Meškanie</MudText>
                     </MudItem>
                 </MudGrid>
@@ -99,21 +137,53 @@ else
 
 @code {
     private bool _isLoading = true;
-    private List<TeamDto> _teams = new();
+    private string? _error;
+    private int _selectedDays = 30;
+
+    private DashboardStatsDto? _dashboardStats;
+    private List<TeamStatsDto> _teamStats = new();
+    private AttendanceStatsDto? _attendanceStats;
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
         try
         {
-            _teams = await TeamsApi.GetTeamsAsync(null);
+            _isLoading = true;
+            _dashboardStats = await StatsApi.GetDashboardStatsAsync();
+            _teamStats = await StatsApi.GetTeamStatsAsync();
+            _attendanceStats = _dashboardStats.AttendanceStats;
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+            _error = ex.Message;
         }
         finally
         {
             _isLoading = false;
         }
     }
+
+    private async Task LoadAttendanceStats()
+    {
+        try
+        {
+            _attendanceStats = await StatsApi.GetAttendanceStatsAsync(_selectedDays);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private Color GetAttendanceColor(decimal percent) => percent switch
+    {
+        >= 80 => Color.Success,
+        >= 60 => Color.Warning,
+        _ => Color.Error
+    };
 }

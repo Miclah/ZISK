@@ -1,6 +1,8 @@
 ﻿@page "/admin"
 @using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Stats
 @inject IExcusesApi ExcusesApi
+@inject IStatsApi StatsApi
 @inject ISnackbar Snackbar
 @attribute [Authorize(Roles = "Admin")]
 
@@ -8,32 +10,39 @@
 
 <MudText Typo="Typo.h4" Class="mb-4">Administrátorský panel</MudText>
 
-<MudGrid Class="mb-4">
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4" Elevation="2">
-            <MudText Typo="Typo.h4" Color="Color.Warning">@_pendingExcuses</MudText>
-            <MudText Typo="Typo.body2">Čakajúce ospravedlnenky</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4" Elevation="2">
-            <MudText Typo="Typo.h4" Color="Color.Primary">4</MudText>
-            <MudText Typo="Typo.body2">Tímy</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4" Elevation="2">
-            <MudText Typo="Typo.h4" Color="Color.Success">5</MudText>
-            <MudText Typo="Typo.body2">Aktívni členovia</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4" Elevation="2">
-            <MudText Typo="Typo.h4" Color="Color.Info">3</MudText>
-            <MudText Typo="Typo.body2">Používatelia</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else if (_dashboardStats != null)
+{
+    <MudGrid Class="mb-4">
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h4" Color="Color.Warning">@_dashboardStats.PendingExcuses</MudText>
+                <MudText Typo="Typo.body2">Čakajúce ospravedlnenky</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h4" Color="Color.Primary">@_dashboardStats.TotalTeams</MudText>
+                <MudText Typo="Typo.body2">Tímy</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h4" Color="Color.Success">@_dashboardStats.ActiveMembers</MudText>
+                <MudText Typo="Typo.body2">Aktívni členovia</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h4" Color="Color.Info">@_dashboardStats.TotalUsers</MudText>
+                <MudText Typo="Typo.body2">Používatelia</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
 
 <MudText Typo="Typo.h6" Class="mb-3">Správa systému</MudText>
 
@@ -58,9 +67,9 @@
             <MudStack Spacing="2">
                 <MudStack Row="true" Justify="Justify.SpaceBetween">
                     <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" Color="Color.Warning" />
-                    @if (_pendingExcuses > 0)
+                    @if (_dashboardStats != null && _dashboardStats.PendingExcuses > 0)
                     {
-                        <MudBadge Content="@_pendingExcuses" Color="Color.Error" Overlap="true">
+                        <MudBadge Content="@_dashboardStats.PendingExcuses" Color="Color.Error" Overlap="true">
                             <MudText></MudText>
                         </MudBadge>
                     }
@@ -138,17 +147,23 @@
 </MudGrid>
 
 @code {
-    private int _pendingExcuses = 0;
+    private bool _isLoading = true;
+    private DashboardStatsDto? _dashboardStats;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            _pendingExcuses = await ExcusesApi.GetPendingCountAsync();
+            _isLoading = true;
+            _dashboardStats = await StatsApi.GetDashboardStatsAsync();
         }
-        catch
+        catch (Exception ex)
         {
-
+            Snackbar.Add($"Chyba pri načítaní štatistík: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
         }
     }
 }
