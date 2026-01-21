@@ -7,7 +7,7 @@
     <base href="/" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["ZISK.styles.css"]" />
-    <link rel="stylesheet" href="@Assets["ZISK.Client.styles.css"]" />
+@*     <link rel="stylesheet" href="@Assets["ZISK.Client.styles.css"]" /> *@
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
     <link href="@Assets["_content/MudBlazor/MudBlazor.min.css"]" rel="stylesheet" />
     <ImportMap />
@@ -19,6 +19,13 @@
     <Routes @rendermode="PageRenderMode" />
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
+    <script src="js/session-monitor.js"></script>
+    <script>
+        // session monitor
+        document.addEventListener("DOMContentLoaded", function() {
+            SessionMonitor.init();
+        });
+    </script>
 </body>
 
 </html>

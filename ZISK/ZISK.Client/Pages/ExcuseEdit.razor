@@ -1,0 +1,98 @@
+@page "/ospravedlnenky/upravit/{Id:guid}"
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Excuses
+@inject IExcusesApi ExcusesApi
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@attribute [Authorize]
+
+<PageTitle>Upravi? ospravedlnenku</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Upravi? ospravedlnenku</MudText>
+
+@if (_isLoading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_excuse == null)
+{
+    <MudAlert Severity="Severity.Error">Ospravedlnenka nebola nájdená</MudAlert>
+}
+else
+{
+    <MudPaper Class="pa-4" Elevation="2" MaxWidth="600px">
+        <MudStack Spacing="3">
+            <MudText Typo="Typo.body1"><strong>Die?a:</strong> @_excuse.ChildName</MudText>
+
+            <MudDatePicker @bind-Date="_dateFrom" Label="Od dátumu" Variant="Variant.Outlined" Required="true" />
+            <MudDatePicker @bind-Date="_dateTo" Label="Do dátumu (volite?né)" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_reason" Label="Dôvod" Variant="Variant.Outlined" Required="true" Counter="200" MaxLength="200" />
+            <MudTextField @bind-Value="_note" Label="Poznámka" Variant="Variant.Outlined" Lines="3" />
+
+            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                <MudButton Variant="Variant.Text" Href="/ospravedlnenky">Zruši?</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" 
+                           Disabled="@(!_dateFrom.HasValue || string.IsNullOrWhiteSpace(_reason) || _isSubmitting)">
+                    @if (_isSubmitting) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+                    Uloži?
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    
+    private bool _isLoading = true;
+    private bool _isSubmitting = false;
+    private ExcuseDto? _excuse;
+
+    private DateTime? _dateFrom;
+    private DateTime? _dateTo;
+    private string _reason = "";
+    private string _note = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _excuse = await ExcusesApi.GetExcuseAsync(Id);
+            if (_excuse != null)
+            {
+                _dateFrom = _excuse.DateFrom;
+                _dateTo = _excuse.DateTo;
+                _reason = _excuse.Reason;
+                _note = _excuse.Note ?? "";
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task Submit()
+    {
+        _isSubmitting = true;
+        try
+        {
+            var request = new UpdateExcuseRequest(_dateFrom, _dateTo, _reason.Trim(), string.IsNullOrWhiteSpace(_note) ? null : _note.Trim());
+            await ExcusesApi.UpdateExcuseAsync(Id, request);
+            Snackbar.Add("Ospravedlnenka upravená", Severity.Success);
+            NavigationManager.NavigateTo("/ospravedlnenky");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}

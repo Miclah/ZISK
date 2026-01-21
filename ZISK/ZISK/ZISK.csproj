@@ -8,13 +8,26 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="ZISK\**" />
+    <Content Remove="ZISK\**" />
+    <EmbeddedResource Remove="ZISK\**" />
+    <None Remove="ZISK\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ZISK.Client\ZISK.Client.csproj" />
+    <ProjectReference Include="..\ZISK.Shared\ZISK.Shared.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="9.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.11" />
     <PackageReference Include="MudBlazor" Version="8.15.0" />
+    <PackageReference Include="Refit.HttpClientFactory" Version="9.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Data\Migrations\" />
   </ItemGroup>
 
 </Project>

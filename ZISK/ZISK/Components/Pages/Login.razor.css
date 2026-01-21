@@ -1,0 +1,183 @@
+﻿::deep * {
+    box-sizing: border-box;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+.login-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #F8FAFC;
+    padding: 1rem;
+}
+
+.login-card {
+    background: #FFFFFF;
+    width: 100%;
+    max-width: 440px;
+    padding: 3rem 2.5rem;
+    border-radius: 12px; 
+    box-shadow: 0 4px 6px -1px rgba(30, 58, 95, 0.1), 0 2px 4px -1px rgba(30, 58, 95, 0.06);
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.login-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1E3A5F; 
+    margin: 0 0 0.5rem 0;
+}
+
+.login-subtitle {
+    font-size: 0.9rem;
+    color: #64748B;
+    margin: 0;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1E293B; 
+    margin-bottom: 0.5rem;
+}
+
+::deep .form-input {
+    width: 100%;
+    padding: 0.75rem 1rem; 
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #1E293B;
+    background-color: #FFFFFF;
+    border: 1.5px solid #E2E8F0; 
+    border-radius: 8px;
+    transition: all 0.2s ease-in-out;
+    appearance: none;
+}
+
+    ::deep .form-input:focus {
+        outline: none;
+        border-color: #1E3A5F; 
+        box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
+    }
+
+    ::deep .form-input::placeholder {
+        color: #94A3B8;
+    }
+
+    ::deep .form-input.invalid {
+        border-color: #E74C3C; 
+        background-color: #FEF2F2;
+    }
+
+::deep .validation-message {
+    color: #E74C3C; 
+    font-size: 0.8rem;
+    margin-top: 0.4rem;
+    display: block;
+}
+
+.form-check-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2rem;
+    margin-top: 0.5rem;
+}
+
+::deep .form-checkbox {
+    width: 1.125rem;
+    height: 1.125rem;
+    border-radius: 4px;
+    border: 1.5px solid #CBD5E1;
+    margin-right: 0.75rem;
+    cursor: pointer;
+    accent-color: #1E3A5F; /
+}
+
+.form-check-label {
+    font-size: 0.875rem;
+    color: #475569;
+    cursor: pointer;
+    user-select: none;
+}
+
+.btn-login {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    padding: 0.875rem;
+    background-color: #1E3A5F; 
+    color: #FFFFFF;
+    font-weight: 600;
+    font-size: 1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+    .btn-login:hover {
+        background-color: #2A4A73; 
+    }
+
+    .btn-login:active {
+        background-color: #162D4A;
+        transform: translateY(1px);
+    }
+
+.login-footer {
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #E2E8F0;
+    text-align: center;
+}
+
+.footer-text {
+    color: #94A3B8;
+    font-size: 0.8rem;
+}
+
+.alert-box {
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+}
+
+    .alert-box.error {
+        background-color: #FEE2E2;
+        border-left: 4px solid #E74C3C;
+        color: #991B1B;
+    }
+
+a {
+    color: #1E3A5F;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+    a:hover {
+        text-decoration: underline;
+    }
+
+@media (max-width: 480px) {
+    .login-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .login-title {
+        font-size: 1.75rem;
+    }
+}

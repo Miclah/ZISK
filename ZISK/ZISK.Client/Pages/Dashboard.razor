@@ -1,8 +1,157 @@
 ﻿@page "/"
-@* @attribute [Authorize] *@
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Announcements
+@using ZISK.Shared.Enums
+@inject IAnnouncementsApi AnnouncementsApi
+@inject IExcusesApi ExcusesApi
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@attribute [Authorize]
 
-<MudText>Test</MudText>
+<PageTitle>Dashboard - ZISK</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Vitajte v ZISK</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="8">
+        <MudText Typo="Typo.h6" Class="mb-3">Rýchle akcie</MudText>
+        <MudGrid>
+            <MudItem xs="6" sm="4">
+                <MudPaper Class="pa-3" Elevation="2" Style="cursor: pointer;" @onclick="@(() => NavigateTo("/dochadzka/prehlad"))">
+                    <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.EventNote" Size="Size.Large" Color="Color.Primary" />
+                        <MudText Typo="Typo.body2">Moja dochádzka</MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="6" sm="4">
+                <MudPaper Class="pa-3" Elevation="2" Style="cursor: pointer;" @onclick="@(() => NavigateTo("/ospravedlnenky"))">
+                    <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" Color="Color.Warning" />
+                        <MudText Typo="Typo.body2">Ospravedlnenky</MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="6" sm="4">
+                <MudPaper Class="pa-3" Elevation="2" Style="cursor: pointer;" @onclick="@(() => NavigateTo("/rozvrh"))">
+                    <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Large" Color="Color.Info" />
+                        <MudText Typo="Typo.body2">Rozvrh</MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <MudText Typo="Typo.h6" Class="mb-3 mt-4">Posledné oznamy</MudText>
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (!_announcements.Any())
+        {
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne nové oznamy</MudText>
+            </MudPaper>
+        }
+        else
+        {
+            <MudStack Spacing="2">
+                @foreach (var announcement in _announcements.Take(3))
+                {
+                    <MudPaper Class="pa-3" Elevation="1" Style="@GetAnnouncementStyle(announcement)">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.subtitle1">@announcement.Title</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @announcement.PublishDate.ToString("dd.MM.yyyy")
+                                </MudText>
+                            </MudStack>
+                            <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(announcement.Priority)">
+                                @GetPriorityText(announcement.Priority)
+                            </MudChip>
+                        </MudStack>
+                    </MudPaper>
+                }
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/oznamy">
+                    Zobraziť všetky oznamy
+                </MudButton>
+            </MudStack>
+        }
+    </MudItem>
+
+    <MudItem xs="12" md="4">
+        @if (_pendingExcuses > 0)
+        {
+            <MudPaper Class="pa-4 mb-3" Elevation="2" Style="border-left: 4px solid #ff9800;">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.body1">Čakajúce ospravedlnenky</MudText>
+                        <MudText Typo="Typo.h5" Color="Color.Warning">@_pendingExcuses</MudText>
+                    </MudStack>
+                    <MudButton Variant="Variant.Text" Color="Color.Warning" Href="/ospravedlnenky">
+                        Zobraziť
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+        }
+
+    </MudItem>
+</MudGrid>
 
 @code {
+    private bool _isLoading = true;
+    private List<AnnouncementListDto> _announcements = new();
+    private int _pendingExcuses = 0;
 
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var announcementsTask = AnnouncementsApi.GetAnnouncementsAsync(null, null);
+            var excusesTask = ExcusesApi.GetPendingCountAsync();
+
+            await Task.WhenAll(announcementsTask, excusesTask);
+
+            _announcements = await announcementsTask;
+            _pendingExcuses = await excusesTask;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri načítaní dát: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void NavigateTo(string url)
+    {
+        NavigationManager.NavigateTo(url);
+    }
+
+    private string GetAnnouncementStyle(AnnouncementListDto announcement)
+    {
+        var borderColor = announcement.Priority switch
+        {
+            AnnouncementPriority.High => "#f44336",
+            AnnouncementPriority.Medium => "#ff9800",
+            _ => "#1976d2"
+        };
+        return $"border-left: 3px solid {borderColor};";
+    }
+
+    private Color GetPriorityColor(AnnouncementPriority priority) => priority switch
+    {
+        AnnouncementPriority.High => Color.Error,
+        AnnouncementPriority.Medium => Color.Warning,
+        _ => Color.Info
+    };
+
+    private string GetPriorityText(AnnouncementPriority priority) => priority switch
+    {
+        AnnouncementPriority.High => "Dôležité",
+        AnnouncementPriority.Medium => "Stredná",
+        _ => "Info"
+    };
 }

@@ -1,344 +1,181 @@
 ﻿@page "/oznamy"
-@using ZISK.Client.Pages.SampleData
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Announcements
+@using ZISK.Shared.Enums
+@inject IAnnouncementsApi AnnouncementsApi
 @inject ISnackbar Snackbar
+@attribute [Authorize]
 
 <PageTitle>Oznamy</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Oznamy</MudText>
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4">Oznamy</MudText>
+    <AuthorizeView Roles="Admin,Coach">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/oznamy/vytvorit">
+            Nový oznam
+        </MudButton>
+    </AuthorizeView>
+</MudStack>
 
+@* Filter *@
 <MudPaper Class="pa-4 mb-4" Elevation="2">
     <MudGrid>
         <MudItem xs="12" sm="6" md="4">
-            <MudTextField @bind-Value="_searchText" Placeholder="Hľadať v oznamoch..." Variant="Variant.Outlined"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                          Immediate="true" />
-        </MudItem>
-        <MudItem xs="12" sm="6" md="2">
-            <MudSelect T="string" @bind-Value="_selectedTeam" Label="Tím" Variant="Variant.Outlined">
-                <MudSelectItem Value="@("all")">Všetky tímy</MudSelectItem>
-                <MudSelectItem Value="@("A-tím")">A-tím</MudSelectItem>
-                <MudSelectItem Value="@("B-tím")">B-tím</MudSelectItem>
-                <MudSelectItem Value="@("Žiaci")">Žiaci</MudSelectItem>
+            <MudSelect T="AnnouncementPriority?" @bind-Value="_filterPriority" Label="Priorita" Variant="Variant.Outlined" Clearable="true">
+                <MudSelectItem T="AnnouncementPriority?" Value="@(AnnouncementPriority.High)">Vysoká</MudSelectItem>
+                <MudSelectItem T="AnnouncementPriority?" Value="@(AnnouncementPriority.Medium)">Stredná</MudSelectItem>
+                <MudSelectItem T="AnnouncementPriority?" Value="@(AnnouncementPriority.Low)">Nízka</MudSelectItem>
             </MudSelect>
         </MudItem>
-        <MudItem xs="12" sm="6" md="2">
-            <MudSelect T="string" @bind-Value="_selectedAudience" Label="Cieľová skupina" Variant="Variant.Outlined">
-                <MudSelectItem Value="@("all")">Všetky</MudSelectItem>
-                <MudSelectItem Value="@("Všetci")">Všetci</MudSelectItem>
-                <MudSelectItem Value="@("Rodičia")">Rodičia</MudSelectItem>
-                <MudSelectItem Value="@("Športovci")">Športovci</MudSelectItem>
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="2">
-            <MudSelect T="string" @bind-Value="_selectedReadStatus" Label="Stav" Variant="Variant.Outlined">
-                <MudSelectItem Value="@("all")">Všetky</MudSelectItem>
-                <MudSelectItem Value="@("unread")">Neprečítané</MudSelectItem>
-                <MudSelectItem Value="@("read")">Prečítané</MudSelectItem>
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="12" md="2" Class="d-flex align-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                       Href="/oznamy/vytvorit" FullWidth="true">
-                Nový oznam
-            </MudButton>
+        <MudItem xs="12" sm="6" md="4" Class="d-flex align-end">
+            <MudButton Variant="Variant.Outlined" OnClick="LoadAnnouncements">Filtrovať</MudButton>
         </MudItem>
     </MudGrid>
 </MudPaper>
 
-@if (GetUnreadCount() > 0)
+@if (_isLoading)
 {
-    <MudAlert Severity="Severity.Info" Class="mb-4" Elevation="2">
-        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-            <MudText Typo="Typo.body1">
-                <MudIcon Icon="@Icons.Material.Filled.MarkEmailUnread" Size="Size.Small" />
-                Máte <strong>@GetUnreadCount()</strong> neprečítaných oznamov
-            </MudText>
-            <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="MarkAllAsRead">
-                Označiť všetky ako prečítané
-            </MudButton>
-        </MudStack>
-    </MudAlert>
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
-
-<MudStack Spacing="3">
-    @foreach (var announcement in GetFilteredAnnouncements())
-    {
-        <MudPaper Class="pa-4" Elevation="@(announcement.IsPinned ? 4 : 2)"
-                  Style="@GetAnnouncementStyle(announcement)">
-            <MudStack Spacing="2">
+else if (!_announcements.Any())
+{
+    <MudPaper Class="pa-6" Elevation="1">
+        <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Secondary">
+            Zatiaľ neboli zverejnené žiadne oznamy
+        </MudText>
+    </MudPaper>
+}
+else
+{
+    <MudStack Spacing="3">
+        @foreach (var announcement in _announcements)
+        {
+            <MudPaper Class="pa-4" Elevation="2" Style="@GetAnnouncementStyle(announcement)">
+                <MudStack Spacing="2">
                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
-                    <MudStack Spacing="1" Style="flex: 1;">
-                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                            @if (!announcement.IsRead)
-                            {
-                                <MudBadge Color="Color.Primary" Dot="true" Overlap="false">
-                                    <MudIcon Icon="@Icons.Material.Filled.FiberNew" Size="Size.Small" Color="Color.Primary" />
-                                </MudBadge>
-                            }
+                    <MudStack Spacing="0">
+                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
                             @if (announcement.IsPinned)
                             {
                                 <MudIcon Icon="@Icons.Material.Filled.PushPin" Size="Size.Small" Color="Color.Primary" />
                             }
-                            <MudText Typo="Typo.h6" Style="@(!announcement.IsRead ? "font-weight: 700;" : "")">
-                                @announcement.Title
-                            </MudText>
+                            <MudText Typo="Typo.h6">@announcement.Title</MudText>
                         </MudStack>
-                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" />
-                                @announcement.AuthorName
-                            </MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" />
-                                @GetRelativeTime(announcement.CreatedAt)
-                            </MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                <MudIcon Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" />
-                                @announcement.ViewCount
-                            </MudText>
-                            @if (announcement.ValidUntil.HasValue)
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @announcement.AuthorName • @announcement.PublishDate.ToString("dd.MM.yyyy HH:mm")
+                            @if (!string.IsNullOrEmpty(announcement.TargetTeamName))
                             {
-                                <MudText Typo="Typo.body2" Color="@(announcement.ValidUntil.Value<DateTime.Now? Color.Error : Color.Secondary)">
-                                    <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" />
-                                    Platí do: @announcement.ValidUntil.Value.ToString("dd.MM.yyyy")
-                                </MudText>
+                                <text> • @announcement.TargetTeamName</text>
                             }
-                        </MudStack>
+                        </MudText>
                     </MudStack>
                     <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                        <MudChip T="string" Size="Size.Small" Color="@GetAudienceColor(announcement.TargetAudience)"
-                                 Icon="@GetAudienceIcon(announcement.TargetAudience)">
-                            @announcement.TargetAudience
+                        <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(announcement.Priority)">
+                            @GetPriorityText(announcement.Priority)
                         </MudChip>
-                        <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(announcement.Priority)" Variant="Variant.Filled">
-                            @announcement.Priority
-                        </MudChip>
+                        <AuthorizeView Roles="Admin,Coach">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" 
+                                           Href="@($"/oznamy/upravit/{announcement.Id}")" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                           OnClick="@(() => DeleteAnnouncement(announcement.Id))" />
+                        </AuthorizeView>
                     </MudStack>
                 </MudStack>
 
-                <MudDivider />
-
-                <MudText Typo="Typo.body1" Style="white-space: pre-wrap;">@announcement.Content</MudText>
-
-                @if (announcement.Attachments.Any())
-                {
                     <MudDivider />
-                    <MudText Typo="Typo.subtitle2" Class="mb-2">
-                        <MudIcon Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small" />
-                        Prílohy (@announcement.Attachments.Count)
-                    </MudText>
-                    <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
-                        @foreach (var attachment in announcement.Attachments)
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Default"
-                                     Icon="@GetAttachmentIcon(attachment.Type)"
-                                     OnClick="@(() => DownloadAttachment(attachment))">
-                                @attachment.Name (@FormatFileSize(attachment.SizeBytes))
-                            </MudChip>
-                        }
-                    </MudStack>
-                }
 
-                <MudStack Row="true" Spacing="2" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                    <MudStack Row="true" Spacing="1">
-                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Group" Color="Color.Default">
-                            @announcement.Team
-                        </MudChip>
-                        @if (announcement.UpdatedAt.HasValue)
-                        {
-                            <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Edit" Color="Color.Secondary">
-                                Upravené
-                            </MudChip>
-                        }
-                    </MudStack>
-                    <MudStack Row="true" Spacing="1">
-                        @if (!announcement.IsRead)
-                        {
-                            <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
-                                       StartIcon="@Icons.Material.Filled.MarkEmailRead"
-                                       OnClick="@(() => MarkAsRead(announcement))">
-                                Označiť ako prečítané
-                            </MudButton>
-                        }
-                        <MudIconButton Icon="@Icons.Material.Filled.Share" Size="Size.Small" Color="Color.Primary" />
-                        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Color="Color.Default"
-                                       OnClick="@(() => OpenAnnouncementMenu(announcement))" />
-                    </MudStack>
+                    <MudText Typo="Typo.body1">@announcement.ContentPreview</MudText>
+
+                    @if (announcement.AttachmentCount > 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            <MudIcon Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small" />
+                            @announcement.AttachmentCount prílohy
+                        </MudText>
+                    }
+
+                    @if (announcement.ValidUntil.HasValue)
+                    {
+                        <MudText Typo="Typo.caption" Color="@(announcement.ValidUntil.Value < DateTime.Now ? Color.Error : Color.Secondary)">
+                            Platí do: @announcement.ValidUntil.Value.ToString("dd.MM.yyyy")
+                        </MudText>
+                    }
                 </MudStack>
-            </MudStack>
-        </MudPaper>
-    }
-</MudStack>
-
-@if (!GetFilteredAnnouncements().Any())
-{
-    <MudPaper Class="pa-6 text-center" Elevation="0">
-        <MudIcon Icon="@Icons.Material.Filled.Announcement" Size="Size.Large" Color="Color.Secondary" />
-        <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mt-2">Žiadne oznamy</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @if (!string.IsNullOrWhiteSpace(_searchText))
-            {
-                <span>Skúste zmeniť vyhľadávací výraz</span>
-            }
-            else
-            {
-                <span>Zatiaľ neboli zverejnené žiadne oznamy</span>
-            }
-        </MudText>
-    </MudPaper>
+            </MudPaper>
+        }
+    </MudStack>
 }
 
 @code {
-    private string _searchText = string.Empty;
-    private string _selectedTeam = "all";
-    private string _selectedAudience = "all";
-    private string _selectedReadStatus = "all";
+    private bool _isLoading = true;
+    private List<AnnouncementListDto> _announcements = new();
+    private AnnouncementPriority? _filterPriority;
 
-    private List<AnnouncementsSampleData.Announcement> GetAnnouncements()
+    protected override async Task OnInitializedAsync()
     {
-        return AnnouncementsSampleData.GetAnnouncements();
+        await LoadAnnouncements();
     }
 
-    private List<AnnouncementsSampleData.Announcement> GetFilteredAnnouncements()
+    private async Task LoadAnnouncements()
     {
-        var announcements = GetAnnouncements();
-
-        if (!string.IsNullOrWhiteSpace(_searchText))
+        try
         {
-            announcements = announcements.Where(a =>
-                a.Title.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
-                a.Content.Contains(_searchText, StringComparison.OrdinalIgnoreCase))
-                .ToList();
+            _isLoading = true;
+            _announcements = await AnnouncementsApi.GetAnnouncementsAsync(null, null);
+            
+            if (_filterPriority.HasValue)
+            {
+                _announcements = _announcements.Where(a => a.Priority == _filterPriority.Value).ToList();
+            }
         }
-
-        if (_selectedTeam != "all")
+        catch (Exception ex)
         {
-            announcements = announcements.Where(a => a.Team == _selectedTeam || a.Team == "Všetky").ToList();
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
         }
-
-        if (_selectedAudience != "all")
+        finally
         {
-            announcements = announcements.Where(a => a.TargetAudience == _selectedAudience || a.TargetAudience == "Všetci").ToList();
+            _isLoading = false;
         }
-
-        if (_selectedReadStatus == "unread")
-        {
-            announcements = announcements.Where(a => !a.IsRead).ToList();
-        }
-        else if (_selectedReadStatus == "read")
-        {
-            announcements = announcements.Where(a => a.IsRead).ToList();
-        }
-
-        return announcements
-            .OrderByDescending(a => a.IsPinned)
-            .ThenByDescending(a => a.CreatedAt)
-            .ToList();
     }
 
-    private int GetUnreadCount() => GetAnnouncements().Count(a => !a.IsRead);
-
-    private string GetAnnouncementStyle(AnnouncementsSampleData.Announcement announcement)
+    private string GetAnnouncementStyle(AnnouncementListDto announcement)
     {
-        var styles = new List<string>();
-
-        if (announcement.IsPinned)
-            styles.Add("border-left: 4px solid var(--mud-palette-primary)");
-
-        if (!announcement.IsRead)
-            styles.Add("background-color: var(--mud-palette-primary-lighten)");
-
-        return string.Join("; ", styles);
-    }
-
-    private Color GetPriorityColor(string priority)
-    {
-        return priority switch
+        var borderColor = announcement.Priority switch
         {
-            "Vysoká" => Color.Error,
-            "Stredná" => Color.Warning,
-            "Nízka" => Color.Info,
-            _ => Color.Default
+            AnnouncementPriority.High => "#f44336",
+            AnnouncementPriority.Medium => "#ff9800",
+            _ => "#1976d2"
         };
+        return $"border-left: 4px solid {borderColor};";
     }
 
-    private Color GetAudienceColor(string audience)
+    private Color GetPriorityColor(AnnouncementPriority priority) => priority switch
     {
-        return audience switch
+        AnnouncementPriority.High => Color.Error,
+        AnnouncementPriority.Medium => Color.Warning,
+        AnnouncementPriority.Low => Color.Info,
+        _ => Color.Default
+    };
+
+    private string GetPriorityText(AnnouncementPriority priority) => priority switch
         {
-            "Rodičia" => Color.Secondary,
-            "Športovci" => Color.Tertiary,
-            _ => Color.Default
+            AnnouncementPriority.High => "Dôležité",
+            AnnouncementPriority.Medium => "Stredná",
+            AnnouncementPriority.Low => "Informačné",
+            _ => "?"
         };
-    }
 
-    private string GetAudienceIcon(string audience)
-    {
-        return audience switch
+        private async Task DeleteAnnouncement(Guid id)
         {
-            "Rodičia" => Icons.Material.Filled.FamilyRestroom,
-            "Športovci" => Icons.Material.Filled.SportsHandball,
-            _ => Icons.Material.Filled.Groups
-        };
-    }
-
-    private string GetAttachmentIcon(string type)
-    {
-        return type switch
-        {
-            "pdf" => Icons.Material.Filled.PictureAsPdf,
-            "image" => Icons.Material.Filled.Image,
-            "doc" => Icons.Material.Filled.Description,
-            _ => Icons.Material.Filled.AttachFile
-        };
-    }
-
-    private string FormatFileSize(long bytes)
-    {
-        if (bytes < 1024) return $"{bytes} B";
-        if (bytes < 1024 * 1024) return $"{bytes / 1024} KB";
-        return $"{bytes / 1024 / 1024} MB";
-    }
-
-    private string GetRelativeTime(DateTime date)
-    {
-        var span = DateTime.Now - date;
-
-        if (span.TotalMinutes < 60)
-            return $"pred {(int)span.TotalMinutes} min";
-        if (span.TotalHours < 24)
-            return $"pred {(int)span.TotalHours} hod";
-        if (span.TotalDays < 7)
-            return $"pred {(int)span.TotalDays} dňami";
-
-        return date.ToString("dd.MM.yyyy");
-    }
-
-    private void MarkAsRead(AnnouncementsSampleData.Announcement announcement)
-    {
-        announcement.IsRead = true;
-        Snackbar.Add("Oznam označený ako prečítaný", Severity.Success);
-        StateHasChanged();
-    }
-
-    private void MarkAllAsRead()
-    {
-        foreach (var announcement in GetAnnouncements())
-        {
-            announcement.IsRead = true;
+            try
+            {
+                await AnnouncementsApi.DeleteAnnouncementAsync(id);
+                Snackbar.Add("Oznam vymazaný", Severity.Success);
+                await LoadAnnouncements();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+            }
         }
-        Snackbar.Add("Všetky oznamy označené ako prečítané", Severity.Success);
-        StateHasChanged();
     }
-
-    private void DownloadAttachment(AnnouncementsSampleData.Attachment attachment)
-    {
-        // TODO
-        Snackbar.Add($"Sťahujem: {attachment.Name}", Severity.Info);
-    }
-
-    private void OpenAnnouncementMenu(AnnouncementsSampleData.Announcement announcement)
-    {
-        // TODO
-    }
-}

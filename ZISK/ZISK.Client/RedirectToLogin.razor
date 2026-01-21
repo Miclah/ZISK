@@ -1,11 +1,18 @@
 ﻿@inject NavigationManager Nav
 
 @code {
-    protected override void OnAfterRender(bool firstRender)
+    protected override void OnInitialized()
     {
-        if (firstRender && OperatingSystem.IsBrowser())
+        var returnUrl = Nav.ToBaseRelativePath(Nav.Uri);
+
+        if (string.IsNullOrEmpty(returnUrl))
         {
-            Nav.NavigateTo("/login");
+            returnUrl = "/";
         }
+
+
+        var encodedReturnUrl = Uri.EscapeDataString(returnUrl);
+
+        Nav.NavigateTo($"/login?ReturnUrl={encodedReturnUrl}", forceLoad: true);
     }
 }

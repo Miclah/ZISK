@@ -1,0 +1,30 @@
+﻿@page "/logout"
+@attribute [ExcludeFromInteractiveRouting]
+@attribute [AllowAnonymous]
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using ZISK.Data
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager NavigationManager
+@inject ILogger<Logout> Logger
+
+<PageTitle>Odhlásenie</PageTitle>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpContext.User.Identity?.IsAuthenticated == true)
+        {
+            var userName = HttpContext.User.Identity.Name;
+            await SignInManager.SignOutAsync();
+            Logger.LogInformation("User {UserName} logged out.", userName);
+        }
+        
+        NavigationManager.NavigateTo("/login", forceLoad: true);
+    }
+}

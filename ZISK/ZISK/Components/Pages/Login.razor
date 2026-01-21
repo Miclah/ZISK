@@ -1,0 +1,154 @@
+﻿@page "/login"
+@attribute [ExcludeFromInteractiveRouting]
+@attribute [AllowAnonymous]
+@layout ZISK.Components.Layout.LoginLayout
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Identity
+@using ZISK.Data
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject ILogger<Login> Logger
+@inject NavigationManager NavigationManager
+
+<PageTitle>Prihlásenie - ZISK</PageTitle>
+
+<div class="login-wrapper">
+    <div class="login-card">
+        <div class="login-header">
+            <h1 class="login-title">ZISK</h1>
+            <p class="login-subtitle">Žiarský Informačný Systém pre Kluby</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert-box error">
+                @errorMessage
+            </div>
+        }
+
+        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+            <DataAnnotationsValidator />
+
+            <div class="form-group">
+                <label for="email" class="form-label">Email</label>
+                <InputText @bind-Value="Input.Email"
+                           id="email"
+                           class="form-input"
+                           autocomplete="username"
+                           placeholder="vas@email.sk" />
+                <ValidationMessage For="() => Input.Email" class="validation-message" />
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Heslo</label>
+                <InputText type="password"
+                           id="password"
+                           @bind-Value="Input.Password"
+                           class="form-input"
+                           autocomplete="current-password"
+                           placeholder="Vaše heslo" />
+                <ValidationMessage For="() => Input.Password" class="validation-message" />
+            </div>
+
+            <div class="form-check-group">
+                <InputCheckbox @bind-Value="Input.RememberMe" id="remember" class="form-checkbox" />
+                <label for="remember" class="form-check-label">Zapamätať prihlásenie</label>
+            </div>
+
+            <button type="submit" class="btn-login">
+                Prihlásiť sa
+            </button>
+        </EditForm>
+
+        <div class="login-footer">
+            <p class="footer-text">© 2026 ZISK</p>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string? errorMessage;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            if (HttpContext.User.Identity?.IsAuthenticated == true)
+            {
+                NavigationManager.NavigateTo(GetSafeRedirectUrl(), forceLoad: true);
+                return;
+            }
+            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        }
+    }
+
+    public async Task LoginUser()
+    {
+        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+
+        if (result.Succeeded)
+        {
+            Logger.LogInformation("User {Email} logged in successfully.", Input.Email);
+            NavigationManager.NavigateTo(GetSafeRedirectUrl(), forceLoad: true);
+            return;
+        }
+
+        if (result.RequiresTwoFactor)
+        {
+            errorMessage = "Vyžaduje sa dvojfaktorové overenie.";
+            return;
+        }
+
+        if (result.IsLockedOut)
+        {
+            Logger.LogWarning("User account {Email} locked out.", Input.Email);
+            errorMessage = "Váš účet je dočasne uzamknutý.";
+            return;
+        }
+
+        errorMessage = "Neplatný email alebo heslo.";
+    }
+
+    private string GetSafeRedirectUrl()
+    {
+        if (string.IsNullOrEmpty(ReturnUrl)) return "/";
+        var decodedUrl = Uri.UnescapeDataString(ReturnUrl);
+        if (Uri.IsWellFormedUriString(decodedUrl, UriKind.Absolute))
+        {
+            try
+            {
+                var uri = new Uri(decodedUrl);
+                var currentUri = new Uri(NavigationManager.BaseUri);
+                if (uri.Host != currentUri.Host) return "/";
+                return uri.PathAndQuery;
+            }
+            catch { return "/"; }
+        }
+        if (decodedUrl.StartsWith("/")) return decodedUrl;
+        return "/" + decodedUrl;
+    }
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "Email je povinný")]
+        [EmailAddress(ErrorMessage = "Neplatný formát emailu")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "Heslo je povinné")]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        [Display(Name = "Zapamätať si ma?")]
+        public bool RememberMe { get; set; }
+    }
+}

@@ -1,348 +1,175 @@
 ﻿@page "/dochadzka"
-@using ZISK.Client.Pages.SampleData
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Teams
+@using ZISK.Shared.DTOs.Trainings
+@using ZISK.Shared.DTOs.Attendance
+@using ZISK.Shared.Enums
+@inject ITeamsApi TeamsApi
+@inject ITrainingsApi TrainingsApi
+@inject IAttendanceApi AttendanceApi
 @inject ISnackbar Snackbar
+@attribute [Authorize(Roles = "Admin,Coach")]
 
 <PageTitle>Dochádzka</PageTitle>
 
 <MudText Typo="Typo.h4" Class="mb-4">Označenie dochádzky</MudText>
 
-<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" Color="Color.Primary" @bind-ActivePanelIndex="_activeTab">
-    <MudTabPanel Text="Označiť dochádzku" Icon="@Icons.Material.Filled.Edit">
-        
-        <MudPaper Class="pa-4 mb-4 mt-4" Elevation="2">
-            <MudGrid>
-                <MudItem xs="12" sm="6" md="4">
-                    <MudSelect T="AttendanceSampleData.Training" @bind-Value="_selectedTraining" Label="Vyberte tréning"
-                               Variant="Variant.Outlined" ToStringFunc="@(t => t?.Date.ToString("dd.MM.yyyy HH:mm") + " - " + t?.TeamName ?? "")">
-                        @foreach (var training in GetTrainings())
-                        {
-                            <MudSelectItem Value="@training">
-                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                                    <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" />
-                                    <div>
-                                        <MudText Typo="Typo.body2">@training.Date.ToString("dd.MM.yyyy HH:mm")</MudText>
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@training.TeamName - @training.Type</MudText>
-                                    </div>
-                                    @if (training.IsLocked)
-                                    {
-                                        <MudChip T="string" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Filled.Lock">Uzamknuté</MudChip>
-                                    }
-                                </MudStack>
-                            </MudSelectItem>
-                        }
-                    </MudSelect>
-                </MudItem>
-                <MudItem xs="12" sm="6" md="3">
-                    <MudSelect T="string" @bind-Value="_selectedTeam" Label="Filter tímu" Variant="Variant.Outlined">
-                        <MudSelectItem Value="@("all")">Všetky</MudSelectItem>
-                        <MudSelectItem Value="@("a-team")">A-tím</MudSelectItem>
-                        <MudSelectItem Value="@("b-team")">B-tím</MudSelectItem>
-                        <MudSelectItem Value="@("youth")">Žiaci</MudSelectItem>
-                    </MudSelect>
-                </MudItem>
-                <MudItem xs="12" sm="6" md="2" Class="d-flex align-end">
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CheckCircle"
-                               FullWidth="true" OnClick="MarkAllPresent" Disabled="@(_selectedTraining?.IsLocked ?? true)">
-                        Označiť všetkých
-                    </MudButton>
-                </MudItem>
-                <MudItem xs="12" sm="6" md="3" Class="d-flex align-end">
-                    @if (_selectedTraining?.IsLocked == true)
-                    {
-                        <MudButton Variant="Variant.Outlined" Color="Color.Warning" StartIcon="@Icons.Material.Filled.LockOpen"
-                                   FullWidth="true" OnClick="UnlockTraining">
-                            Odomknúť dochádzku
-                        </MudButton>
-                    }
-                    else if (_selectedTraining != null)
-                    {
-                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Lock"
-                                   FullWidth="true" OnClick="LockTraining">
-                            Uzamknúť dochádzku
-                        </MudButton>
-                    }
-                </MudItem>
-            </MudGrid>
-        </MudPaper>
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <MudSelect T="Guid?" @bind-Value="_selectedTeamId" @bind-Value:after="LoadTrainings"
+                       Label="Tím" Variant="Variant.Outlined">
+                @foreach (var team in _teams)
+                {
+                    <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudSelect T="Guid?" @bind-Value="_selectedTrainingId" @bind-Value:after="LoadAttendance"
+                       Label="Tréning" Variant="Variant.Outlined" Disabled="@(_selectedTeamId == null)">
+                @foreach (var training in _trainings)
+                {
+                    <MudSelectItem Value="@((Guid?)training.Id)">
+                        @training.StartTime.ToString("dd.MM.yyyy HH:mm") - @training.Title
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
 
-        @if (_selectedTraining != null)
-        {
-            @if (!string.IsNullOrEmpty(_selectedTraining.CoachNote))
-            {
-                <MudAlert Severity="Severity.Info" Class="mb-4">
-                    <strong>Poznámka k tréningu:</strong> @_selectedTraining.CoachNote
-                </MudAlert>
-            }
-
-            <MudTable Items="@GetFilteredMembers()" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="3" Dense="true">
-                <HeaderContent>
-                    <MudTh>Meno</MudTh>
-                    <MudTh>Email</MudTh>
-                    <MudTh>Stav</MudTh>
-                    <MudTh>Ospravedlnenka</MudTh>
-                    <MudTh>Poznámka</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Meno">
-                        <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.Name</MudText>
-                    </MudTd>
-                    <MudTd DataLabel="Email">
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">@context.Email</MudText>
-                    </MudTd>
-                    <MudTd DataLabel="Stav">
-                        <MudSelect T="string" @bind-Value="context.Status" Variant="Variant.Outlined" Dense="true"
-                                   Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter"
-                                   Disabled="@(_selectedTraining.IsLocked)">
-                            <MudSelectItem Value="@("Prítomný")">
-                                <div style="display: flex; align-items: center;">
-                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" Class="mr-2" />
-                                    <span>Prítomný</span>
-                                </div>
-                            </MudSelectItem>
-                            <MudSelectItem Value="@("Neprítomný")">
-                                <div style="display: flex; align-items: center;">
-                                    <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" Size="Size.Small" Class="mr-2" />
-                                    <span>Neprítomný</span>
-                                </div>
-                            </MudSelectItem>
-                            <MudSelectItem Value="@("Meškanie")">
-                                <div style="display: flex; align-items: center;">
-                                    <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Warning" Size="Size.Small" Class="mr-2" />
-                                    <span>Meškanie</span>
-                                </div>
-                            </MudSelectItem>
-                            <MudSelectItem Value="@("Ospravedlnený")">
-                                <div style="display: flex; align-items: center;">
-                                    <MudIcon Icon="@Icons.Material.Filled.EventBusy" Color="Color.Info" Size="Size.Small" Class="mr-2" />
-                                    <span>Ospravedlnený</span>
-                                </div>
-                            </MudSelectItem>
-                        </MudSelect>
-                    </MudTd>
-                    <MudTd DataLabel="Ospravedlnenka">
-                        @if (context.HasExcuse)
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.Description">
-                                @context.ExcuseReason
-                            </MudChip>
-                        }
-                        else
-                        {
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">-</MudText>
-                        }
-                    </MudTd>
-                    <MudTd DataLabel="Poznámka">
-                        <MudTextField @bind-Value="context.Note" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                      Dense="true" Placeholder="Pridať poznámku..." Disabled="@(_selectedTraining.IsLocked)"
-                                      Immediate="false" OnBlur="@(async () => await OnNoteChanged(context))" />
-                    </MudTd>
-                </RowTemplate>
-            </MudTable>
-
-            <MudPaper Class="pa-4 mt-4" Elevation="2">
-                <MudGrid>
-                    <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.body2">
-                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
-                            <strong>Prítomných:</strong> @GetCountByStatus("Prítomný")
-                        </MudText>
-                    </MudItem>
-                    <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.body2">
-                            <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" Size="Size.Small" />
-                            <strong>Neprítomných:</strong> @GetCountByStatus("Neprítomný")
-                        </MudText>
-                    </MudItem>
-                    <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.body2">
-                            <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Warning" Size="Size.Small" />
-                            <strong>Meškanie:</strong> @GetCountByStatus("Meškanie")
-                        </MudText>
-                    </MudItem>
-                    <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.body2">
-                            <MudIcon Icon="@Icons.Material.Filled.EventBusy" Color="Color.Info" Size="Size.Small" />
-                            <strong>Ospravedlnených:</strong> @GetCountByStatus("Ospravedlnený")
-                        </MudText>
-                    </MudItem>
-                </MudGrid>
-            </MudPaper>
-        }
-        else
-        {
-            <MudPaper Class="pa-6 text-center" Elevation="1">
-                <MudIcon Icon="@Icons.Material.Filled.EventNote" Size="Size.Large" Color="Color.Secondary" />
-                <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mt-2">Vyberte tréning</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">Začnite výberom tréningu zo zoznamu</MudText>
-            </MudPaper>
-        }
-
-    </MudTabPanel>
-    
-    <MudTabPanel Text="Mesačný prehľad" Icon="@Icons.Material.Filled.CalendarMonth">
-        
-        <MudPaper Class="pa-4 mb-4 mt-4" Elevation="2">
-            <MudGrid>
-                <MudItem xs="12" sm="6" md="4">
-                    <MudSelect T="string" @bind-Value="_overviewTeam" Label="Tím" Variant="Variant.Outlined">
-                        <MudSelectItem Value="@("a-team")">A-tím</MudSelectItem>
-                        <MudSelectItem Value="@("b-team")">B-tím</MudSelectItem>
-                        <MudSelectItem Value="@("youth")">Žiaci</MudSelectItem>
-                    </MudSelect>
-                </MudItem>
-                <MudItem xs="12" sm="6" md="4">
-                    <MudSelect T="string" @bind-Value="_overviewMonth" Label="Mesiac" Variant="Variant.Outlined">
-                        <MudSelectItem Value="@("current")">Aktuálny mesiac</MudSelectItem>
-                        <MudSelectItem Value="@("previous")">Predchádzajúci mesiac</MudSelectItem>
-                    </MudSelect>
-                </MudItem>
-            </MudGrid>
-        </MudPaper>
-
-        <MudPaper Class="pa-4" Elevation="2">
-            <MudText Typo="Typo.h6" Class="mb-4">Percentuálna účasť členov</MudText>
-            
-            <MudTable Items="@GetMemberAttendanceStats()" Hover="true" Dense="false" Striped="true">
-                <HeaderContent>
-                    <MudTh>Meno</MudTh>
-                    <MudTh>Prítomný</MudTh>
-                    <MudTh>Neprítomný</MudTh>
-                    <MudTh>Meškanie</MudTh>
-                    <MudTh>Ospravedlnený</MudTh>
-                    <MudTh>Účasť %</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Meno">
-                        <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.MemberName</MudText>
-                    </MudTd>
-                    <MudTd DataLabel="Prítomný">
-                        <MudChip T="string" Size="Size.Small" Color="Color.Success">@context.Present</MudChip>
-                    </MudTd>
-                    <MudTd DataLabel="Neprítomný">
-                        <MudChip T="string" Size="Size.Small" Color="Color.Error">@context.Absent</MudChip>
-                    </MudTd>
-                    <MudTd DataLabel="Meškanie">
-                        <MudChip T="string" Size="Size.Small" Color="Color.Warning">@context.Late</MudChip>
-                    </MudTd>
-                    <MudTd DataLabel="Ospravedlnený">
-                        <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Excused</MudChip>
-                    </MudTd>
-                    <MudTd DataLabel="Účasť %">
-                        <MudProgressLinear Value="@context.AttendancePercentage" Color="@GetAttendanceColor(context.AttendancePercentage)" 
-                                           Size="Size.Large" Rounded="true">
-                            <MudText Typo="Typo.body2" Color="Color.Surface">@context.AttendancePercentage%</MudText>
-                        </MudProgressLinear>
-                    </MudTd>
-                </RowTemplate>
-            </MudTable>
-        </MudPaper>
-
-    </MudTabPanel>
-</MudTabs>
+@if (_isLoading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_selectedTraining != null)
+{
+    <MudTable Items="@_selectedTraining.Attendance" Hover="true">
+        <HeaderContent>
+            <MudTh>Meno</MudTh>
+            <MudTh>Stav</MudTh>
+            <MudTh>Akcie</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.ChildName</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+                    @GetStatusText(context.Status)
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
+                    <MudButton Color="Color.Success" OnClick="@(() => MarkStatus(context.ChildId, AttendanceStatus.Present))">P</MudButton>
+                    <MudButton Color="Color.Error" OnClick="@(() => MarkStatus(context.ChildId, AttendanceStatus.Absent))">N</MudButton>
+                    <MudButton Color="Color.Warning" OnClick="@(() => MarkStatus(context.ChildId, AttendanceStatus.Late))">M</MudButton>
+                    <MudButton Color="Color.Info" OnClick="@(() => MarkStatus(context.ChildId, AttendanceStatus.Excused))">O</MudButton>
+                </MudButtonGroup>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+else
+{
+    <MudAlert Severity="Severity.Info">Vyberte tím a tréning</MudAlert>
+}
 
 @code {
-    private int _activeTab = 0;
-    private AttendanceSampleData.Training? _selectedTraining = null;
-    private string _selectedTeam = "all";
-    private string _overviewTeam = "a-team";
-    private string _overviewMonth = "current";
+    private bool _isLoading = false;
+    private List<TeamDto> _teams = new();
+    private List<TrainingEventDto> _trainings = new();
+    private TrainingEventDetailDto? _selectedTraining;
+    
+    private Guid? _selectedTeamId;
+    private Guid? _selectedTrainingId;
 
-    private List<AttendanceSampleData.Training> GetTrainings()
+    protected override async Task OnInitializedAsync()
     {
-        var trainings = AttendanceSampleData.GetTrainings();
-
-        if (_selectedTeam != "all")
-            trainings = trainings.Where(t => t.Team == _selectedTeam).ToList();
-
-        return trainings.OrderByDescending(t => t.Date).ToList();
-    }
-
-    private List<AttendanceSampleData.Member> GetMembers()
-    {
-        return AttendanceSampleData.GetMembers();
-    }
-
-    private List<AttendanceSampleData.Member> GetFilteredMembers()
-    {
-        if (_selectedTraining == null) return new List<AttendanceSampleData.Member>();
-
-        var members = GetMembers();
-        return members.Where(m => m.Team == _selectedTraining.Team).ToList();
-    }
-
-    private int GetCountByStatus(string status) => GetFilteredMembers().Count(m => m.Status == status);
-
-    private async Task OnStatusChanged(AttendanceSampleData.Member member, string newValue)
-    {
-        member.Status = newValue;
-        // TODO
-        Snackbar.Add($"Dochádzka pre {member.Name} uložená: {newValue}", Severity.Success);
-        StateHasChanged();
-    }
-
-    private async Task OnNoteChanged(AttendanceSampleData.Member member)
-    {
-        // TODO
-        if (!string.IsNullOrWhiteSpace(member.Note))
+        try
         {
-            Snackbar.Add($"Poznámka pre {member.Name} uložená", Severity.Info);
+            _teams = await TeamsApi.GetTeamsAsync(true);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
         }
     }
 
-    private void MarkAllPresent()
+    private async Task LoadTrainings()
     {
-        foreach (var member in GetFilteredMembers())
-        {
-            member.Status = "Prítomný";
-        }
-        Snackbar.Add("Všetci členovia označení ako prítomní", Severity.Success);
-    }
-
-    private void LockTraining()
-    {
-        if (_selectedTraining != null)
-        {
-            _selectedTraining.IsLocked = true;
-            Snackbar.Add("Dochádzka uzamknutá", Severity.Warning);
-        }
-    }
-
-    private void UnlockTraining()
-    {
-        if (_selectedTraining != null)
-        {
-            _selectedTraining.IsLocked = false;
-            Snackbar.Add("Dochádzka odomknutá", Severity.Info);
-        }
-    }
-
-    private class MemberAttendanceStats
-    {
-        public string MemberName { get; set; } = string.Empty;
-        public int Present { get; set; }
-        public int Absent { get; set; }
-        public int Late { get; set; }
-        public int Excused { get; set; }
-        public int AttendancePercentage { get; set; }
-    }
-
-    private List<MemberAttendanceStats> GetMemberAttendanceStats()
-    {
-        // TODO
+        _trainings = new();
+        _selectedTrainingId = null;
+        _selectedTraining = null;
         
-        return new List<MemberAttendanceStats>
+        if (_selectedTeamId == null) return;
+
+        try
         {
-            new() { MemberName = "Ján Novák", Present = 8, Absent = 1, Late = 1, Excused = 0, AttendancePercentage = 90 },
-            new() { MemberName = "Peter Horváth", Present = 7, Absent = 2, Late = 0, Excused = 1, AttendancePercentage = 80 },
-            new() { MemberName = "Martin Balog", Present = 9, Absent = 0, Late = 1, Excused = 0, AttendancePercentage = 95 },
-            new() { MemberName = "Zuzana Králová", Present = 6, Absent = 1, Late = 2, Excused = 1, AttendancePercentage = 75 }
-        };
+            _trainings = await TrainingsApi.GetTrainingsAsync(_selectedTeamId, null, null);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+        }
     }
 
-    private Color GetAttendanceColor(int percentage)
+    private async Task LoadAttendance()
     {
-        if (percentage >= 85) return Color.Success;
-        if (percentage >= 70) return Color.Warning;
-        return Color.Error;
+        _selectedTraining = null;
+        if (_selectedTrainingId == null) return;
+
+        try
+        {
+            _isLoading = true;
+            _selectedTraining = await TrainingsApi.GetTrainingAsync(_selectedTrainingId.Value);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
+
+    private async Task MarkStatus(Guid childId, AttendanceStatus status)
+    {
+        if (_selectedTrainingId == null) return;
+
+        try
+        {
+            await AttendanceApi.MarkAttendanceAsync(new MarkAttendanceRequest(
+                _selectedTrainingId.Value,
+                childId,
+                status,
+                null,
+                null
+            ));
+            Snackbar.Add("Uložené", Severity.Success);
+            await LoadAttendance();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private Color GetStatusColor(AttendanceStatus status) => status switch
+    {
+        AttendanceStatus.Present => Color.Success,
+        AttendanceStatus.Absent => Color.Error,
+        AttendanceStatus.Late => Color.Warning,
+        AttendanceStatus.Excused => Color.Info,
+        _ => Color.Default
+    };
+
+    private string GetStatusText(AttendanceStatus status) => status switch
+    {
+        AttendanceStatus.Present => "Prítomný",
+        AttendanceStatus.Absent => "Neprítomný",
+        AttendanceStatus.Late => "Meškanie",
+        AttendanceStatus.Excused => "Ospravedlnený",
+        _ => "?"
+    };
 }

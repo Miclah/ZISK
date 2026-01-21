@@ -1,0 +1,163 @@
+﻿@page "/ospravedlnenky/vytvorit"
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Excuses
+@inject IExcusesApi ExcusesApi
+@inject IChildrenApi ChildrenApi
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@attribute [Authorize]
+
+<PageTitle>Nová ospravedlnenka</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Nová ospravedlnenka</MudText>
+
+<MudPaper Class="pa-4" Elevation="2" MaxWidth="600px">
+    @if (_isLoading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <MudForm @ref="_form" @bind-IsValid="_formIsValid">
+            <MudStack Spacing="3">
+                <MudSelect T="Guid?" @bind-Value="_selectedChildId" Label="Dieťa" Variant="Variant.Outlined" 
+                           Required="true" RequiredError="Vyberte dieťa">
+                    @foreach (var child in _children)
+                    {
+                        <MudSelectItem Value="@((Guid?)child.Id)">@child.FirstName @child.LastName</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudDatePicker @bind-Date="_dateFrom" Label="Od dátumu" Variant="Variant.Outlined" 
+                               Required="true" RequiredError="Zadajte dátum"
+                               MinDate="DateTime.Now.AddDays(-30)" MaxDate="DateTime.Now.AddDays(30)" />
+
+                <MudDatePicker @bind-Date="_dateTo" Label="Do dátumu (voliteľné)" Variant="Variant.Outlined"
+                               MinDate="_dateFrom ?? DateTime.Now" />
+
+                <MudTextField @bind-Value="_reason" Label="Dôvod" Variant="Variant.Outlined" 
+                              Required="true" RequiredError="Zadajte dôvod"
+                              Counter="200" MaxLength="200" />
+
+                <MudTextField @bind-Value="_note" Label="Poznámka (voliteľné)" Variant="Variant.Outlined" 
+                              Lines="3" Counter="500" MaxLength="500" />
+
+                @if (_validationErrors.Any())
+                {
+                    <MudAlert Severity="Severity.Error">
+                        @foreach (var error in _validationErrors)
+                        {
+                            <div>@error</div>
+                        }
+                    </MudAlert>
+                }
+
+                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                    <MudButton Variant="Variant.Text" OnClick="Cancel">Zrušiť</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" 
+                               Disabled="@(!_formIsValid || _isSubmitting)">
+                        @if (_isSubmitting)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        }
+                        Odoslať
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudForm>
+    }
+</MudPaper>
+
+@code {
+    private MudForm _form = default!;
+    private bool _formIsValid;
+    private bool _isLoading = true;
+    private bool _isSubmitting = false;
+    private List<string> _validationErrors = new();
+    private List<ChildDto> _children = new();
+    
+    private Guid? _selectedChildId;
+    private DateTime? _dateFrom;
+    private DateTime? _dateTo;
+    private string _reason = "";
+    private string _note = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _children = await ChildrenApi.GetMyChildrenAsync();
+            if (_children.Count == 1)
+            {
+                _selectedChildId = _children[0].Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private bool ValidateForm()
+    {
+        _validationErrors.Clear();
+
+        if (!_selectedChildId.HasValue)
+            _validationErrors.Add("Vyberte dieťa");
+
+        if (!_dateFrom.HasValue)
+            _validationErrors.Add("Zadajte dátum absencie");
+
+        if (string.IsNullOrWhiteSpace(_reason))
+            _validationErrors.Add("Zadajte dôvod ospravedlnenky");
+
+        if (_reason.Length < 3)
+            _validationErrors.Add("Dôvod musí mať aspoň 3 znaky");
+
+        if (_dateTo.HasValue && _dateTo < _dateFrom)
+            _validationErrors.Add("Dátum 'Do' nemôže byť pred dátumom 'Od'");
+
+        return !_validationErrors.Any();
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/ospravedlnenky");
+    }
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (!ValidateForm()) return;
+
+        _isSubmitting = true;
+
+        try
+        {
+            var request = new CreateExcuseRequest(
+                ChildId: _selectedChildId!.Value,
+                TrainingEventId: null,
+                DateFrom: _dateFrom,
+                DateTo: _dateTo,
+                Reason: _reason.Trim(),
+                Note: string.IsNullOrWhiteSpace(_note) ? null : _note.Trim()
+            );
+
+            await ExcusesApi.CreateExcuseAsync(request);
+            Snackbar.Add("Ospravedlnenka odoslaná", Severity.Success);
+            NavigationManager.NavigateTo("/ospravedlnenky");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}
