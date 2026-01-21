@@ -80,6 +80,22 @@ namespace ZISK.Controllers
         [HttpPost]
         public async Task<ActionResult<UserDto>> CreateUser(CreateUserRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.FirstName) || request.FirstName.Length < 2 || request.FirstName.Length > 100)
+                return BadRequest("Meno musí mať 2-100 znakov");
+
+            if (string.IsNullOrWhiteSpace(request.LastName) || request.LastName.Length < 2 || request.LastName.Length > 100)
+                return BadRequest("Priezvisko musí mať 2-100 znakov");
+
+            if (string.IsNullOrWhiteSpace(request.Email) || !request.Email.Contains("@"))
+                return BadRequest("Neplatný email");
+
+            if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 4)
+                return BadRequest("Heslo musí mať minimálne 4 znaky");
+
+            var validRoles = new[] { "Admin", "Coach", "Parent" };
+            if (!validRoles.Contains(request.Role))
+                return BadRequest("Neplatná rola");
+
             var user = new ApplicationUser
             {
                 UserName = request.Email,

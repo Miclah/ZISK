@@ -112,6 +112,18 @@ public class AnnouncementsController : ControllerBase
     [Authorize(Roles = "Admin,Coach")]
     public async Task<ActionResult<AnnouncementDto>> CreateAnnouncement([FromBody] CreateAnnouncementRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Length < 3 || request.Title.Length > 200)
+            return BadRequest("Nadpis musí mať 3-200 znakov");
+        
+        if (string.IsNullOrWhiteSpace(request.Content) || request.Content.Length < 10)
+            return BadRequest("Obsah musí mať minimálne 10 znakov");
+
+        if (request.TargetTeamId.HasValue && !await _context.Teams.AnyAsync(t => t.Id == request.TargetTeamId.Value))
+            return BadRequest("Neplatný tím");
+
+        if (request.ValidUntil.HasValue && request.ValidUntil.Value < DateTime.UtcNow)
+            return BadRequest("Dátum platnosti nemôže byť v minulosti");
+
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
@@ -161,6 +173,16 @@ public class AnnouncementsController : ControllerBase
     [Authorize(Roles = "Admin,Coach")]
     public async Task<IActionResult> UpdateAnnouncement(Guid id, [FromBody] UpdateAnnouncementRequest request)
     {
+        // Server-side validácia
+        if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Length < 3 || request.Title.Length > 200)
+            return BadRequest("Nadpis musí mať 3-200 znakov");
+        
+        if (string.IsNullOrWhiteSpace(request.Content) || request.Content.Length < 10)
+            return BadRequest("Obsah musí mať minimálne 10 znakov");
+
+        if (request.TargetTeamId.HasValue && !await _context.Teams.AnyAsync(t => t.Id == request.TargetTeamId.Value))
+            return BadRequest("Neplatný tím");
+
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var announcement = await _context.Announcements.FindAsync(id);
         

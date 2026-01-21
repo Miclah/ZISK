@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ZISK.Data;
@@ -120,9 +120,18 @@ public class TrainingsController : ControllerBase
     [Authorize(Roles = "Admin,Coach")]
     public async Task<ActionResult<TrainingEventDto>> CreateTraining([FromBody] CreateTrainingEventRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Length < 3 || request.Title.Length > 100)
+            return BadRequest("Názov musí mať 3-100 znakov");
+
+        if (request.EndTime <= request.StartTime)
+            return BadRequest("Čas konca musí byť po čase začiatku");
+
+        if (request.Location != null && request.Location.Length > 200)
+            return BadRequest("Miesto môže mať max 200 znakov");
+
         var team = await _context.Teams.FindAsync(request.TeamId);
         if (team == null)
-            return BadRequest("T�m neexistuje");
+            return BadRequest("Tím neexistuje");
 
         var training = new TrainingEvent
         {
@@ -158,6 +167,15 @@ public class TrainingsController : ControllerBase
     [Authorize(Roles = "Admin,Coach")]
     public async Task<IActionResult> UpdateTraining(Guid id, [FromBody] UpdateTrainingEventRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Length < 3 || request.Title.Length > 100)
+            return BadRequest("Názov musí mať 3-100 znakov");
+
+        if (request.EndTime <= request.StartTime)
+            return BadRequest("Čas konca musí byť po čase začiatku");
+
+        if (request.Location != null && request.Location.Length > 200)
+            return BadRequest("Miesto môže mať max 200 znakov");
+
         var training = await _context.TrainingEvents.FindAsync(id);
         if (training == null)
             return NotFound();

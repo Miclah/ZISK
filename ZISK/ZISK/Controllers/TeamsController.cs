@@ -76,6 +76,12 @@ public class TeamsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<TeamDto>> CreateTeam([FromBody] CreateTeamRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Length < 2 || request.Name.Length > 100)
+            return BadRequest("Názov musí mať 2-100 znakov");
+
+        if (request.ShortName != null && request.ShortName.Length > 10)
+            return BadRequest("Skratka môže mať max 10 znakov");
+
         if (await _context.Teams.AnyAsync(t => t.Name == request.Name))
             return BadRequest("Tím s týmto názvom už existuje");
 
@@ -106,6 +112,12 @@ public class TeamsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateTeam(Guid id, [FromBody] UpdateTeamRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Length < 2 || request.Name.Length > 100)
+            return BadRequest("Názov musí mať 2-100 znakov");
+
+        if (request.ShortName != null && request.ShortName.Length > 10)
+            return BadRequest("Skratka môže mať max 10 znakov");
+
         var team = await _context.Teams.FindAsync(id);
         if (team == null)
             return NotFound();
