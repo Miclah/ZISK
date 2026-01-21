@@ -52,27 +52,35 @@ else
         {
             <MudPaper Class="pa-4" Elevation="2" Style="@GetAnnouncementStyle(announcement)">
                 <MudStack Spacing="2">
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
-                        <MudStack Spacing="0">
-                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                                @if (announcement.IsPinned)
-                                {
-                                    <MudIcon Icon="@Icons.Material.Filled.PushPin" Size="Size.Small" Color="Color.Primary" />
-                                }
-                                <MudText Typo="Typo.h6">@announcement.Title</MudText>
-                            </MudStack>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                @announcement.AuthorName • @announcement.PublishDate.ToString("dd.MM.yyyy HH:mm")
-                                @if (!string.IsNullOrEmpty(announcement.TargetTeamName))
-                                {
-                                    <text> • @announcement.TargetTeamName</text>
-                                }
-                            </MudText>
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                    <MudStack Spacing="0">
+                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                            @if (announcement.IsPinned)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.PushPin" Size="Size.Small" Color="Color.Primary" />
+                            }
+                            <MudText Typo="Typo.h6">@announcement.Title</MudText>
                         </MudStack>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @announcement.AuthorName • @announcement.PublishDate.ToString("dd.MM.yyyy HH:mm")
+                            @if (!string.IsNullOrEmpty(announcement.TargetTeamName))
+                            {
+                                <text> • @announcement.TargetTeamName</text>
+                            }
+                        </MudText>
+                    </MudStack>
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
                         <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(announcement.Priority)">
                             @GetPriorityText(announcement.Priority)
                         </MudChip>
+                        <AuthorizeView Roles="Admin,Coach">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" 
+                                           Href="@($"/oznamy/upravit/{announcement.Id}")" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                           OnClick="@(() => DeleteAnnouncement(announcement.Id))" />
+                        </AuthorizeView>
                     </MudStack>
+                </MudStack>
 
                     <MudDivider />
 
@@ -150,10 +158,24 @@ else
     };
 
     private string GetPriorityText(AnnouncementPriority priority) => priority switch
-    {
-        AnnouncementPriority.High => "Dôležité",
-        AnnouncementPriority.Medium => "Stredná",
-        AnnouncementPriority.Low => "Informačné",
-        _ => "?"
-    };
-}
+        {
+            AnnouncementPriority.High => "Dôležité",
+            AnnouncementPriority.Medium => "Stredná",
+            AnnouncementPriority.Low => "Informačné",
+            _ => "?"
+        };
+
+        private async Task DeleteAnnouncement(Guid id)
+        {
+            try
+            {
+                await AnnouncementsApi.DeleteAnnouncementAsync(id);
+                Snackbar.Add("Oznam vymazaný", Severity.Success);
+                await LoadAnnouncements();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+            }
+        }
+    }

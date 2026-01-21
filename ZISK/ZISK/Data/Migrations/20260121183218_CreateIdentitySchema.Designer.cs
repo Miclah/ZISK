@@ -9,11 +9,11 @@ using ZISK.Data;
 
 #nullable disable
 
-namespace ZISK.Data.Migrations
+namespace ZISK.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260117204605_AddTeamsAndTrainings")]
-    partial class AddTeamsAndTrainings
+    [Migration("20260121183218_CreateIdentitySchema")]
+    partial class CreateIdentitySchema
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -465,6 +465,35 @@ namespace ZISK.Data.Migrations
                     b.ToTable("AttendanceRecords");
                 });
 
+            modelBuilder.Entity("ZISK.Data.Entities.CoachTeam", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CoachId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeamId");
+
+                    b.HasIndex("CoachId", "TeamId")
+                        .IsUnique();
+
+                    b.ToTable("CoachTeams");
+                });
+
             modelBuilder.Entity("ZISK.Data.Entities.Document", b =>
                 {
                     b.Property<Guid>("Id")
@@ -738,6 +767,25 @@ namespace ZISK.Data.Migrations
                     b.Navigation("MarkedByUser");
 
                     b.Navigation("TrainingEvent");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.CoachTeam", b =>
+                {
+                    b.HasOne("ZISK.Data.ApplicationUser", "Coach")
+                        .WithMany()
+                        .HasForeignKey("CoachId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ZISK.Data.Entities.Team", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Coach");
+
+                    b.Navigation("Team");
                 });
 
             modelBuilder.Entity("ZISK.Data.Entities.TrainingEvent", b =>

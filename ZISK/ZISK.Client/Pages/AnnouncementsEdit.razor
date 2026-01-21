@@ -1,0 +1,138 @@
+@page "/oznamy/upravit/{Id:guid}"
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Announcements
+@using ZISK.Shared.DTOs.Teams
+@using ZISK.Shared.Enums
+@inject IAnnouncementsApi AnnouncementsApi
+@inject ITeamsApi TeamsApi
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@attribute [Authorize(Roles = "Admin,Coach")]
+
+<PageTitle>Upravi? oznam</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Upravi? oznam</MudText>
+
+@if (_isLoading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_announcement == null)
+{
+    <MudAlert Severity="Severity.Error">Oznam nebol nájdený</MudAlert>
+}
+else
+{
+    <MudPaper Class="pa-4" Elevation="2" MaxWidth="800px">
+        <MudStack Spacing="3">
+            <MudTextField @bind-Value="_title" Label="Nadpis" Variant="Variant.Outlined" Required="true" />
+            <MudTextField @bind-Value="_content" Label="Obsah" Variant="Variant.Outlined" Lines="5" Required="true" />
+            
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="Guid?" @bind-Value="_targetTeamId" Label="Tím" Variant="Variant.Outlined" Clearable="true">
+                        @foreach (var team in _teams)
+                        {
+                            <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="TargetAudience" @bind-Value="_targetAudience" Label="Cie?ová skupina" Variant="Variant.Outlined">
+                        <MudSelectItem Value="TargetAudience.All">Všetci</MudSelectItem>
+                        <MudSelectItem Value="TargetAudience.Parents">Rodi?ia</MudSelectItem>
+                        <MudSelectItem Value="TargetAudience.Athletes">Športovci</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="AnnouncementPriority" @bind-Value="_priority" Label="Priorita" Variant="Variant.Outlined">
+                        <MudSelectItem Value="AnnouncementPriority.Low">Nízka</MudSelectItem>
+                        <MudSelectItem Value="AnnouncementPriority.Medium">Stredná</MudSelectItem>
+                        <MudSelectItem Value="AnnouncementPriority.High">Vysoká</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_validUntil" Label="Platí do" Variant="Variant.Outlined" Clearable="true" />
+                </MudItem>
+            </MudGrid>
+
+            <MudCheckBox @bind-Value="_isPinned" Label="Pripnú?" Color="Color.Primary" />
+
+            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                <MudButton Variant="Variant.Text" Href="/oznamy">Zruši?</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" 
+                           Disabled="@(string.IsNullOrWhiteSpace(_title) || string.IsNullOrWhiteSpace(_content) || _isSubmitting)">
+                    @if (_isSubmitting) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+                    Uloži?
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    
+    private bool _isLoading = true;
+    private bool _isSubmitting = false;
+    private AnnouncementDto? _announcement;
+    private List<TeamDto> _teams = new();
+
+    private string _title = "";
+    private string _content = "";
+    private Guid? _targetTeamId;
+    private TargetAudience _targetAudience = TargetAudience.All;
+    private AnnouncementPriority _priority = AnnouncementPriority.Medium;
+    private bool _isPinned = false;
+    private DateTime? _validUntil;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _teams = await TeamsApi.GetTeamsAsync(true);
+            _announcement = await AnnouncementsApi.GetAnnouncementAsync(Id);
+            if (_announcement != null)
+            {
+                _title = _announcement.Title;
+                _content = _announcement.Content;
+                _targetTeamId = _announcement.TargetTeamId;
+                _targetAudience = _announcement.TargetAudience;
+                _priority = _announcement.Priority;
+                _isPinned = _announcement.IsPinned;
+                _validUntil = _announcement.ValidUntil;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task Submit()
+    {
+        _isSubmitting = true;
+        try
+        {
+            var request = new UpdateAnnouncementRequest(_title, _content, _targetTeamId, _targetAudience, _priority, _isPinned, _validUntil);
+            await AnnouncementsApi.UpdateAnnouncementAsync(Id, request);
+            Snackbar.Add("Oznam upravený", Severity.Success);
+            NavigationManager.NavigateTo("/oznamy");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}
