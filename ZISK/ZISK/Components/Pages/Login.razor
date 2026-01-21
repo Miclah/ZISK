@@ -13,59 +13,56 @@
 
 <PageTitle>Prihlásenie - ZISK</PageTitle>
 
-@if (!string.IsNullOrEmpty(errorMessage))
-{
-    <div class="alert alert-danger" role="alert">
-        @errorMessage
-    </div>
-}
-
-<div class="login-container">
+<div class="login-wrapper">
     <div class="login-card">
-        <div class="login-logo">
-            <div class="login-logo-text">ZISK</div>
-            <div class="login-logo-subtitle">Žiarský Informačný Systém pre Kluby</div>
+        <div class="login-header">
+            <h1 class="login-title">ZISK</h1>
+            <p class="login-subtitle">Žiarský Informačný Systém pre Kluby</p>
         </div>
 
-        <div class="login-form-wrapper">
-            <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
-                <DataAnnotationsValidator />
-                <ValidationSummary class="text-danger" role="alert" />
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert-box error">
+                @errorMessage
+            </div>
+        }
 
-                <div class="login-field">
-                    <label for="Input.Email" class="form-label">Email</label>
-                    <InputText @bind-Value="Input.Email"
-                               id="Input.Email"
-                               class="form-control"
-                               autocomplete="username"
-                               aria-required="true"
-                               placeholder="meno@priklad.sk" />
-                    <ValidationMessage For="() => Input.Email" class="text-danger" />
-                </div>
+        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+            <DataAnnotationsValidator />
 
-                <div class="login-field">
-                    <label for="Input.Password" class="form-label">Heslo</label>
-                    <InputText type="password"
-                               id="Input.Password"
-                               @bind-Value="Input.Password"
-                               class="form-control"
-                               autocomplete="current-password"
-                               aria-required="true"
-                               placeholder="heslo" />
-                    <ValidationMessage For="() => Input.Password" class="text-danger" />
-                </div>
+            <div class="form-group">
+                <label for="email" class="form-label">Email</label>
+                <InputText @bind-Value="Input.Email"
+                           id="email"
+                           class="form-input"
+                           autocomplete="username"
+                           placeholder="vas@email.sk" />
+                <ValidationMessage For="() => Input.Email" class="validation-message" />
+            </div>
 
-                <div class="login-remember">
-                    <label class="form-label">
-                        <InputCheckbox @bind-Value="Input.RememberMe" class="form-check-input" />
-                        Zapamätať si ma
-                    </label>
-                </div>
+            <div class="form-group">
+                <label for="password" class="form-label">Heslo</label>
+                <InputText type="password"
+                           id="password"
+                           @bind-Value="Input.Password"
+                           class="form-input"
+                           autocomplete="current-password"
+                           placeholder="Vaše heslo" />
+                <ValidationMessage For="() => Input.Password" class="validation-message" />
+            </div>
 
-                <div class="login-button">
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Prihlásiť sa</button>
-                </div>
-            </EditForm>
+            <div class="form-check-group">
+                <InputCheckbox @bind-Value="Input.RememberMe" id="remember" class="form-checkbox" />
+                <label for="remember" class="form-check-label">Zapamätať prihlásenie</label>
+            </div>
+
+            <button type="submit" class="btn-login">
+                Prihlásiť sa
+            </button>
+        </EditForm>
+
+        <div class="login-footer">
+            <p class="footer-text">© 2026 ZISK</p>
         </div>
     </div>
 </div>
@@ -91,7 +88,6 @@
                 NavigationManager.NavigateTo(GetSafeRedirectUrl(), forceLoad: true);
                 return;
             }
-
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
         }
     }
@@ -103,7 +99,6 @@
         if (result.Succeeded)
         {
             Logger.LogInformation("User {Email} logged in successfully.", Input.Email);
-
             NavigationManager.NavigateTo(GetSafeRedirectUrl(), forceLoad: true);
             return;
         }
@@ -126,30 +121,20 @@
 
     private string GetSafeRedirectUrl()
     {
-        if (string.IsNullOrEmpty(ReturnUrl))
-            return "/";
-
+        if (string.IsNullOrEmpty(ReturnUrl)) return "/";
         var decodedUrl = Uri.UnescapeDataString(ReturnUrl);
-
         if (Uri.IsWellFormedUriString(decodedUrl, UriKind.Absolute))
         {
             try
             {
                 var uri = new Uri(decodedUrl);
                 var currentUri = new Uri(NavigationManager.BaseUri);
-                if (uri.Host != currentUri.Host)
-                    return "/";
+                if (uri.Host != currentUri.Host) return "/";
                 return uri.PathAndQuery;
             }
-            catch
-            {
-                return "/";
-            }
+            catch { return "/"; }
         }
-
-        if (decodedUrl.StartsWith("/"))
-            return decodedUrl;
-
+        if (decodedUrl.StartsWith("/")) return decodedUrl;
         return "/" + decodedUrl;
     }
 
