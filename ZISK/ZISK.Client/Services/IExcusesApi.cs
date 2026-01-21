@@ -21,6 +21,9 @@ public interface IExcusesApi
     [Post("/api/excuses")]
     Task<ExcuseDto> CreateExcuseAsync([Body] CreateExcuseRequest request);
 
+    [Put("/api/excuses/{id}")]
+    Task UpdateExcuseAsync(Guid id, [Body] UpdateExcuseRequest request);
+
     [Put("/api/excuses/{id}/status")]
     Task UpdateStatusAsync(Guid id, [Body] UpdateExcuseStatusRequest request);
 
