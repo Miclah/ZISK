@@ -1,4 +1,4 @@
-@page "/oznamy/upravit/{Id:guid}"
+Ôªø@page "/oznamy/upravit/{Id:guid}"
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Announcements
 @using ZISK.Shared.DTOs.Teams
@@ -9,9 +9,9 @@
 @inject ISnackbar Snackbar
 @attribute [Authorize(Roles = "Admin,Coach")]
 
-<PageTitle>Upravi? oznam</PageTitle>
+<PageTitle>Upravi≈• oznam</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Upravi? oznam</MudText>
+<MudText Typo="Typo.h4" Class="mb-4">Upravi≈• oznam</MudText>
 
 @if (_isLoading)
 {
@@ -19,7 +19,7 @@
 }
 else if (_announcement == null)
 {
-    <MudAlert Severity="Severity.Error">Oznam nebol n·jden˝</MudAlert>
+    <MudAlert Severity="Severity.Error">Oznam nebol n√°jden√Ω</MudAlert>
 }
 else
 {
@@ -30,7 +30,7 @@ else
             
             <MudGrid>
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="Guid?" @bind-Value="_targetTeamId" Label="TÌm" Variant="Variant.Outlined" Clearable="true">
+                    <MudSelect T="Guid?" @bind-Value="_targetTeamId" Label="T√≠m" Variant="Variant.Outlined" Clearable="true">
                         @foreach (var team in _teams)
                         {
                             <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
@@ -38,10 +38,10 @@ else
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="TargetAudience" @bind-Value="_targetAudience" Label="Cie?ov· skupina" Variant="Variant.Outlined">
-                        <MudSelectItem Value="TargetAudience.All">Vöetci</MudSelectItem>
-                        <MudSelectItem Value="TargetAudience.Parents">Rodi?ia</MudSelectItem>
-                        <MudSelectItem Value="TargetAudience.Athletes">äportovci</MudSelectItem>
+                    <MudSelect T="TargetAudience" @bind-Value="_targetAudience" Label="Cieƒæov√° skupina" Variant="Variant.Outlined">
+                        <MudSelectItem Value="TargetAudience.All">V≈°etci</MudSelectItem>
+                        <MudSelectItem Value="TargetAudience.Parents">Rodiƒçia</MudSelectItem>
+                        <MudSelectItem Value="TargetAudience.Athletes">≈†portovci</MudSelectItem>
                     </MudSelect>
                 </MudItem>
             </MudGrid>
@@ -49,24 +49,24 @@ else
             <MudGrid>
                 <MudItem xs="12" sm="6">
                     <MudSelect T="AnnouncementPriority" @bind-Value="_priority" Label="Priorita" Variant="Variant.Outlined">
-                        <MudSelectItem Value="AnnouncementPriority.Low">NÌzka</MudSelectItem>
-                        <MudSelectItem Value="AnnouncementPriority.Medium">Stredn·</MudSelectItem>
-                        <MudSelectItem Value="AnnouncementPriority.High">Vysok·</MudSelectItem>
+                        <MudSelectItem Value="AnnouncementPriority.Low">N√≠zka</MudSelectItem>
+                        <MudSelectItem Value="AnnouncementPriority.Medium">Stredn√°</MudSelectItem>
+                        <MudSelectItem Value="AnnouncementPriority.High">Vysok√°</MudSelectItem>
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudDatePicker @bind-Date="_validUntil" Label="PlatÌ do" Variant="Variant.Outlined" Clearable="true" />
+                    <MudDatePicker @bind-Date="_validUntil" Label="Plat√≠ do" Variant="Variant.Outlined" Clearable="true" />
                 </MudItem>
             </MudGrid>
 
-            <MudCheckBox @bind-Value="_isPinned" Label="Pripn˙?" Color="Color.Primary" />
+            <MudCheckBox @bind-Value="_isPinned" Label="Pripn√∫≈•" Color="Color.Primary" />
 
             <MudStack Row="true" Justify="Justify.SpaceBetween">
-                <MudButton Variant="Variant.Text" Href="/oznamy">Zruöi?</MudButton>
+                <MudButton Variant="Variant.Text" Href="/oznamy">Zru≈°i≈•</MudButton>
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" 
                            Disabled="@(string.IsNullOrWhiteSpace(_title) || string.IsNullOrWhiteSpace(_content) || _isSubmitting)">
                     @if (_isSubmitting) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
-                    Uloûi?
+                    Ulo≈æi≈•
                 </MudButton>
             </MudStack>
         </MudStack>
@@ -123,7 +123,7 @@ else
         {
             var request = new UpdateAnnouncementRequest(_title, _content, _targetTeamId, _targetAudience, _priority, _isPinned, _validUntil);
             await AnnouncementsApi.UpdateAnnouncementAsync(Id, request);
-            Snackbar.Add("Oznam upraven˝", Severity.Success);
+            Snackbar.Add("Oznam upraven√Ω", Severity.Success);
             NavigationManager.NavigateTo("/oznamy");
         }
         catch (Exception ex)

@@ -1,4 +1,4 @@
-@page "/admin/treningy"
+Ôªø@page "/admin/treningy"
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Teams
 @using ZISK.Shared.DTOs.Trainings
@@ -8,11 +8,11 @@
 @inject ISnackbar Snackbar
 @attribute [Authorize(Roles = "Admin,Coach")]
 
-<PageTitle>Spr·va trÈningov</PageTitle>
+<PageTitle>Spr√°va tr√©ningov</PageTitle>
 
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
-    <MudText Typo="Typo.h4">Spr·va trÈningov</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => OpenDialog(null))">Nov˝ trÈning</MudButton>
+    <MudText Typo="Typo.h4">Spr√°va tr√©ningov</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => OpenDialog(null))">Nov√Ω tr√©ning</MudButton>
 </MudStack>
 
 @if (_isLoading)
@@ -23,9 +23,9 @@ else
 {
     <MudTable Items="@_trainings" Hover="true">
         <HeaderContent>
-            <MudTh>D·tum</MudTh>
-            <MudTh>N·zov</MudTh>
-            <MudTh>TÌm</MudTh>
+            <MudTh>D√°tum</MudTh>
+            <MudTh>N√°zov</MudTh>
+            <MudTh>T√≠m</MudTh>
             <MudTh>Typ</MudTh>
             <MudTh>Akcie</MudTh>
         </HeaderContent>
@@ -45,32 +45,32 @@ else
 }
 
 <MudDialog @bind-Visible="_dialogVisible" Options="new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true }">
-    <TitleContent>@(_editingId.HasValue ? "Upravi? trÈning" : "Nov˝ trÈning")</TitleContent>
+    <TitleContent>@(_editingId.HasValue ? "Upravi≈• tr√©ning" : "Nov√Ω tr√©ning")</TitleContent>
     <DialogContent>
         <MudStack Spacing="3">
-            <MudSelect T="Guid" @bind-Value="_teamId" Label="TÌm" Variant="Variant.Outlined" Required="true">
+            <MudSelect T="Guid" @bind-Value="_teamId" Label="T√≠m" Variant="Variant.Outlined" Required="true">
                 @foreach (var team in _teams)
                 {
                     <MudSelectItem Value="@team.Id">@team.Name</MudSelectItem>
                 }
             </MudSelect>
-            <MudTextField @bind-Value="_title" Label="N·zov" Variant="Variant.Outlined" Required="true" />
-            <MudDatePicker @bind-Date="_startDate" Label="D·tum" Variant="Variant.Outlined" Required="true" />
-            <MudTimePicker @bind-Time="_startTime" Label="Za?iatok" Variant="Variant.Outlined" Required="true" />
+            <MudTextField @bind-Value="_title" Label="N√°zov" Variant="Variant.Outlined" Required="true" />
+            <MudDatePicker @bind-Date="_startDate" Label="D√°tum" Variant="Variant.Outlined" Required="true" />
+            <MudTimePicker @bind-Time="_startTime" Label="Zaƒçiatok" Variant="Variant.Outlined" Required="true" />
             <MudTimePicker @bind-Time="_endTime" Label="Koniec" Variant="Variant.Outlined" Required="true" />
             <MudTextField @bind-Value="_location" Label="Miesto" Variant="Variant.Outlined" />
             <MudSelect T="TrainingType" @bind-Value="_type" Label="Typ" Variant="Variant.Outlined">
-                <MudSelectItem Value="TrainingType.Conditioning">Kondi?n˝</MudSelectItem>
-                <MudSelectItem Value="TrainingType.Technical">Technick˝</MudSelectItem>
-                <MudSelectItem Value="TrainingType.Match">Hern˝</MudSelectItem>
-                <MudSelectItem Value="TrainingType.Recovery">Regenera?n˝</MudSelectItem>
+                <MudSelectItem Value="TrainingType.Conditioning">Kondiƒçn√Ω</MudSelectItem>
+                <MudSelectItem Value="TrainingType.Technical">Technick√Ω</MudSelectItem>
+                <MudSelectItem Value="TrainingType.Match">Hern√Ω</MudSelectItem>
+                <MudSelectItem Value="TrainingType.Recovery">Regeneraƒçn√Ω</MudSelectItem>
             </MudSelect>
-            <MudTextField @bind-Value="_coachNote" Label="Pozn·mka" Variant="Variant.Outlined" Lines="2" />
+            <MudTextField @bind-Value="_coachNote" Label="Pozn√°mka" Variant="Variant.Outlined" Lines="2" />
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="CloseDialog">Zruöi?</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Disabled="@(!CanSave())">Uloûi?</MudButton>
+        <MudButton OnClick="CloseDialog">Zru≈°i≈•</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Disabled="@(!CanSave())">Ulo≈æi≈•</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -159,13 +159,13 @@ else
             {
                 var request = new UpdateTrainingEventRequest(_title, start, end, string.IsNullOrWhiteSpace(_location) ? null : _location, _type, string.IsNullOrWhiteSpace(_coachNote) ? null : _coachNote, _isLocked);
                 await TrainingsApi.UpdateTrainingAsync(_editingId.Value, request);
-                Snackbar.Add("TrÈning upraven˝", Severity.Success);
+                Snackbar.Add("Tr√©ning upraven√Ω", Severity.Success);
             }
             else
             {
                 var request = new CreateTrainingEventRequest(_teamId, _title, start, end, string.IsNullOrWhiteSpace(_location) ? null : _location, _type, string.IsNullOrWhiteSpace(_coachNote) ? null : _coachNote);
                 await TrainingsApi.CreateTrainingAsync(request);
-                Snackbar.Add("TrÈning vytvoren˝", Severity.Success);
+                Snackbar.Add("Tr√©ning vytvoren√Ω", Severity.Success);
             }
             CloseDialog();
             await LoadTrainings();
@@ -181,7 +181,7 @@ else
         try
         {
             await TrainingsApi.DeleteTrainingAsync(id);
-            Snackbar.Add("TrÈning vymazan˝", Severity.Success);
+            Snackbar.Add("Tr√©ning vymazan√Ω", Severity.Success);
             await LoadTrainings();
         }
         catch (Exception ex)
@@ -200,10 +200,10 @@ else
 
     private string GetTypeText(TrainingType type) => type switch
     {
-        TrainingType.Conditioning => "Kondi?n˝",
-        TrainingType.Technical => "Technick˝",
-        TrainingType.Match => "Hern˝",
-        TrainingType.Recovery => "Regenera?n˝",
-        _ => "In˝"
+        TrainingType.Conditioning => "Kondiƒçn√Ω",
+        TrainingType.Technical => "Technick√Ω",
+        TrainingType.Match => "Hern√Ω",
+        TrainingType.Recovery => "Regeneraƒçn√Ω",
+        _ => "In√Ω"
     };
 }
