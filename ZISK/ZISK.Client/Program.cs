@@ -23,6 +23,7 @@ var refitSettings = new RefitSettings
     })
 };
 
+// Pomoc s AI pri robeni Refit klientov
 builder.Services.AddRefitClient<IExcusesApi>(refitSettings)
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress);
 

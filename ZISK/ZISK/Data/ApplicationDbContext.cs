@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using ZISK.Data.Entities;
 
+// Pomoc s AI
 namespace ZISK.Data
 {
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>

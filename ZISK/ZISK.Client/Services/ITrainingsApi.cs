@@ -6,6 +6,7 @@ namespace ZISK.Client.Services;
 
 public interface ITrainingsApi
 {
+    // AI
     [Get("/api/trainings")]
     Task<List<TrainingEventDto>> GetTrainingsAsync(
         [Query] Guid? teamId = null, 

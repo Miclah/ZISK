@@ -121,6 +121,7 @@ app.MapRazorComponents<App>()
 
 app.MapAdditionalIdentityEndpoints();
 
+// AI generovanie sample dat
 // Seed data
 using (var scope = app.Services.CreateScope())
 {

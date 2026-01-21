@@ -192,6 +192,7 @@ public class DocumentsController : ControllerBase
         return PhysicalFile(fullPath, contentType, fileName);
     }
 
+    // AI
     private static string GetContentType(string filePath)
     {
         var extension = Path.GetExtension(filePath).ToLowerInvariant();

@@ -61,7 +61,7 @@
 
                 <MudDivider Class="my-2" />
 
-                @* File Upload Section *@
+                // AI
                 <MudText Typo="Typo.subtitle1">Prílohy (voliteľné)</MudText>
                 
                 <MudFileUpload T="IReadOnlyList<IBrowserFile>" 
@@ -196,6 +196,7 @@
         return $"{bytes / (1024.0 * 1024.0):F1} MB";
     }
 
+    // AI
     private async Task Submit()
     {
         if (!CanSubmit()) return;
