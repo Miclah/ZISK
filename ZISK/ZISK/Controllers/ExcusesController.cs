@@ -92,6 +92,18 @@ public class ExcusesController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
+        if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Length < 3 || request.Reason.Length > 200)
+            return BadRequest("Dôvod musí mať 3-200 znakov");
+
+        if (request.Note != null && request.Note.Length > 500)
+            return BadRequest("Poznámka môže mať max 500 znakov");
+
+        if (request.DateFrom.HasValue && request.DateFrom.Value < DateTime.UtcNow.AddDays(-30))
+            return BadRequest("Dátum nemôže byť starší ako 30 dní");
+
+        if (request.DateTo.HasValue && request.DateFrom.HasValue && request.DateTo.Value < request.DateFrom.Value)
+            return BadRequest("Dátum 'Do' nemôže byť pred dátumom 'Od'");
+
         var child = await _context.ChildProfiles
             .Include(c => c.Team)
             .FirstOrDefaultAsync(c => c.Id == request.ChildId);
@@ -154,12 +166,46 @@ public class ExcusesController : ControllerBase
         excuse.ReviewedByUserId = userId;
         excuse.ProcessedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
-        return NoContent();
-    }
+            return NoContent();
+        }
 
-    [HttpDelete("{id:guid}")]
+        [HttpPut("{id:guid}")]
+        public async Task<IActionResult> UpdateExcuse(Guid id, [FromBody] UpdateExcuseRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Length < 3 || request.Reason.Length > 200)
+                return BadRequest("Dôvod musí mať 3-200 znakov");
+
+            if (request.Note != null && request.Note.Length > 500)
+                return BadRequest("Poznámka môže mať max 500 znakov");
+
+            if (request.DateTo.HasValue && request.DateFrom.HasValue && request.DateTo.Value < request.DateFrom.Value)
+                return BadRequest("Dátum 'Do' nemôže byť pred dátumom 'Od'");
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var excuse = await _context.AbsenceRequests.FindAsync(id);
+        
+            if (excuse == null)
+                return NotFound();
+
+            if (excuse.ParentId != userId && !User.IsInRole("Admin"))
+                return Forbid();
+
+            if (excuse.Status != AbsenceRequestStatus.Pending)
+                return BadRequest("Len čakajúce ospravedlnenky môžu byť upravené");
+
+            excuse.DateFrom = request.DateFrom;
+            excuse.DateTo = request.DateTo;
+            excuse.Reason = request.Reason;
+            excuse.Note = request.Note;
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteExcuse(Guid id)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
