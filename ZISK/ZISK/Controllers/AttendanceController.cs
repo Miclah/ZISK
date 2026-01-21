@@ -113,6 +113,7 @@ public class AttendanceController : ControllerBase
 
         var records = await query.ToListAsync();
 
+        // Pomoc s AI
         var stats = new AttendanceStatsDto(
             records.Count(r => r.Status == Data.Entities.AttendanceStatus.Present),
             records.Count(r => r.Status == Data.Entities.AttendanceStatus.Absent),

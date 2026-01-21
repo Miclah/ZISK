@@ -13,6 +13,8 @@ namespace ZISK.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+
+// Pomoc s AI
 public class AnnouncementsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -149,6 +151,7 @@ public class AnnouncementsController : ControllerBase
         _context.Announcements.Add(announcement);
         await _context.SaveChangesAsync();
 
+        // Pomoc s AI
         return CreatedAtAction(nameof(GetAnnouncement), new { id = announcement.Id }, new AnnouncementDto(
             announcement.Id,
             announcement.Title,
@@ -173,7 +176,6 @@ public class AnnouncementsController : ControllerBase
     [Authorize(Roles = "Admin,Coach")]
     public async Task<IActionResult> UpdateAnnouncement(Guid id, [FromBody] UpdateAnnouncementRequest request)
     {
-        // Server-side validácia
         if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Length < 3 || request.Title.Length > 200)
             return BadRequest("Nadpis musí mať 3-200 znakov");
         
@@ -256,7 +258,6 @@ public class AnnouncementsController : ControllerBase
         if (!allowedExtensions.Contains(extension))
             return BadRequest("Nepodporovaný typ súboru");
 
-        // Max 10MB
         if (file.Length > 10 * 1024 * 1024)
             return BadRequest("Súbor je príliš veľký (max 10MB)");
 

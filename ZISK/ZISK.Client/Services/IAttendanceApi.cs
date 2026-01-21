@@ -4,6 +4,7 @@ using ZISK.Shared.Enums;
 
 namespace ZISK.Client.Services;
 
+// Pomoc s AI
 public interface IAttendanceApi
 {
     [Get("/api/attendance/training/{trainingEventId}")]
