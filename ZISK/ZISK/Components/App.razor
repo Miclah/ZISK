@@ -19,6 +19,13 @@
     <Routes @rendermode="PageRenderMode" />
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
+    <script src="js/session-monitor.js"></script>
+    <script>
+        // session monitor
+        document.addEventListener("DOMContentLoaded", function() {
+            SessionMonitor.init();
+        });
+    </script>
 </body>
 
 </html>
