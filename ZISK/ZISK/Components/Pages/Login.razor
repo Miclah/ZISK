@@ -13,58 +13,69 @@
 
 <PageTitle>Prihlásenie - ZISK</PageTitle>
 
-<div class="login-wrapper">
+<div class="login-page">
     <div class="login-card">
-        <div class="login-header">
-            <h1 class="login-title">ZISK</h1>
-            <p class="login-subtitle">Žiarský Informačný Systém pre Kluby</p>
+        <div class="login-brand">
+            <h1>ZISK</h1>
+            <p>Žiarský Informačný Systém pre Kluby</p>
         </div>
 
         @if (!string.IsNullOrEmpty(errorMessage))
         {
-            <div class="alert-box error">
-                @errorMessage
+            <div class="login-alert">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <span>@errorMessage</span>
             </div>
         }
 
         <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
             <DataAnnotationsValidator />
 
-            <div class="form-group">
-                <label for="email" class="form-label">Email</label>
-                <InputText @bind-Value="Input.Email"
-                           id="email"
-                           class="form-input"
-                           autocomplete="username"
-                           placeholder="vas@email.sk" />
-                <ValidationMessage For="() => Input.Email" class="validation-message" />
+            <div class="form-field">
+                <label for="email">Email</label>
+                <div class="input-wrapper">
+                    <svg class="input-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                    <InputText @bind-Value="Input.Email"
+                               id="email"
+                               placeholder="vas@email.sk"
+                               autocomplete="username" />
+                </div>
+                <ValidationMessage For="() => Input.Email" />
             </div>
 
-            <div class="form-group">
-                <label for="password" class="form-label">Heslo</label>
-                <InputText type="password"
-                           id="password"
-                           @bind-Value="Input.Password"
-                           class="form-input"
-                           autocomplete="current-password"
-                           placeholder="Vaše heslo" />
-                <ValidationMessage For="() => Input.Password" class="validation-message" />
+            <div class="form-field">
+                <label for="password">Heslo</label>
+                <div class="input-wrapper">
+                    <svg class="input-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                    <InputText type="password"
+                               @bind-Value="Input.Password"
+                               id="password"
+                               placeholder="Vaše heslo"
+                               autocomplete="current-password" />
+                </div>
+                <ValidationMessage For="() => Input.Password" />
             </div>
 
-            <div class="form-check-group">
-                <InputCheckbox @bind-Value="Input.RememberMe" id="remember" class="form-checkbox" />
-                <label for="remember" class="form-check-label">Zapamätať prihlásenie</label>
+            <div class="form-checkbox">
+                <InputCheckbox @bind-Value="Input.RememberMe" id="remember" />
+                <label for="remember">Zapamätať prihlásenie</label>
             </div>
 
             <button type="submit" class="btn-login">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z"/></svg>
                 Prihlásiť sa
             </button>
         </EditForm>
 
         <div class="login-footer">
-            <p class="footer-text">© 2026 ZISK</p>
+            <a href="/registracia" class="register-link">
+                Vytvoriť nový účet
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+            </a>
         </div>
     </div>
+
+    <p class="login-copyright">© 2026 ZISK</p>
 </div>
 
 @code {
@@ -81,6 +92,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Input ??= new();
+
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
             if (HttpContext.User.Identity?.IsAuthenticated == true)

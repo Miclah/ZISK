@@ -39,6 +39,11 @@
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = new();
 
+    protected override void OnInitialized()
+    {
+        Input ??= new();
+    }
+
     private async Task OnValidSubmitAsync()
     {
         var user = await UserManager.FindByEmailAsync(Input.Email!);
