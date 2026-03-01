@@ -12,4 +12,12 @@
         </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
+    <NotFound>
+        <LayoutView Layout="typeof(Layout.MainLayout)">
+            <MudText Typo="Typo.h4" Class="mt-8" Align="Align.Center">Stránka nenájdená</MudText>
+            <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Secondary" Class="mt-2">
+                Požadovaná stránka neexistuje.
+            </MudText>
+        </LayoutView>
+    </NotFound>
 </Router>

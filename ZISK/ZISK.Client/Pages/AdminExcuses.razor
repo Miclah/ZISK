@@ -27,7 +27,6 @@ else
             <MudTh>Dátum</MudTh>
             <MudTh>Dôvod</MudTh>
             <MudTh>Stav</MudTh>
-            <MudTh>Akcie</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd>@context.ChildName</MudTd>
@@ -40,18 +39,9 @@ else
             </MudTd>
             <MudTd>@context.Reason</MudTd>
             <MudTd>
-                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
-                    @GetStatusText(context.Status)
+                <MudChip T="string" Size="Size.Small" Color="Color.Info">
+                    Prijaté
                 </MudChip>
-            </MudTd>
-            <MudTd>
-                @if (context.Status == ExcuseStatus.Pending)
-                {
-                    <MudIconButton Icon="@Icons.Material.Filled.Check" Color="Color.Success" Size="Size.Small"
-                                   OnClick="@(() => Approve(context.Id))" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Error" Size="Size.Small"
-                                   OnClick="@(() => Reject(context.Id))" />
-                }
             </MudTd>
         </RowTemplate>
     </MudTable>
@@ -83,48 +73,4 @@ else
             _isLoading = false;
         }
     }
-
-    private async Task Approve(Guid id)
-    {
-        try
-        {
-            await ExcusesApi.UpdateStatusAsync(id, new UpdateExcuseStatusRequest(ExcuseStatus.Approved, null));
-            Snackbar.Add("Schválené", Severity.Success);
-            await LoadExcuses();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
-        }
-    }
-
-    private async Task Reject(Guid id)
-    {
-        try
-        {
-            await ExcusesApi.UpdateStatusAsync(id, new UpdateExcuseStatusRequest(ExcuseStatus.Rejected, null));
-            Snackbar.Add("Zamietnuté", Severity.Warning);
-            await LoadExcuses();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
-        }
-    }
-
-    private Color GetStatusColor(ExcuseStatus status) => status switch
-    {
-        ExcuseStatus.Approved => Color.Success,
-        ExcuseStatus.Pending => Color.Warning,
-        ExcuseStatus.Rejected => Color.Error,
-        _ => Color.Default
-    };
-
-    private string GetStatusText(ExcuseStatus status) => status switch
-    {
-        ExcuseStatus.Approved => "Schválené",
-        ExcuseStatus.Pending => "Čaká",
-        ExcuseStatus.Rejected => "Zamietnuté",
-        _ => "?"
-    };
 }

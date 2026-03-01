@@ -113,21 +113,17 @@ else
                     </MudSelect>
                 </MudStack>
                 <MudGrid>
-                    <MudItem xs="6" sm="3">
+                    <MudItem xs="6" sm="4">
                         <MudText Typo="Typo.h4" Color="Color.Success">@(_attendanceStats?.PresentPercent ?? 0)%</MudText>
                         <MudText Typo="Typo.body2">Celková účasť</MudText>
                     </MudItem>
-                    <MudItem xs="6" sm="3">
+                    <MudItem xs="6" sm="4">
                         <MudText Typo="Typo.h4" Color="Color.Error">@(_attendanceStats?.AbsentPercent ?? 0)%</MudText>
                         <MudText Typo="Typo.body2">Neospravedlnené absencie</MudText>
                     </MudItem>
-                    <MudItem xs="6" sm="3">
+                    <MudItem xs="6" sm="4">
                         <MudText Typo="Typo.h4" Color="Color.Info">@(_attendanceStats?.ExcusedPercent ?? 0)%</MudText>
                         <MudText Typo="Typo.body2">Ospravedlnené</MudText>
-                    </MudItem>
-                    <MudItem xs="6" sm="3">
-                        <MudText Typo="Typo.h4" Color="Color.Warning">@(_attendanceStats?.LatePercent ?? 0)%</MudText>
-                        <MudText Typo="Typo.body2">Meškanie</MudText>
                     </MudItem>
                 </MudGrid>
             </MudPaper>
