@@ -59,7 +59,7 @@ public class ExcusesController : ControllerBase
             .Include(ar => ar.Child)
                 .ThenInclude(c => c.Team)
             .Include(ar => ar.TrainingEvent)
-            .Include(ar => ar.ReviewedByUser)
+            .Include(ar => ar.Parent)
             .AsNoTracking()
             .FirstOrDefaultAsync(ar => ar.Id == id);
 
@@ -77,9 +77,6 @@ public class ExcusesController : ControllerBase
             excuse.Reason,
             excuse.Note,
             (ExcuseStatus)(int)excuse.Status,
-            excuse.ReviewNote,
-            excuse.ReviewedByUser != null ? $"{excuse.ReviewedByUser.FirstName} {excuse.ReviewedByUser.LastName}" : null,
-            excuse.ProcessedAt,
             excuse.CreatedAt,
             excuse.Child.Team?.Name ?? "Bez tímu"
         ));
@@ -125,7 +122,7 @@ public class ExcusesController : ControllerBase
             DateTo = request.DateTo,
             Reason = request.Reason,
             Note = request.Note,
-            Status = AbsenceRequestStatus.Pending,
+            Status = AbsenceRequestStatus.Received,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -142,10 +139,7 @@ public class ExcusesController : ControllerBase
             absence.DateTo,
             absence.Reason,
             absence.Note,
-            ExcuseStatus.Pending,
-            null,
-            null,
-            null,
+            ExcuseStatus.Received,
             absence.CreatedAt,
             child.Team?.Name ?? "Bez tímu"
         ));
@@ -157,19 +151,18 @@ public class ExcusesController : ControllerBase
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var excuse = await _context.AbsenceRequests.FindAsync(id);
-        
+
         if (excuse == null)
             return NotFound();
 
-        excuse.Status = (AbsenceRequestStatus)(int)request.Status;
         excuse.ReviewNote = request.ReviewNote;
         excuse.ReviewedByUserId = userId;
         excuse.ProcessedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
 
-            return NoContent();
-        }
+        return NoContent();
+    }
 
         [HttpPut("{id:guid}")]
         public async Task<IActionResult> UpdateExcuse(Guid id, [FromBody] UpdateExcuseRequest request)
@@ -192,9 +185,6 @@ public class ExcusesController : ControllerBase
             if (excuse.ParentId != userId && !User.IsInRole("Admin"))
                 return Forbid();
 
-            if (excuse.Status != AbsenceRequestStatus.Pending)
-                return BadRequest("Len čakajúce ospravedlnenky môžu byť upravené");
-
             excuse.DateFrom = request.DateFrom;
             excuse.DateTo = request.DateTo;
             excuse.Reason = request.Reason;
@@ -216,9 +206,6 @@ public class ExcusesController : ControllerBase
 
         if (excuse.ParentId != userId && !User.IsInRole("Admin"))
             return Forbid();
-
-        if (excuse.Status != AbsenceRequestStatus.Pending)
-            return BadRequest("Len čakajúce ospravedlnenky môžu byť vymazané");
 
         _context.AbsenceRequests.Remove(excuse);
         await _context.SaveChangesAsync();
@@ -260,17 +247,15 @@ public class ExcusesController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        
         int count;
         if (User.IsInRole("Admin") || User.IsInRole("Coach"))
         {
-            count = await _context.AbsenceRequests
-                .CountAsync(ar => ar.Status == AbsenceRequestStatus.Pending);
+            count = await _context.AbsenceRequests.CountAsync();
         }
         else
         {
             count = await _context.AbsenceRequests
-                .CountAsync(ar => ar.ParentId == userId && ar.Status == AbsenceRequestStatus.Pending);
+                .CountAsync(ar => ar.ParentId == userId);
         }
 
         return Ok(count);

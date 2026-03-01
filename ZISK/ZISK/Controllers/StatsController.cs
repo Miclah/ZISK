@@ -25,8 +25,7 @@ namespace ZISK.Controllers
             var teams = await _context.Teams.ToListAsync();
             var members = await _context.ChildProfiles.ToListAsync();
             var users = await _context.Users.CountAsync();
-            var pendingExcuses = await _context.AbsenceRequests
-                .CountAsync(a => a.Status == AbsenceRequestStatus.Pending);
+            var pendingExcuses = await _context.AbsenceRequests.CountAsync();
 
             var attendanceStats = await GetAttendanceStatsInternal(30);
 
@@ -92,19 +91,17 @@ namespace ZISK.Controllers
             var total = records.Count;
             if (total == 0)
             {
-                return new AttendanceStatsDto(0, 0, 0, 0);
+                return new AttendanceStatsDto(0, 0, 0);
             }
 
             var present = records.Count(r => r.Status == AttendanceStatus.Present);
             var absent = records.Count(r => r.Status == AttendanceStatus.Absent);
             var excused = records.Count(r => r.Status == AttendanceStatus.Excused);
-            var late = records.Count(r => r.Status == AttendanceStatus.Late);
 
             return new AttendanceStatsDto(
                 Math.Round((decimal)present / total * 100, 1),
                 Math.Round((decimal)absent / total * 100, 1),
-                Math.Round((decimal)excused / total * 100, 1),
-                Math.Round((decimal)late / total * 100, 1)
+                Math.Round((decimal)excused / total * 100, 1)
             );
         }
     }

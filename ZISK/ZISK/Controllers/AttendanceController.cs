@@ -118,10 +118,9 @@ public class AttendanceController : ControllerBase
             records.Count(r => r.Status == Data.Entities.AttendanceStatus.Present),
             records.Count(r => r.Status == Data.Entities.AttendanceStatus.Absent),
             records.Count(r => r.Status == Data.Entities.AttendanceStatus.Excused),
-            records.Count(r => r.Status == Data.Entities.AttendanceStatus.Late),
             records.Count,
             records.Count > 0 
-                ? Math.Round((double)records.Count(r => r.Status == Data.Entities.AttendanceStatus.Present || r.Status == Data.Entities.AttendanceStatus.Late) / records.Count * 100, 1)
+                ? Math.Round((double)records.Count(r => r.Status == Data.Entities.AttendanceStatus.Present) / records.Count * 100, 1)
                 : 0
         );
 
@@ -158,7 +157,6 @@ public class AttendanceController : ControllerBase
             var present = records.Count(r => r.Status == Data.Entities.AttendanceStatus.Present);
             var absent = records.Count(r => r.Status == Data.Entities.AttendanceStatus.Absent);
             var excused = records.Count(r => r.Status == Data.Entities.AttendanceStatus.Excused);
-            var late = records.Count(r => r.Status == Data.Entities.AttendanceStatus.Late);
             var total = records.Count;
 
             result.Add(new MemberAttendanceStatsDto(
@@ -167,8 +165,7 @@ public class AttendanceController : ControllerBase
                 present,
                 absent,
                 excused,
-                late,
-                total > 0 ? Math.Round((double)(present + late) / total * 100, 1) : 0
+                total > 0 ? Math.Round((double)present / total * 100, 1) : 0
             ));
         }
 

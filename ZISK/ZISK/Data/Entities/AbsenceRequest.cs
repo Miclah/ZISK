@@ -5,9 +5,7 @@ namespace ZISK.Data.Entities
 {
     public enum AbsenceRequestStatus
     {
-        Pending,
-        Approved,
-        Rejected
+        Received
     }
 
     public class AbsenceRequest
@@ -40,7 +38,7 @@ namespace ZISK.Data.Entities
         [MaxLength(500)]
         public string? Note { get; set; }
 
-        public AbsenceRequestStatus Status { get; set; } = AbsenceRequestStatus.Pending;
+        public AbsenceRequestStatus Status { get; set; } = AbsenceRequestStatus.Received;
 
 
         public string? ReviewedByUserId { get; set; }

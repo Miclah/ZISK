@@ -47,18 +47,13 @@ else
             </MudTd>
             <MudTd>@context.Reason</MudTd>
             <MudTd>
-                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
-                    @GetStatusText(context.Status)
+                <MudChip T="string" Size="Size.Small" Color="Color.Info">
+                    Prijaté
                 </MudChip>
             </MudTd>
             <MudTd>
-                @if (context.Status == ExcuseStatus.Pending)
-                {
-                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                   Href="@($"/ospravedlnenky/upravit/{context.Id}")" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                   OnClick="@(() => DeleteExcuse(context.Id))" />
-                }
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                               OnClick="@(() => DeleteExcuse(context.Id))" />
             </MudTd>
         </RowTemplate>
     </MudTable>
@@ -104,20 +99,4 @@ else
             Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
         }
     }
-
-    private Color GetStatusColor(ExcuseStatus status) => status switch
-    {
-        ExcuseStatus.Approved => Color.Success,
-        ExcuseStatus.Pending => Color.Warning,
-        ExcuseStatus.Rejected => Color.Error,
-        _ => Color.Default
-    };
-
-    private string GetStatusText(ExcuseStatus status) => status switch
-    {
-        ExcuseStatus.Approved => "Schválené",
-        ExcuseStatus.Pending => "Čaká",
-        ExcuseStatus.Rejected => "Zamietnuté",
-        _ => "?"
-    };
 }

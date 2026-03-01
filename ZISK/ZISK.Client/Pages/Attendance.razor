@@ -62,7 +62,6 @@ else if (_selectedTraining != null)
                 <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
                     <MudButton Color="Color.Success" OnClick="@(() => MarkStatus(context.ChildId, AttendanceStatus.Present))">P</MudButton>
                     <MudButton Color="Color.Error" OnClick="@(() => MarkStatus(context.ChildId, AttendanceStatus.Absent))">N</MudButton>
-                    <MudButton Color="Color.Warning" OnClick="@(() => MarkStatus(context.ChildId, AttendanceStatus.Late))">M</MudButton>
                     <MudButton Color="Color.Info" OnClick="@(() => MarkStatus(context.ChildId, AttendanceStatus.Excused))">O</MudButton>
                 </MudButtonGroup>
             </MudTd>
@@ -159,7 +158,6 @@ else
     {
         AttendanceStatus.Present => Color.Success,
         AttendanceStatus.Absent => Color.Error,
-        AttendanceStatus.Late => Color.Warning,
         AttendanceStatus.Excused => Color.Info,
         _ => Color.Default
     };
@@ -168,7 +166,6 @@ else
     {
         AttendanceStatus.Present => "Prítomný",
         AttendanceStatus.Absent => "Neprítomný",
-        AttendanceStatus.Late => "Meškanie",
         AttendanceStatus.Excused => "Ospravedlnený",
         _ => "?"
     };

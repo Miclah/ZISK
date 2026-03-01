@@ -13,9 +13,6 @@ public record ExcuseDto(
     string? Reason,
     string? Note,
     ExcuseStatus Status,
-    string? ReviewNote,
-    string? ReviewedByName,
-    DateTime? ProcessedAt,
     DateTime CreatedAt,
     string TeamName
 );

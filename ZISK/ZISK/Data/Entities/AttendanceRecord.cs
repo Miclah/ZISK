@@ -5,10 +5,9 @@ namespace ZISK.Data.Entities
 {
     public enum AttendanceStatus
     {
-        Present,    
-        Absent,     
-        Excused,   
-        Late        
+        Present,
+        Absent,
+        Excused
     }
 
     public class AttendanceRecord

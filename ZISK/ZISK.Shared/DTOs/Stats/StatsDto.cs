@@ -13,8 +13,7 @@ namespace ZISK.Shared.DTOs.Stats
     public record AttendanceStatsDto(
         decimal PresentPercent,
         decimal AbsentPercent,
-        decimal ExcusedPercent,
-        decimal LatePercent
+        decimal ExcusedPercent
     );
 
     public record TeamStatsDto(

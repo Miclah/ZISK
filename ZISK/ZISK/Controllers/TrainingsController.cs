@@ -79,7 +79,7 @@ public class TrainingsController : ControllerBase
             .ToListAsync();
 
         var excuses = await _context.AbsenceRequests
-            .Where(ar => ar.TrainingEventId == id && ar.Status == AbsenceRequestStatus.Approved)
+            .Where(ar => ar.TrainingEventId == id && ar.Status == AbsenceRequestStatus.Received)
             .ToListAsync();
 
         var attendance = new List<TrainingAttendanceDto>();

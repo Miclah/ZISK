@@ -29,7 +29,6 @@ public record AttendanceStatsDto(
     int Present,
     int Absent,
     int Excused,
-    int Late,
     int Total,
     double AttendancePercentage
 );
@@ -40,7 +39,6 @@ public record MemberAttendanceStatsDto(
     int Present,
     int Absent,
     int Excused,
-    int Late,
     double AttendancePercentage
 );
 
