@@ -13,6 +13,14 @@ namespace ZISK.Data
         [MaxLength(100)]
         public string LastName { get; set; } = string.Empty;
 
+        [MaxLength(20)]
+        public string? RodneCislo { get; set; }
+
+        [MaxLength(300)]
+        public string? Bydlisko { get; set; }
+
+        public DateOnly? DateOfBirth { get; set; }
+
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
