@@ -1,5 +1,6 @@
 ﻿@inherits LayoutComponentBase
 @using ZISK.Client.Layout
+@using System.Security.Claims
 
 <MudThemeProvider Theme="AppTheme.SportClubTheme" />
 <MudPopoverProvider />
@@ -16,6 +17,35 @@
         <MudText Typo="Typo.h6" Class="ml-2">ZISK</MudText>
 
         <MudSpacer />
+
+        <AuthorizeView>
+            <Authorized>
+                <MudMenu Icon="@Icons.Material.Rounded.AccountCircle"
+                         Color="Color.Inherit"
+                         AnchorOrigin="Origin.BottomRight"
+                         TransformOrigin="Origin.TopRight">
+                    <ChildContent>
+                        <MudStack Class="pa-4" Style="min-width: 220px;" Spacing="1">
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                                @context.User.FindFirst(ClaimTypes.GivenName)?.Value @context.User.FindFirst(ClaimTypes.Surname)?.Value
+                            </MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @context.User.FindFirst(ClaimTypes.Email)?.Value
+                            </MudText>
+                            <MudDivider Class="my-2" />
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Primary"
+                                       FullWidth="true"
+                                       StartIcon="@Icons.Material.Rounded.Person"
+                                       Href="/profil"
+                                       Size="Size.Small">
+                                Zobraziť profil
+                            </MudButton>
+                        </MudStack>
+                    </ChildContent>
+                </MudMenu>
+            </Authorized>
+        </AuthorizeView>
     </MudAppBar>
 
     <MudDrawer @bind-Open="_drawerOpen"
@@ -29,7 +59,7 @@
             <NavMenu />
         </MudDrawerContainer>
     </MudDrawer>
-   
+
     <MudMainContent Class="pa-6">
         <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
             @Body

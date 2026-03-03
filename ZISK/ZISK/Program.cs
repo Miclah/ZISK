@@ -57,6 +57,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddClaimsPrincipalFactory<CustomClaimsPrincipalFactory>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
 

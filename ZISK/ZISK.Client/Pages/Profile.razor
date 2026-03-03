@@ -1,0 +1,76 @@
+@page "/profil"
+@using System.Security.Claims
+@attribute [Authorize]
+
+<PageTitle>Môj profil - ZISK</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-6">Môj profil</MudText>
+
+<MudGrid>
+    <MudItem xs="12" sm="8" md="6">
+        <MudPaper Elevation="2" Class="pa-6">
+            <MudStack Spacing="4">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                    <MudAvatar Size="Size.Large" Color="Color.Primary">
+                        @(_firstName?.Length > 0 ? _firstName[0].ToString().ToUpper() : "?")
+                    </MudAvatar>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h6">@_firstName @_lastName</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@_role</MudText>
+                    </MudStack>
+                </MudStack>
+
+                <MudDivider />
+
+                <MudTextField Value="@_firstName"
+                              Label="Meno"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Rounded.Person" />
+
+                <MudTextField Value="@_lastName"
+                              Label="Priezvisko"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Rounded.Person" />
+
+                <MudTextField Value="@_email"
+                              Label="Email"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Rounded.Email" />
+
+                <MudTextField Value="@_role"
+                              Label="Rola"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Rounded.Badge" />
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string _firstName = string.Empty;
+    private string _lastName = string.Empty;
+    private string _email = string.Empty;
+    private string _role = string.Empty;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState;
+        var user = state.User;
+
+        _firstName = user.FindFirst(ClaimTypes.GivenName)?.Value ?? string.Empty;
+        _lastName = user.FindFirst(ClaimTypes.Surname)?.Value ?? string.Empty;
+        _email = user.FindFirst(ClaimTypes.Email)?.Value ?? user.Identity?.Name ?? string.Empty;
+        _role = user.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
+    }
+}
