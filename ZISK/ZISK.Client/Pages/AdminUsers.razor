@@ -112,6 +112,10 @@ else
                                        OnClick="@(() => OpenTeamAssignDialog(context))" />
                     </MudTooltip>
                 }
+                <MudTooltip Text="Zmeniť rolu">
+                    <MudIconButton Icon="@Icons.Material.Filled.SwitchAccount" Size="Size.Small" Color="Color.Warning"
+                                   OnClick="@(() => OpenQuickRoleChange(context))" />
+                </MudTooltip>
             </MudTd>
         </RowTemplate>
         <NoRecordsContent>
@@ -287,6 +291,67 @@ else
         <MudButton OnClick="CloseTeamDialog">Zrušiť</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveTeamAssignment" Disabled="@_isSaving">
             Uložiť
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudDialog @bind-Visible="_roleChangeDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true })">
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.SwitchAccount" Color="Color.Warning" />
+            <MudText Typo="Typo.h6">Zmena roly</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        @if (_roleChangeUser != null)
+        {
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.body1">
+                    Používateľ: <strong>@_roleChangeUser.FirstName @_roleChangeUser.LastName</strong>
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Aktuálna rola: <MudChip T="string" Size="Size.Small" Color="@GetRoleColor(_roleChangeUser.Role)">@GetRoleText(_roleChangeUser.Role)</MudChip>
+                </MudText>
+                <MudSelect T="string" @bind-Value="_newRole" Label="Nová rola" Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
+                    <MudSelectItem Value="@("Coach")">Tréner</MudSelectItem>
+                    <MudSelectItem Value="@("Parent")">Rodič</MudSelectItem>
+                </MudSelect>
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _roleChangeDialogVisible = false)">Zrušiť</MudButton>
+        <MudButton Color="Color.Warning" Variant="Variant.Filled" OnClick="ConfirmRoleChange"
+                   Disabled="@(_roleChangeUser != null && _newRole == _roleChangeUser.Role)">
+            Zmeniť rolu
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudDialog @bind-Visible="_roleConfirmVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.ExtraSmall })">
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" />
+            <MudText Typo="Typo.h6">Potvrdenie zmeny</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body1">
+            Naozaj chcete zmeniť rolu používateľa
+            <strong>@_roleChangeUser?.FirstName @_roleChangeUser?.LastName</strong>
+            z <strong>@GetRoleText(_roleChangeUser?.Role ?? "")</strong>
+            na <strong>@GetRoleText(_newRole)</strong>?
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _roleConfirmVisible = false)">Nie</MudButton>
+        <MudButton Color="Color.Warning" Variant="Variant.Filled" OnClick="ExecuteRoleChange" Disabled="@_isSaving">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Áno, zmeniť
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -577,6 +642,48 @@ else
             ));
             Snackbar.Add("Tímy priradené", Severity.Success);
             _teamDialogVisible = false;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private bool _roleChangeDialogVisible = false;
+    private bool _roleConfirmVisible = false;
+    private UserListDto? _roleChangeUser;
+    private string _newRole = "";
+
+    private void OpenQuickRoleChange(UserListDto user)
+    {
+        _roleChangeUser = user;
+        _newRole = user.Role;
+        _roleChangeDialogVisible = true;
+    }
+
+    private void ConfirmRoleChange()
+    {
+        _roleChangeDialogVisible = false;
+        _roleConfirmVisible = true;
+    }
+
+    private async Task ExecuteRoleChange()
+    {
+        if (_roleChangeUser == null) return;
+
+        _isSaving = true;
+        try
+        {
+            await UsersApi.UpdateUserAsync(_roleChangeUser.Id, new UpdateUserRequest(
+                null, null, _newRole, null, null
+            ));
+            Snackbar.Add($"Rola zmenená na {GetRoleText(_newRole)}", Severity.Success);
+            _roleConfirmVisible = false;
+            await LoadData();
         }
         catch (Exception ex)
         {
