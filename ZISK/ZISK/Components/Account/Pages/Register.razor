@@ -1,5 +1,6 @@
 ﻿@page "/Account/Register"
 @page "/registracia"
+@attribute [ExcludeFromInteractiveRouting]
 @attribute [AllowAnonymous]
 @layout ZISK.Components.Layout.LoginLayout
 
@@ -162,6 +163,13 @@
 
     public async Task RegisterUser(EditContext editContext)
     {
+        var existingUser = await UserManager.FindByEmailAsync(Input.Email);
+        if (existingUser != null)
+        {
+            identityErrors = [new IdentityError { Description = "Používateľ s týmto emailom už existuje." }];
+            return;
+        }
+
         var user = new ApplicationUser
         {
             UserName = Input.Email,
