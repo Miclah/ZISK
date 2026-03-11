@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ZISK.Client\ZISK.Client.csproj" />
     <ProjectReference Include="..\ZISK.Shared\ZISK.Shared.csproj" />
+    <PackageReference Include="MailKit" Version="4.10.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="9.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.11" />
