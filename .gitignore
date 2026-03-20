@@ -400,3 +400,6 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 ANALIZA_PROJEKTU.md
+.env
+.github/upgrades
+.github/workflows
