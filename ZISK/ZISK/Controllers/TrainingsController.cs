@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ZISK.Data;
 using ZISK.Data.Entities;
+using ZISK.Services;
 using ZISK.Shared.DTOs.Trainings;
 using ZISK.Shared.Enums;
 using TrainingType = ZISK.Shared.Enums.TrainingType;
@@ -16,10 +17,14 @@ namespace ZISK.Controllers;
 public class TrainingsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly ITeamAccessService _teamAccessService;
+    private readonly IAuditService _auditService;
 
-    public TrainingsController(ApplicationDbContext context)
+    public TrainingsController(ApplicationDbContext context, ITeamAccessService teamAccessService, IAuditService auditService)
     {
         _context = context;
+        _teamAccessService = teamAccessService;
+        _auditService = auditService;
     }
 
     [HttpGet]
@@ -31,6 +36,12 @@ public class TrainingsController : ControllerBase
         var query = _context.TrainingEvents
             .Include(t => t.Team)
             .AsNoTracking();
+
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(User);
+        if (accessibleTeamIds is not null)
+        {
+            query = query.Where(t => accessibleTeamIds.Contains(t.TeamId));
+        }
 
         if (teamId.HasValue)
             query = query.Where(t => t.TeamId == teamId.Value);
@@ -72,6 +83,10 @@ public class TrainingsController : ControllerBase
 
         if (training == null)
             return NotFound();
+
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(User);
+        if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(training.TeamId))
+            return Forbid();
 
         
         var teamMembers = await _context.ChildProfiles
@@ -133,6 +148,10 @@ public class TrainingsController : ControllerBase
         if (team == null)
             return BadRequest("Tím neexistuje");
 
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(User);
+        if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(request.TeamId))
+            return Forbid();
+
         var training = new TrainingEvent
         {
             Id = Guid.NewGuid(),
@@ -148,6 +167,7 @@ public class TrainingsController : ControllerBase
 
         _context.TrainingEvents.Add(training);
         await _context.SaveChangesAsync();
+        _auditService.Log("Create", "Training", training.Id.ToString(), User, new { training.TeamId, training.Title, training.StartTime });
 
         return CreatedAtAction(nameof(GetTraining), new { id = training.Id }, new TrainingEventDto(
             training.Id,
@@ -180,6 +200,10 @@ public class TrainingsController : ControllerBase
         if (training == null)
             return NotFound();
 
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(User);
+        if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(training.TeamId))
+            return Forbid();
+
         training.Title = request.Title;
         training.StartTime = request.StartTime;
         training.EndTime = request.EndTime;
@@ -189,6 +213,7 @@ public class TrainingsController : ControllerBase
         training.IsLocked = request.IsLocked;
 
         await _context.SaveChangesAsync();
+        _auditService.Log("Update", "Training", training.Id.ToString(), User, new { training.Title, training.StartTime, training.EndTime, training.IsLocked });
 
         return NoContent();
     }
@@ -203,6 +228,7 @@ public class TrainingsController : ControllerBase
 
         training.IsLocked = true;
         await _context.SaveChangesAsync();
+        _auditService.Log("Lock", "Training", training.Id.ToString(), User);
 
         return NoContent();
     }
@@ -217,6 +243,7 @@ public class TrainingsController : ControllerBase
 
         training.IsLocked = false;
         await _context.SaveChangesAsync();
+        _auditService.Log("Unlock", "Training", training.Id.ToString(), User);
 
         return NoContent();
     }
@@ -231,6 +258,7 @@ public class TrainingsController : ControllerBase
 
         _context.TrainingEvents.Remove(training);
         await _context.SaveChangesAsync();
+        _auditService.Log("Delete", "Training", training.Id.ToString(), User);
 
         return NoContent();
     }
