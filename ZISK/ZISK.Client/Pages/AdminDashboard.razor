@@ -8,7 +8,12 @@
 
 <PageTitle>Administrácia</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Administrátorský panel</MudText>
+<MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 px-0" />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
+    <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Large" Color="Color.Primary" />
+    <MudText Typo="Typo.h4">Administrátorský panel</MudText>
+</MudStack>
 
 @if (_isLoading)
 {
@@ -16,27 +21,31 @@
 }
 else if (_dashboardStats != null)
 {
-    <MudGrid Class="mb-4">
+    <MudGrid Class="mb-6">
         <MudItem xs="6" sm="3">
-            <MudPaper Class="pa-4" Elevation="2">
+            <MudPaper Class="pa-4 d-flex flex-column align-center" Elevation="3" Style="border-top: 3px solid var(--mud-palette-warning);">
+                <MudIcon Icon="@Icons.Material.Filled.HourglassTop" Color="Color.Warning" Class="mb-1" />
                 <MudText Typo="Typo.h4" Color="Color.Warning">@_dashboardStats.PendingExcuses</MudText>
                 <MudText Typo="Typo.body2">Čakajúce ospravedlnenky</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="6" sm="3">
-            <MudPaper Class="pa-4" Elevation="2">
+            <MudPaper Class="pa-4 d-flex flex-column align-center" Elevation="3" Style="border-top: 3px solid var(--mud-palette-primary);">
+                <MudIcon Icon="@Icons.Material.Filled.Groups" Color="Color.Primary" Class="mb-1" />
                 <MudText Typo="Typo.h4" Color="Color.Primary">@_dashboardStats.TotalTeams</MudText>
                 <MudText Typo="Typo.body2">Tímy</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="6" sm="3">
-            <MudPaper Class="pa-4" Elevation="2">
+            <MudPaper Class="pa-4 d-flex flex-column align-center" Elevation="3" Style="border-top: 3px solid var(--mud-palette-success);">
+                <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Color="Color.Success" Class="mb-1" />
                 <MudText Typo="Typo.h4" Color="Color.Success">@_dashboardStats.ActiveMembers</MudText>
                 <MudText Typo="Typo.body2">Aktívni členovia</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="6" sm="3">
-            <MudPaper Class="pa-4" Elevation="2">
+            <MudPaper Class="pa-4 d-flex flex-column align-center" Elevation="3" Style="border-top: 3px solid var(--mud-palette-info);">
+                <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Info" Class="mb-1" />
                 <MudText Typo="Typo.h4" Color="Color.Info">@_dashboardStats.TotalUsers</MudText>
                 <MudText Typo="Typo.body2">Používatelia</MudText>
             </MudPaper>
@@ -48,7 +57,7 @@ else if (_dashboardStats != null)
 
 <MudGrid>
     <MudItem xs="12" sm="6" md="4">
-        <MudPaper Class="pa-4" Elevation="2">
+        <MudPaper Class="pa-4" Elevation="3">
             <MudStack Spacing="2">
                 <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Primary" />
                 <MudText Typo="Typo.h6">Používatelia</MudText>
@@ -63,7 +72,7 @@ else if (_dashboardStats != null)
     </MudItem>
     
     <MudItem xs="12" sm="6" md="4">
-        <MudPaper Class="pa-4" Elevation="2">
+        <MudPaper Class="pa-4" Elevation="3">
             <MudStack Spacing="2">
                 <MudStack Row="true" Justify="Justify.SpaceBetween">
                     <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" Color="Color.Warning" />
@@ -86,7 +95,7 @@ else if (_dashboardStats != null)
     </MudItem>
     
     <MudItem xs="12" sm="6" md="4">
-        <MudPaper Class="pa-4" Elevation="2">
+        <MudPaper Class="pa-4" Elevation="3">
             <MudStack Spacing="2">
                 <MudIcon Icon="@Icons.Material.Filled.Announcement" Size="Size.Large" Color="Color.Info" />
                 <MudText Typo="Typo.h6">Oznamy</MudText>
@@ -101,7 +110,7 @@ else if (_dashboardStats != null)
     </MudItem>
     
     <MudItem xs="12" sm="6" md="4">
-        <MudPaper Class="pa-4" Elevation="2">
+        <MudPaper Class="pa-4" Elevation="3">
             <MudStack Spacing="2">
                 <MudIcon Icon="@Icons.Material.Filled.Analytics" Size="Size.Large" Color="Color.Secondary" />
                 <MudText Typo="Typo.h6">Štatistiky</MudText>
@@ -116,7 +125,7 @@ else if (_dashboardStats != null)
     </MudItem>
     
     <MudItem xs="12" sm="6" md="4">
-        <MudPaper Class="pa-4" Elevation="2">
+        <MudPaper Class="pa-4" Elevation="3">
             <MudStack Spacing="2">
                 <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Large" Color="Color.Tertiary" />
                 <MudText Typo="Typo.h6">Tímy</MudText>
@@ -131,7 +140,7 @@ else if (_dashboardStats != null)
     </MudItem>
     
     <MudItem xs="12" sm="6" md="4">
-        <MudPaper Class="pa-4" Elevation="2">
+        <MudPaper Class="pa-4" Elevation="3">
             <MudStack Spacing="2">
                 <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Large" Color="Color.Success" />
                 <MudText Typo="Typo.h6">Dochádzka</MudText>
@@ -149,6 +158,12 @@ else if (_dashboardStats != null)
 @code {
     private bool _isLoading = true;
     private DashboardStatsDto? _dashboardStats;
+
+    private List<BreadcrumbItem> _breadcrumbs = new()
+    {
+        new BreadcrumbItem("Domov", href: "/"),
+        new BreadcrumbItem("Administrácia", href: null, disabled: true)
+    };
 
     protected override async Task OnInitializedAsync()
     {

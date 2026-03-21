@@ -58,6 +58,12 @@
     font-weight: 500;
 }
 
+.login-alert-success {
+    background: rgba(76, 175, 80, 0.1);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    color: #2e7d32;
+}
+
 .login-alert svg {
     flex-shrink: 0;
 }

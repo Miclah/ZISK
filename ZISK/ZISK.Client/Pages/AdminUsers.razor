@@ -10,15 +10,20 @@
 
 <PageTitle>Správa používateľov</PageTitle>
 
+<MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 px-0" />
+
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
-    <MudText Typo="Typo.h4">Správa používateľov</MudText>
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Primary" />
+        <MudText Typo="Typo.h4">Správa používateľov</MudText>
+    </MudStack>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
                OnClick="OpenCreateDialog">
         Nový používateľ
     </MudButton>
 </MudStack>
 
-<MudPaper Class="pa-4 mb-4" Elevation="2">
+<MudPaper Class="pa-4 mb-4" Elevation="3">
     <MudGrid>
         <MudItem xs="12" sm="4">
             <MudTextField @bind-Value="_searchText" Label="Hľadať" Variant="Variant.Outlined"
@@ -47,27 +52,27 @@
 }
 else if (_error != null)
 {
-    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
 }
 else
 {
-    <MudTable Items="@FilteredUsers" Hover="true" Elevation="2">
+    <MudTable Items="@FilteredUsers" Hover="true" Elevation="3" Striped="true">
         <HeaderContent>
             <MudTh>Meno</MudTh>
             <MudTh>Email</MudTh>
             <MudTh>Rola</MudTh>
             <MudTh>Stav</MudTh>
-            <MudTh>Akcie</MudTh>
+            <MudTh Style="text-align:right">Akcie</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd>@context.FirstName @context.LastName</MudTd>
-            <MudTd>@context.Email</MudTd>
-            <MudTd>
+            <MudTd DataLabel="Meno">@context.FirstName @context.LastName</MudTd>
+            <MudTd DataLabel="Email">@context.Email</MudTd>
+            <MudTd DataLabel="Rola">
                 <MudChip T="string" Size="Size.Small" Color="@GetRoleColor(context.Role)">
                     @GetRoleText(context.Role)
                 </MudChip>
             </MudTd>
-            <MudTd>
+            <MudTd DataLabel="Stav">
                 @if (context.IsActive)
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Success">Aktívny</MudChip>
@@ -77,25 +82,40 @@ else
                     <MudChip T="string" Size="Size.Small" Color="Color.Error">Neaktívny</MudChip>
                 }
             </MudTd>
-            <MudTd>
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
-                               OnClick="@(() => OpenEditDialog(context))" />
+            <MudTd DataLabel="Akcie" Style="text-align:right">
+                <MudTooltip Text="Zobraziť detail">
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Color="Color.Info"
+                                   OnClick="@(() => OpenDetailDialog(context))" />
+                </MudTooltip>
+                <MudTooltip Text="Upraviť">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                                   OnClick="@(() => OpenEditDialog(context))" />
+                </MudTooltip>
                 @if (context.IsActive)
                 {
-                    <MudIconButton Icon="@Icons.Material.Filled.Block" Size="Size.Small" Color="Color.Error"
-                                   OnClick="@(() => ToggleStatus(context))" />
+                    <MudTooltip Text="Deaktivovať">
+                        <MudIconButton Icon="@Icons.Material.Filled.Block" Size="Size.Small" Color="Color.Error"
+                                       OnClick="@(() => ToggleStatus(context))" />
+                    </MudTooltip>
                 }
                 else
                 {
-                    <MudIconButton Icon="@Icons.Material.Filled.Check" Size="Size.Small" Color="Color.Success"
-                                   OnClick="@(() => ToggleStatus(context))" />
+                    <MudTooltip Text="Aktivovať">
+                        <MudIconButton Icon="@Icons.Material.Filled.Check" Size="Size.Small" Color="Color.Success"
+                                       OnClick="@(() => ToggleStatus(context))" />
+                    </MudTooltip>
                 }
                 @if (context.Role == "Coach")
                 {
-                    <MudIconButton Icon="@Icons.Material.Filled.Groups" Size="Size.Small" Color="Color.Info"
-                                   OnClick="@(() => OpenTeamAssignDialog(context))"
-                                   aria-label="Priradiť tímy" />
+                    <MudTooltip Text="Priradiť tímy">
+                        <MudIconButton Icon="@Icons.Material.Filled.Groups" Size="Size.Small" Color="Color.Info"
+                                       OnClick="@(() => OpenTeamAssignDialog(context))" />
+                    </MudTooltip>
                 }
+                <MudTooltip Text="Zmeniť rolu">
+                    <MudIconButton Icon="@Icons.Material.Filled.SwitchAccount" Size="Size.Small" Color="Color.Warning"
+                                   OnClick="@(() => OpenQuickRoleChange(context))" />
+                </MudTooltip>
             </MudTd>
         </RowTemplate>
         <NoRecordsContent>
@@ -103,6 +123,93 @@ else
         </NoRecordsContent>
     </MudTable>
 }
+
+<MudDialog @bind-Visible="_detailDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Person" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Detail používateľa</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        @if (_isLoadingDetail)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+        }
+        else if (_detailUser != null)
+        {
+            <MudStack Spacing="3">
+                <MudStack Row="true" Justify="Justify.Center" Class="mb-2">
+                    <MudAvatar Size="Size.Large" Color="@GetRoleColor(_detailUser.Role)">
+                        @_detailUser.FirstName[0]@_detailUser.LastName[0]
+                    </MudAvatar>
+                </MudStack>
+
+                <MudSimpleTable Dense="true" Elevation="0">
+                    <tbody>
+                        <tr>
+                            <td><MudText Typo="Typo.body2" Color="Color.Secondary">Meno</MudText></td>
+                            <td><MudText Typo="Typo.body1">@_detailUser.FirstName @_detailUser.LastName</MudText></td>
+                        </tr>
+                        <tr>
+                            <td><MudText Typo="Typo.body2" Color="Color.Secondary">Email</MudText></td>
+                            <td><MudText Typo="Typo.body1">@_detailUser.Email</MudText></td>
+                        </tr>
+                        <tr>
+                            <td><MudText Typo="Typo.body2" Color="Color.Secondary">Rola</MudText></td>
+                            <td>
+                                <MudChip T="string" Size="Size.Small" Color="@GetRoleColor(_detailUser.Role)">
+                                    @GetRoleText(_detailUser.Role)
+                                </MudChip>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><MudText Typo="Typo.body2" Color="Color.Secondary">Stav</MudText></td>
+                            <td>
+                                @if (_detailUser.IsActive)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Success">Aktívny</MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Error">Neaktívny</MudChip>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><MudText Typo="Typo.body2" Color="Color.Secondary">Registrovaný</MudText></td>
+                            <td><MudText Typo="Typo.body1">@_detailUser.CreatedAt.ToString("dd.MM.yyyy HH:mm")</MudText></td>
+                        </tr>
+                    </tbody>
+                </MudSimpleTable>
+
+                @if (_detailUser.Teams.Any())
+                {
+                    <MudText Typo="Typo.subtitle2" Class="mt-2">Priradené tímy</MudText>
+                    <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                        @foreach (var team in _detailUser.Teams)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="@(team.IsPrimary ? Color.Primary : Color.Default)"
+                                     Icon="@(team.IsPrimary ? Icons.Material.Filled.Star : null)">
+                                @team.TeamName
+                            </MudChip>
+                        }
+                    </MudStack>
+                }
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _detailDialogVisible = false)">Zavrieť</MudButton>
+        @if (_detailUser != null)
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" 
+                       OnClick="@(() => { _detailDialogVisible = false; OpenEditDialogFromDetail(); })">
+                Upraviť
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
 
 <MudDialog @bind-Visible="_editDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
     <TitleContent>
@@ -188,6 +295,67 @@ else
     </DialogActions>
 </MudDialog>
 
+<MudDialog @bind-Visible="_roleChangeDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true })">
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.SwitchAccount" Color="Color.Warning" />
+            <MudText Typo="Typo.h6">Zmena roly</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        @if (_roleChangeUser != null)
+        {
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.body1">
+                    Používateľ: <strong>@_roleChangeUser.FirstName @_roleChangeUser.LastName</strong>
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Aktuálna rola: <MudChip T="string" Size="Size.Small" Color="@GetRoleColor(_roleChangeUser.Role)">@GetRoleText(_roleChangeUser.Role)</MudChip>
+                </MudText>
+                <MudSelect T="string" @bind-Value="_newRole" Label="Nová rola" Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
+                    <MudSelectItem Value="@("Coach")">Tréner</MudSelectItem>
+                    <MudSelectItem Value="@("Parent")">Rodič</MudSelectItem>
+                </MudSelect>
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _roleChangeDialogVisible = false)">Zrušiť</MudButton>
+        <MudButton Color="Color.Warning" Variant="Variant.Filled" OnClick="ConfirmRoleChange"
+                   Disabled="@(_roleChangeUser != null && _newRole == _roleChangeUser.Role)">
+            Zmeniť rolu
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudDialog @bind-Visible="_roleConfirmVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.ExtraSmall })">
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" />
+            <MudText Typo="Typo.h6">Potvrdenie zmeny</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body1">
+            Naozaj chcete zmeniť rolu používateľa
+            <strong>@_roleChangeUser?.FirstName @_roleChangeUser?.LastName</strong>
+            z <strong>@GetRoleText(_roleChangeUser?.Role ?? "")</strong>
+            na <strong>@GetRoleText(_newRole)</strong>?
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _roleConfirmVisible = false)">Nie</MudButton>
+        <MudButton Color="Color.Warning" Variant="Variant.Filled" OnClick="ExecuteRoleChange" Disabled="@_isSaving">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Áno, zmeniť
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
 @code {
     private bool _isLoading = true;
     private bool _isSaving = false;
@@ -204,6 +372,10 @@ else
     private bool _isCreating = false;
     private UserListDto? _selectedUser;
 
+    private bool _detailDialogVisible = false;
+    private bool _isLoadingDetail = false;
+    private UserDto? _detailUser;
+
     private string _editFirstName = "";
     private string _editLastName = "";
     private string _editEmail = "";
@@ -215,6 +387,13 @@ else
     private string? _editLastNameError;
     private string? _editEmailError;
     private string? _editPasswordError;
+
+    private List<BreadcrumbItem> _breadcrumbs = new()
+    {
+        new BreadcrumbItem("Domov", href: "/"),
+        new BreadcrumbItem("Administrácia", href: "/admin"),
+        new BreadcrumbItem("Používatelia", href: null, disabled: true)
+    };
 
     private IEnumerable<UserListDto> FilteredUsers => _users
         .Where(u => string.IsNullOrEmpty(_searchText) ||
@@ -262,6 +441,37 @@ else
         "Parent" => "Rodič",
         _ => role
     };
+
+    private async Task OpenDetailDialog(UserListDto user)
+    {
+        _detailUser = null;
+        _isLoadingDetail = true;
+        _detailDialogVisible = true;
+
+        try
+        {
+            _detailUser = await UsersApi.GetUserAsync(user.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri načítaní detailu: {ex.Message}", Severity.Error);
+            _detailDialogVisible = false;
+        }
+        finally
+        {
+            _isLoadingDetail = false;
+        }
+    }
+
+    private void OpenEditDialogFromDetail()
+    {
+        if (_detailUser == null) return;
+        var listDto = _users.FirstOrDefault(u => u.Id == _detailUser.Id);
+        if (listDto != null)
+        {
+            OpenEditDialog(listDto);
+        }
+    }
 
     private async Task ToggleStatus(UserListDto user)
     {
@@ -432,6 +642,48 @@ else
             ));
             Snackbar.Add("Tímy priradené", Severity.Success);
             _teamDialogVisible = false;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private bool _roleChangeDialogVisible = false;
+    private bool _roleConfirmVisible = false;
+    private UserListDto? _roleChangeUser;
+    private string _newRole = "";
+
+    private void OpenQuickRoleChange(UserListDto user)
+    {
+        _roleChangeUser = user;
+        _newRole = user.Role;
+        _roleChangeDialogVisible = true;
+    }
+
+    private void ConfirmRoleChange()
+    {
+        _roleChangeDialogVisible = false;
+        _roleConfirmVisible = true;
+    }
+
+    private async Task ExecuteRoleChange()
+    {
+        if (_roleChangeUser == null) return;
+
+        _isSaving = true;
+        try
+        {
+            await UsersApi.UpdateUserAsync(_roleChangeUser.Id, new UpdateUserRequest(
+                null, null, _newRole, null, null
+            ));
+            Snackbar.Add($"Rola zmenená na {GetRoleText(_newRole)}", Severity.Success);
+            _roleConfirmVisible = false;
+            await LoadData();
         }
         catch (Exception ex)
         {

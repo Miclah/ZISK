@@ -8,28 +8,42 @@
 
 <PageTitle>Ospravedlnenky</PageTitle>
 
+<MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 px-0" />
+
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
-    <MudText Typo="Typo.h4">Ospravedlnenky</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/ospravedlnenky/vytvorit">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" Color="Color.Primary" />
+        <MudText Typo="Typo.h4">Ospravedlnenky</MudText>
+    </MudStack>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               Href="/ospravedlnenky/vytvorit">
         Nová ospravedlnenka
     </MudButton>
 </MudStack>
 
 @if (_isLoading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
 else if (_error != null)
 {
-    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
 }
 else if (!_excuses.Any())
 {
-    <MudAlert Severity="Severity.Info">Žiadne ospravedlnenky</MudAlert>
+    <MudPaper Class="pa-6" Elevation="1">
+        <MudStack AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Inbox" Size="Size.Large" Color="Color.Secondary" />
+            <MudText Typo="Typo.body1" Color="Color.Secondary">Zatiaľ nemáte žiadne ospravedlnenky</MudText>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/ospravedlnenky/vytvorit">
+                Vytvoriť prvú ospravedlnenku
+            </MudButton>
+        </MudStack>
+    </MudPaper>
 }
 else
 {
-    <MudTable Items="@_excuses" Hover="true">
+    <MudTable Items="@_excuses" Hover="true" Elevation="3" Striped="true">
         <HeaderContent>
             <MudTh>Dieťa</MudTh>
             <MudTh>Dátum</MudTh>
@@ -38,24 +52,27 @@ else
             <MudTh>Akcie</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd>@context.ChildName</MudTd>
-            <MudTd>
+            <MudTd DataLabel="Dieťa">@context.ChildName</MudTd>
+            <MudTd DataLabel="Dátum">
                 @if (context.DateFrom.HasValue)
                 {
                     @context.DateFrom.Value.ToString("dd.MM.yyyy")
                 }
             </MudTd>
-            <MudTd>@context.Reason</MudTd>
-            <MudTd>
+            <MudTd DataLabel="Dôvod">@context.Reason</MudTd>
+            <MudTd DataLabel="Stav">
                 <MudChip T="string" Size="Size.Small" Color="Color.Info">
                     Prijaté
                 </MudChip>
             </MudTd>
-            <MudTd>
+            <MudTd DataLabel="Akcie">
                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
                                OnClick="@(() => DeleteExcuse(context.Id))" />
             </MudTd>
         </RowTemplate>
+        <NoRecordsContent>
+            <MudText>Žiadne ospravedlnenky</MudText>
+        </NoRecordsContent>
     </MudTable>
 }
 
@@ -63,6 +80,12 @@ else
     private bool _isLoading = true;
     private string? _error;
     private List<ExcuseListDto> _excuses = new();
+
+    private List<BreadcrumbItem> _breadcrumbs = new()
+    {
+        new BreadcrumbItem("Domov", href: "/"),
+        new BreadcrumbItem("Ospravedlnenky", href: null, disabled: true)
+    };
 
     protected override async Task OnInitializedAsync()
     {

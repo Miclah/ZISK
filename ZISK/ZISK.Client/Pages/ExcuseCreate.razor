@@ -9,12 +9,17 @@
 
 <PageTitle>Nová ospravedlnenka</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Nová ospravedlnenka</MudText>
+<MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 px-0" />
 
-<MudPaper Class="pa-4" Elevation="2" MaxWidth="600px">
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
+    <MudIcon Icon="@Icons.Material.Filled.NoteAdd" Size="Size.Large" Color="Color.Primary" />
+    <MudText Typo="Typo.h4">Nová ospravedlnenka</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4" Elevation="3" MaxWidth="600px">
     @if (_isLoading)
     {
-        <MudProgressCircular Indeterminate="true" />
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
     }
     else
     {
@@ -53,7 +58,7 @@
                 }
 
                 <MudStack Row="true" Justify="Justify.SpaceBetween">
-                    <MudButton Variant="Variant.Text" OnClick="Cancel">Zrušiť</MudButton>
+                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="Cancel">Zrušiť</MudButton>
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" 
                                Disabled="@(!_formIsValid || _isSubmitting)">
                         @if (_isSubmitting)
@@ -81,6 +86,13 @@
     private DateTime? _dateTo;
     private string _reason = "";
     private string _note = "";
+
+    private List<BreadcrumbItem> _breadcrumbs = new()
+    {
+        new BreadcrumbItem("Domov", href: "/"),
+        new BreadcrumbItem("Ospravedlnenky", href: "/ospravedlnenky"),
+        new BreadcrumbItem("Nová", href: null, disabled: true)
+    };
 
     protected override async Task OnInitializedAsync()
     {

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using Refit;
@@ -8,6 +9,7 @@ using ZISK.Components;
 using ZISK.Components.Account;
 using ZISK.Data;
 using ZISK.Data.Entities;
+using ZISK.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -73,7 +75,10 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 });
 
-builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
+builder.Services.AddTransient<IEmailSender<ApplicationUser>, SmtpEmailSender>();
+builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
+
 builder.Services.AddMudServices();
 
 var baseAddress = new Uri("http://localhost:5224");
