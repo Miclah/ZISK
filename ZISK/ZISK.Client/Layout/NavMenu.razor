@@ -23,10 +23,16 @@
             Oznamy
         </MudNavLink>
 
-        <AuthorizeView Roles="Parent">
+        <MudNavLink Href="/profil"
+                    Icon="@Icons.Material.Rounded.Person"
+                    Match="NavLinkMatch.Prefix">
+            Môj profil
+        </MudNavLink>
+
+        <AuthorizeView Roles="Parent,Athlete">
             <MudDivider Class="my-2 mx-2" Light="true" />
             <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1" Style="font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.8px; font-size: 0.65rem;">
-                Rodič
+                Športovec / Rodič
             </MudText>
 
             <MudNavLink Href="/dochadzka/prehlad"
@@ -39,6 +45,19 @@
                         Icon="@Icons.Material.Rounded.Description"
                         Match="NavLinkMatch.Prefix">
                 Ospravedlnenky
+            </MudNavLink>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="Child">
+            <MudDivider Class="my-2 mx-2" Light="true" />
+            <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1" Style="font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.8px; font-size: 0.65rem;">
+                Dieťa
+            </MudText>
+
+            <MudNavLink Href="/dochadzka/prehlad"
+                        Icon="@Icons.Material.Rounded.EventNote"
+                        Match="NavLinkMatch.Prefix">
+                Moja dochádzka
             </MudNavLink>
         </AuthorizeView>
 

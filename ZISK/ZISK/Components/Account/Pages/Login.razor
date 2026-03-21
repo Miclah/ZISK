@@ -71,16 +71,20 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
+    private InputModel? _input;
+
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel Input
+    {
+        get => _input ??= new();
+        set => _input = value;
+    }
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        Input ??= new();
-
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
             // Clear the existing external cookie to ensure a clean login process

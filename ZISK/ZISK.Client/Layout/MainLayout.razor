@@ -1,6 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @using ZISK.Client.Layout
 @using System.Security.Claims
+@inject NavigationManager NavigationManager
 
 <MudThemeProvider Theme="AppTheme.SportClubTheme" />
 <MudPopoverProvider />
@@ -74,7 +75,7 @@
                             </div>
                             <div style="padding: 0.5rem;">
                                 <MudMenuItem Icon="@Icons.Material.Rounded.Person"
-                                             Href="/profil"
+                                             OnClick="NavigateToProfile"
                                              Style="border-radius: 8px;">
                                     Zobraziť profil
                                 </MudMenuItem>
@@ -116,4 +117,9 @@
     private bool _drawerOpen = true;
 
     private void DrawerToggle() => _drawerOpen = !_drawerOpen;
+
+    private void NavigateToProfile()
+    {
+        NavigationManager.NavigateTo("/profil");
+    }
 }
