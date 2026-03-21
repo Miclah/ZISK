@@ -25,23 +25,23 @@
         <MudSpacer />
 
         <AuthorizeView>
-            <Authorized>
+            <Authorized Context="authContext">
                 <MudMenu AnchorOrigin="Origin.BottomRight"
                          TransformOrigin="Origin.TopRight">
                     <ActivatorContent>
                         <MudButton Variant="Variant.Text" Color="Color.Inherit" Style="text-transform: none;">
                             <MudAvatar Size="Size.Small"
                                        Style="background: linear-gradient(135deg, #FF6B35, #e55a2b); width: 32px; height: 32px; font-size: 0.8rem; font-weight: 700;">
-                                @(context.User.FindFirst(ClaimTypes.GivenName)?.Value?.Length > 0
-                                    ? context.User.FindFirst(ClaimTypes.GivenName)!.Value[0].ToString().ToUpper()
+                                @(authContext.User.FindFirst(ClaimTypes.GivenName)?.Value?.Length > 0
+                                    ? authContext.User.FindFirst(ClaimTypes.GivenName)!.Value[0].ToString().ToUpper()
                                     : "?")
                             </MudAvatar>
                             <MudStack Spacing="0" Class="ml-2 d-none d-sm-flex" Style="text-align: left;">
                                 <MudText Typo="Typo.body2" Style="font-weight: 600; line-height: 1.2; color: white;">
-                                    @context.User.FindFirst(ClaimTypes.GivenName)?.Value @context.User.FindFirst(ClaimTypes.Surname)?.Value
+                                    @authContext.User.FindFirst(ClaimTypes.GivenName)?.Value @authContext.User.FindFirst(ClaimTypes.Surname)?.Value
                                 </MudText>
                                 <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.55); line-height: 1.2; font-size: 0.7rem;">
-                                    @context.User.FindFirst(ClaimTypes.Role)?.Value
+                                    @authContext.User.FindFirst(ClaimTypes.Role)?.Value
                                 </MudText>
                             </MudStack>
                             <MudIcon Icon="@Icons.Material.Rounded.KeyboardArrowDown" Size="Size.Small"
@@ -54,20 +54,20 @@
                                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
                                     <MudAvatar Size="Size.Large"
                                                Style="background: linear-gradient(135deg, #FF6B35, #e55a2b); font-size: 1.1rem; font-weight: 700; border: 2px solid rgba(255,255,255,0.2);">
-                                        @(context.User.FindFirst(ClaimTypes.GivenName)?.Value?.Length > 0
-                                            ? context.User.FindFirst(ClaimTypes.GivenName)!.Value[0].ToString().ToUpper()
+                                        @(authContext.User.FindFirst(ClaimTypes.GivenName)?.Value?.Length > 0
+                                            ? authContext.User.FindFirst(ClaimTypes.GivenName)!.Value[0].ToString().ToUpper()
                                             : "?")
                                     </MudAvatar>
                                     <MudStack Spacing="0">
                                         <MudText Typo="Typo.subtitle1" Style="font-weight: 700; color: white; line-height: 1.3;">
-                                            @context.User.FindFirst(ClaimTypes.GivenName)?.Value @context.User.FindFirst(ClaimTypes.Surname)?.Value
+                                            @authContext.User.FindFirst(ClaimTypes.GivenName)?.Value @authContext.User.FindFirst(ClaimTypes.Surname)?.Value
                                         </MudText>
                                         <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.65);">
-                                            @context.User.FindFirst(ClaimTypes.Email)?.Value
+                                            @authContext.User.FindFirst(ClaimTypes.Email)?.Value
                                         </MudText>
                                         <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
                                                  Style="background: rgba(255,255,255,0.15); color: white; font-size: 0.65rem; height: 20px; margin-top: 4px; padding: 0 8px;">
-                                            @context.User.FindFirst(ClaimTypes.Role)?.Value
+                                            @authContext.User.FindFirst(ClaimTypes.Role)?.Value
                                         </MudChip>
                                     </MudStack>
                                 </MudStack>
