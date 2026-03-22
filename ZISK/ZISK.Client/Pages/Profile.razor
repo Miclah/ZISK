@@ -1,5 +1,6 @@
 @page "/profil"
 @using System.Security.Claims
+@using System.Globalization
 @attribute [Authorize]
 
 <PageTitle>Môj profil - ZISK</PageTitle>
@@ -80,6 +81,36 @@
                     </MudStack>
                 </MudPaper>
             </MudItem>
+
+            <MudItem xs="12">
+                <MudPaper Elevation="0" Class="pa-5" Style="border-radius: 14px; border: 1px solid #E2E8F0;">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudAvatar Size="Size.Small" Style="background: #EEF2FF; color: #1E3A5F;">
+                                <MudIcon Icon="@Icons.Material.Rounded.ManageAccounts" Size="Size.Small" />
+                            </MudAvatar>
+                            <MudText Typo="Typo.subtitle2" Style="font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.75rem;">
+                                Nastavenia účtu
+                            </MudText>
+                        </MudStack>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info">
+                            Prihlásený od @_joinedDateLabel
+                        </MudChip>
+                    </MudStack>
+
+                    <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Rounded.Edit" Href="/Account/Manage">
+                            Upraviť profil
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Rounded.Lock" Href="/Account/Manage/ChangePassword">
+                            Zmeniť heslo
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Info" StartIcon="@Icons.Material.Rounded.Mail" Href="/Account/Manage/Email">
+                            Email nastavenia
+                        </MudButton>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
         </MudGrid>
     </MudItem>
 </MudGrid>
@@ -89,6 +120,7 @@
     private string _lastName = string.Empty;
     private string _email = string.Empty;
     private string _role = string.Empty;
+    private string _joinedDateLabel = DateTime.Now.ToString("dd.MM.yyyy", CultureInfo.GetCultureInfo("sk-SK"));
 
     [CascadingParameter]
     private Task<AuthenticationState> AuthState { get; set; } = default!;
@@ -102,5 +134,11 @@
         _lastName = user.FindFirst(ClaimTypes.Surname)?.Value ?? string.Empty;
         _email = user.FindFirst(ClaimTypes.Email)?.Value ?? user.Identity?.Name ?? string.Empty;
         _role = user.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
+
+        var joinedDate = user.FindFirst("created_at")?.Value;
+        if (!string.IsNullOrWhiteSpace(joinedDate) && DateTime.TryParse(joinedDate, out var parsed))
+        {
+            _joinedDateLabel = parsed.ToString("dd.MM.yyyy", CultureInfo.GetCultureInfo("sk-SK"));
+        }
     }
 }

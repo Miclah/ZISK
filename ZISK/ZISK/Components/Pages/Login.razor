@@ -29,14 +29,6 @@
             </div>
         }
 
-        @if (!string.IsNullOrEmpty(successMessage))
-        {
-            <div class="login-alert login-alert-success">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-                <span>@successMessage</span>
-            </div>
-        }
-
         <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
             <DataAnnotationsValidator />
 
@@ -89,21 +81,24 @@
 
 @code {
     private string? errorMessage;
-    private string? successMessage;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
+    private InputModel? _input;
+
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel Input
+    {
+        get => _input ??= new();
+        set => _input = value;
+    }
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        Input ??= new();
-
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
             if (HttpContext.User.Identity?.IsAuthenticated == true)

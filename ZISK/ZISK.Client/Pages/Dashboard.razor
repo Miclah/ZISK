@@ -1,11 +1,14 @@
 ﻿@page "/"
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Announcements
+@using ZISK.Shared.DTOs.Trainings
 @using ZISK.Shared.Enums
 @inject IAnnouncementsApi AnnouncementsApi
 @inject IExcusesApi ExcusesApi
+@inject ITrainingsApi TrainingsApi
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @attribute [Authorize]
 
 <PageTitle>Dashboard - ZISK</PageTitle>
@@ -16,22 +19,44 @@
     <MudItem xs="12" md="8">
         <MudText Typo="Typo.h6" Class="mb-3">Rýchle akcie</MudText>
         <MudGrid>
-            <MudItem xs="6" sm="4">
-                <MudPaper Class="pa-3" Elevation="2" Style="cursor: pointer;" @onclick="@(() => NavigateTo("/dochadzka/prehlad"))">
-                    <MudStack AlignItems="AlignItems.Center" Spacing="1">
-                        <MudIcon Icon="@Icons.Material.Filled.EventNote" Size="Size.Large" Color="Color.Primary" />
-                        <MudText Typo="Typo.body2">Moja dochádzka</MudText>
-                    </MudStack>
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="6" sm="4">
-                <MudPaper Class="pa-3" Elevation="2" Style="cursor: pointer;" @onclick="@(() => NavigateTo("/ospravedlnenky"))">
-                    <MudStack AlignItems="AlignItems.Center" Spacing="1">
-                        <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" Color="Color.Warning" />
-                        <MudText Typo="Typo.body2">Ospravedlnenky</MudText>
-                    </MudStack>
-                </MudPaper>
-            </MudItem>
+            @if (_isAdminOrCoach)
+            {
+                <MudItem xs="6" sm="4">
+                    <MudPaper Class="pa-3" Elevation="2" Style="cursor: pointer;" @onclick="@(() => NavigateTo("/dochadzka"))">
+                        <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Large" Color="Color.Success" />
+                            <MudText Typo="Typo.body2">Označiť dochádzku</MudText>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="6" sm="4">
+                    <MudPaper Class="pa-3" Elevation="2" Style="cursor: pointer;" @onclick="@(() => NavigateTo("/admin/ospravedlnenky"))">
+                        <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" Color="Color.Warning" />
+                            <MudText Typo="Typo.body2">Správa ospravedlneniek</MudText>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            }
+            else
+            {
+                <MudItem xs="6" sm="4">
+                    <MudPaper Class="pa-3" Elevation="2" Style="cursor: pointer;" @onclick="@(() => NavigateTo("/dochadzka/prehlad"))">
+                        <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.EventNote" Size="Size.Large" Color="Color.Primary" />
+                            <MudText Typo="Typo.body2">Moja dochádzka</MudText>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="6" sm="4">
+                    <MudPaper Class="pa-3" Elevation="2" Style="cursor: pointer;" @onclick="@(() => NavigateTo("/ospravedlnenky"))">
+                        <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" Color="Color.Warning" />
+                            <MudText Typo="Typo.body2">Ospravedlnenky</MudText>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            }
             <MudItem xs="6" sm="4">
                 <MudPaper Class="pa-3" Elevation="2" Style="cursor: pointer;" @onclick="@(() => NavigateTo("/rozvrh"))">
                     <MudStack AlignItems="AlignItems.Center" Spacing="1">
@@ -88,13 +113,38 @@
                         <MudText Typo="Typo.body1">Čakajúce ospravedlnenky</MudText>
                         <MudText Typo="Typo.h5" Color="Color.Warning">@_pendingExcuses</MudText>
                     </MudStack>
-                    <MudButton Variant="Variant.Text" Color="Color.Warning" Href="/ospravedlnenky">
+                    <MudButton Variant="Variant.Text" Color="Color.Warning" Href="@(_isAdminOrCoach ? "/admin/ospravedlnenky" : "/ospravedlnenky")">
                         Zobraziť
                     </MudButton>
                 </MudStack>
             </MudPaper>
         }
 
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-2">
+                <MudText Typo="Typo.h6">Najbližšie tréningy</MudText>
+                <MudButton Variant="Variant.Text" Size="Size.Small" Href="/rozvrh">Kalendár</MudButton>
+            </MudStack>
+
+            @if (!_upcomingTrainings.Any())
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne naplánované tréningy.</MudText>
+            }
+            else
+            {
+                <MudStack Spacing="1">
+                    @foreach (var training in _upcomingTrainings.Take(5))
+                    {
+                        <MudPaper Class="pa-2" Elevation="0" Style="background: #F8FAFC; border: 1px solid #E2E8F0;">
+                            <MudText Typo="Typo.body2" Style="font-weight: 600;">@training.Title</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @training.StartTime.ToString("dd.MM.yyyy HH:mm") | @training.TeamName
+                            </MudText>
+                        </MudPaper>
+                    }
+                </MudStack>
+            }
+        </MudPaper>
     </MudItem>
 </MudGrid>
 
@@ -102,18 +152,25 @@
     private bool _isLoading = true;
     private List<AnnouncementListDto> _announcements = new();
     private int _pendingExcuses = 0;
+    private bool _isAdminOrCoach;
+    private List<TrainingEventDto> _upcomingTrainings = new();
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            _isAdminOrCoach = authState.User.IsInRole("Admin") || authState.User.IsInRole("Coach");
+
             var announcementsTask = AnnouncementsApi.GetAnnouncementsAsync(null, null);
             var excusesTask = ExcusesApi.GetPendingCountAsync();
+            var trainingsTask = TrainingsApi.GetTrainingsAsync(null, DateTime.Now, DateTime.Now.AddDays(14));
 
-            await Task.WhenAll(announcementsTask, excusesTask);
+            await Task.WhenAll(announcementsTask, excusesTask, trainingsTask);
 
             _announcements = await announcementsTask;
             _pendingExcuses = await excusesTask;
+            _upcomingTrainings = (await trainingsTask).OrderBy(t => t.StartTime).ToList();
         }
         catch (Exception ex)
         {
