@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using ZISK.Data;
 using ZISK.Data.Entities;
+using ZISK.Services;
 using ZISK.Shared.DTOs.Announcements;
 using AnnouncementPriority = ZISK.Shared.Enums.AnnouncementPriority;
 using TargetAudience = ZISK.Shared.Enums.TargetAudience;
@@ -19,11 +20,13 @@ public class AnnouncementsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly IWebHostEnvironment _environment;
+    private readonly ITeamAccessService _teamAccessService;
 
-    public AnnouncementsController(ApplicationDbContext context, IWebHostEnvironment environment)
+    public AnnouncementsController(ApplicationDbContext context, IWebHostEnvironment environment, ITeamAccessService teamAccessService)
     {
         _context = context;
         _environment = environment;
+        _teamAccessService = teamAccessService;
     }
 
     [HttpGet]
@@ -36,6 +39,12 @@ public class AnnouncementsController : ControllerBase
             .Include(a => a.TargetTeam)
             .Include(a => a.Attachments)
             .AsNoTracking();
+
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(User);
+        if (accessibleTeamIds is not null)
+        {
+            query = query.Where(a => a.TargetTeamId == null || (a.TargetTeamId.HasValue && accessibleTeamIds.Contains(a.TargetTeamId.Value)));
+        }
 
         if (teamId.HasValue)
         {

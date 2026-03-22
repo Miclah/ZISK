@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using ZISK.Data;
 using ZISK.Data.Entities;
+using ZISK.Services;
 using ZISK.Shared.DTOs.Attendance;
 using AttendanceStatus = ZISK.Shared.Enums.AttendanceStatus;
 
@@ -15,10 +16,14 @@ namespace ZISK.Controllers;
 public class AttendanceController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly ITeamAccessService _teamAccessService;
+    private readonly IAuditService _auditService;
 
-    public AttendanceController(ApplicationDbContext context)
+    public AttendanceController(ApplicationDbContext context, ITeamAccessService teamAccessService, IAuditService auditService)
     {
         _context = context;
+        _teamAccessService = teamAccessService;
+        _auditService = auditService;
     }
 
     [HttpGet("training/{trainingEventId:guid}")]
@@ -30,6 +35,12 @@ public class AttendanceController : ControllerBase
 
         if (training == null)
             return NotFound("Tréning neexistuje");
+
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(User);
+        if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(training.TeamId))
+            return Forbid();
+
+        await EnsureAutomaticAttendance(trainingEventId);
 
         var attendance = await _context.AttendanceRecords
             .Include(ar => ar.Child)
@@ -61,10 +72,26 @@ public class AttendanceController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        var childIds = await _context.ParentChildren
-            .Where(pc => pc.ParentId == userId)
-            .Select(pc => pc.ChildId)
-            .ToListAsync();
+        var childIds = new List<Guid>();
+
+        if (User.IsInRole("Parent"))
+        {
+            childIds = await _context.ParentChildren
+                .Where(pc => pc.ParentId == userId)
+                .Select(pc => pc.ChildId)
+                .ToListAsync();
+        }
+        else if (User.IsInRole("Athlete") || User.IsInRole("Child"))
+        {
+            var userEmail = User.FindFirstValue(ClaimTypes.Email);
+            if (!string.IsNullOrWhiteSpace(userEmail))
+            {
+                childIds = await _context.ChildProfiles
+                    .Where(c => c.IsActive && c.Email == userEmail)
+                    .Select(c => c.Id)
+                    .ToListAsync();
+            }
+        }
 
         if (!childIds.Any())
             return Ok(new List<UserAttendanceDto>());
@@ -182,6 +209,10 @@ public class AttendanceController : ControllerBase
         if (training == null)
             return BadRequest("Tréning neexistuje");
 
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(User);
+        if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(training.TeamId))
+            return Forbid();
+
         if (training.IsLocked)
             return BadRequest("Dochádzka pre tento tréning je uzamknutá");
 
@@ -219,6 +250,7 @@ public class AttendanceController : ControllerBase
         }
 
         await _context.SaveChangesAsync();
+        _auditService.Log("MarkAttendance", "Training", request.TrainingEventId.ToString(), User, new { request.ChildId, request.Status });
 
         return Ok(new AttendanceRecordDto(
             existingRecord.Id,
@@ -243,6 +275,10 @@ public class AttendanceController : ControllerBase
         var training = await _context.TrainingEvents.FindAsync(request.TrainingEventId);
         if (training == null)
             return BadRequest("Tréning neexistuje");
+
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(User);
+        if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(training.TeamId))
+            return Forbid();
 
         if (training.IsLocked)
             return BadRequest("Dochádzka pre tento tréning je uzamknutá");
@@ -276,7 +312,60 @@ public class AttendanceController : ControllerBase
         }
 
         await _context.SaveChangesAsync();
+        _auditService.Log("BulkMarkAttendance", "Training", request.TrainingEventId.ToString(), User, new { Count = request.Entries.Count });
 
         return Ok();
+    }
+
+    private async Task EnsureAutomaticAttendance(Guid trainingEventId)
+    {
+        var training = await _context.TrainingEvents
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == trainingEventId);
+
+        if (training == null || DateTime.UtcNow < training.StartTime.AddMinutes(10))
+            return;
+
+        var teamMemberIds = await _context.ChildProfiles
+            .Where(c => c.TeamId == training.TeamId && c.IsActive)
+            .Select(c => c.Id)
+            .ToListAsync();
+
+        if (!teamMemberIds.Any())
+            return;
+
+        var existingChildIds = await _context.AttendanceRecords
+            .Where(ar => ar.TrainingEventId == trainingEventId)
+            .Select(ar => ar.ChildId)
+            .ToListAsync();
+
+        var missingIds = teamMemberIds.Except(existingChildIds).ToList();
+        if (!missingIds.Any())
+            return;
+
+        var excuses = await _context.AbsenceRequests
+            .Where(ar => ar.Child.TeamId == training.TeamId
+                         && ar.Status == AbsenceRequestStatus.Received
+                         && (ar.TrainingEventId == trainingEventId
+                             || (ar.DateFrom.HasValue && ar.DateTo.HasValue
+                                 && ar.DateFrom.Value.Date <= training.StartTime.Date
+                                 && ar.DateTo.Value.Date >= training.StartTime.Date)))
+            .Select(ar => ar.ChildId)
+            .Distinct()
+            .ToListAsync();
+
+        foreach (var childId in missingIds)
+        {
+            _context.AttendanceRecords.Add(new AttendanceRecord
+            {
+                Id = Guid.NewGuid(),
+                TrainingEventId = trainingEventId,
+                ChildId = childId,
+                Status = excuses.Contains(childId) ? Data.Entities.AttendanceStatus.Excused : Data.Entities.AttendanceStatus.Present,
+                RecordedAt = DateTime.UtcNow
+            });
+        }
+
+        await _context.SaveChangesAsync();
     }
 }

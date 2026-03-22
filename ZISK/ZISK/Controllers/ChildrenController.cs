@@ -25,6 +25,29 @@ public class ChildrenController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
+        var userEmail = User.FindFirstValue(ClaimTypes.Email);
+
+        if (User.IsInRole("Athlete") || User.IsInRole("Child"))
+        {
+            if (string.IsNullOrWhiteSpace(userEmail))
+            {
+                return Ok(new List<ChildDto>());
+            }
+
+            var ownProfiles = await _context.ChildProfiles
+                .Include(c => c.Team)
+                .Where(c => c.IsActive && c.Email == userEmail)
+                .Select(c => new ChildDto(
+                    c.Id,
+                    c.FirstName,
+                    c.LastName,
+                    c.Team != null ? c.Team.Name : null
+                ))
+                .ToListAsync();
+
+            return Ok(ownProfiles);
+        }
+
         var children = await _context.ParentChildren
             .Include(pc => pc.Child)
                 .ThenInclude(c => c.Team)

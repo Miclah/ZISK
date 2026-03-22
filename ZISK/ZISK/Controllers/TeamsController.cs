@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ZISK.Data;
 using ZISK.Data.Entities;
+using ZISK.Services;
 using ZISK.Shared.DTOs.Teams;
 
 namespace ZISK.Controllers;
@@ -13,10 +14,14 @@ namespace ZISK.Controllers;
 public class TeamsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly ITeamAccessService _teamAccessService;
+    private readonly IAuditService _auditService;
 
-    public TeamsController(ApplicationDbContext context)
+    public TeamsController(ApplicationDbContext context, ITeamAccessService teamAccessService, IAuditService auditService)
     {
         _context = context;
+        _teamAccessService = teamAccessService;
+        _auditService = auditService;
     }
 
     [HttpGet]
@@ -25,6 +30,12 @@ public class TeamsController : ControllerBase
         var query = _context.Teams
             .Include(t => t.Members)
             .AsNoTracking();
+
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(User);
+        if (accessibleTeamIds is not null)
+        {
+            query = query.Where(t => accessibleTeamIds.Contains(t.Id));
+        }
 
         if (activeOnly == true)
             query = query.Where(t => t.IsActive);
@@ -54,6 +65,10 @@ public class TeamsController : ControllerBase
 
         if (team == null)
             return NotFound();
+
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(User);
+        if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(team.Id))
+            return Forbid();
 
         return Ok(new TeamDetailDto(
             team.Id,
@@ -97,6 +112,7 @@ public class TeamsController : ControllerBase
 
         _context.Teams.Add(team);
         await _context.SaveChangesAsync();
+        _auditService.Log("Create", "Team", team.Id.ToString(), User, new { team.Name, team.ShortName });
 
         return CreatedAtAction(nameof(GetTeam), new { id = team.Id }, new TeamDto(
             team.Id,
@@ -131,6 +147,7 @@ public class TeamsController : ControllerBase
         team.IsActive = request.IsActive;
 
         await _context.SaveChangesAsync();
+        _auditService.Log("Update", "Team", team.Id.ToString(), User, new { team.Name, team.IsActive });
 
         return NoContent();
     }
@@ -151,6 +168,7 @@ public class TeamsController : ControllerBase
 
         _context.Teams.Remove(team);
         await _context.SaveChangesAsync();
+        _auditService.Log("Delete", "Team", team.Id.ToString(), User, new { team.Name });
 
         return NoContent();
     }
@@ -159,6 +177,10 @@ public class TeamsController : ControllerBase
     [Authorize(Roles = "Admin,Coach")]
     public async Task<IActionResult> AddMember(Guid id, Guid childId)
     {
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(User);
+        if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(id))
+            return Forbid();
+
         var team = await _context.Teams.FindAsync(id);
         if (team == null)
             return NotFound("Tím neexistuje");
@@ -169,6 +191,7 @@ public class TeamsController : ControllerBase
 
         child.TeamId = id;
         await _context.SaveChangesAsync();
+        _auditService.Log("AssignMember", "Team", id.ToString(), User, new { ChildId = childId });
 
         return NoContent();
     }
@@ -177,6 +200,10 @@ public class TeamsController : ControllerBase
     [Authorize(Roles = "Admin,Coach")]
     public async Task<IActionResult> RemoveMember(Guid id, Guid childId)
     {
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(User);
+        if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(id))
+            return Forbid();
+
         var child = await _context.ChildProfiles.FindAsync(childId);
         if (child == null)
             return NotFound("Člen neexistuje");
@@ -186,6 +213,7 @@ public class TeamsController : ControllerBase
 
         child.TeamId = null;
         await _context.SaveChangesAsync();
+        _auditService.Log("RemoveMember", "Team", id.ToString(), User, new { ChildId = childId });
 
         return NoContent();
     }

@@ -35,6 +35,8 @@
                 <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
                 <MudSelectItem Value="@("Coach")">Tréner</MudSelectItem>
                 <MudSelectItem Value="@("Parent")">Rodič</MudSelectItem>
+                <MudSelectItem Value="@("Athlete")">Športovec</MudSelectItem>
+                <MudSelectItem Value="@("Child")">Dieťa</MudSelectItem>
             </MudSelect>
         </MudItem>
         <MudItem xs="12" sm="4">
@@ -259,6 +261,8 @@ else
                 <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
                 <MudSelectItem Value="@("Coach")">Tréner</MudSelectItem>
                 <MudSelectItem Value="@("Parent")">Rodič</MudSelectItem>
+                <MudSelectItem Value="@("Athlete")">Športovec</MudSelectItem>
+                <MudSelectItem Value="@("Child")">Dieťa</MudSelectItem>
             </MudSelect>
         </MudStack>
     </DialogContent>
@@ -316,6 +320,8 @@ else
                     <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
                     <MudSelectItem Value="@("Coach")">Tréner</MudSelectItem>
                     <MudSelectItem Value="@("Parent")">Rodič</MudSelectItem>
+                    <MudSelectItem Value="@("Athlete")">Športovec</MudSelectItem>
+                    <MudSelectItem Value="@("Child")">Dieťa</MudSelectItem>
                 </MudSelect>
             </MudStack>
         }
@@ -431,6 +437,8 @@ else
         "Admin" => Color.Error,
         "Coach" => Color.Primary,
         "Parent" => Color.Secondary,
+        "Athlete" => Color.Info,
+        "Child" => Color.Success,
         _ => Color.Default
     };
 
@@ -439,6 +447,8 @@ else
         "Admin" => "Admin",
         "Coach" => "Tréner",
         "Parent" => "Rodič",
+        "Athlete" => "Športovec",
+        "Child" => "Dieťa",
         _ => role
     };
 

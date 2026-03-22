@@ -22,10 +22,10 @@ namespace ZISK.Controllers
         [HttpGet("dashboard")]
         public async Task<ActionResult<DashboardStatsDto>> GetDashboardStats()
         {
-            var teams = await _context.Teams.ToListAsync();
-            var members = await _context.ChildProfiles.ToListAsync();
+            var teams = await _context.Teams.AsNoTracking().ToListAsync();
+            var members = await _context.ChildProfiles.AsNoTracking().ToListAsync();
             var users = await _context.Users.CountAsync();
-            var pendingExcuses = await _context.AbsenceRequests.CountAsync();
+            var pendingExcuses = await _context.AbsenceRequests.CountAsync(ar => ar.Status == AbsenceRequestStatus.Received);
 
             var attendanceStats = await GetAttendanceStatsInternal(30);
 
@@ -44,32 +44,49 @@ namespace ZISK.Controllers
         public async Task<ActionResult<List<TeamStatsDto>>> GetTeamStats()
         {
             var teams = await _context.Teams
-                .Include(t => t.Members)
-                .Include(t => t.TrainingEvents)
+                .AsNoTracking()
+                .Select(t => new
+                {
+                    t.Id,
+                    t.Name,
+                    t.IsActive,
+                    MemberCount = t.Members.Count(m => m.IsActive),
+                    TrainingCount = t.TrainingEvents.Count
+                })
                 .ToListAsync();
 
-            var result = new List<TeamStatsDto>();
+            var teamIds = teams.Select(t => t.Id).ToList();
 
-            foreach (var team in teams)
+            var attendanceByTeam = await _context.AttendanceRecords
+                .AsNoTracking()
+                .Where(a => teamIds.Contains(a.TrainingEvent.TeamId))
+                .GroupBy(a => a.TrainingEvent.TeamId)
+                .Select(g => new
+                {
+                    TeamId = g.Key,
+                    Total = g.Count(),
+                    Present = g.Count(x => x.Status == AttendanceStatus.Present)
+                })
+                .ToListAsync();
+
+            var attendanceMap = attendanceByTeam.ToDictionary(x => x.TeamId, x => x);
+
+            var result = teams.Select(team =>
             {
-                var trainingIds = team.TrainingEvents.Select(t => t.Id).ToList();
-                var attendanceRecords = await _context.AttendanceRecords
-                    .Where(a => trainingIds.Contains(a.TrainingEventId))
-                    .ToListAsync();
-
-                var totalRecords = attendanceRecords.Count;
-                var presentCount = attendanceRecords.Count(a => a.Status == AttendanceStatus.Present);
+                var hasAttendance = attendanceMap.TryGetValue(team.Id, out var attendance);
+                var totalRecords = hasAttendance ? attendance!.Total : 0;
+                var presentCount = hasAttendance ? attendance!.Present : 0;
                 var avgAttendance = totalRecords > 0 ? (decimal)presentCount / totalRecords * 100 : 0;
 
-                result.Add(new TeamStatsDto(
+                return new TeamStatsDto(
                     team.Id,
                     team.Name,
-                    team.Members.Count(m => m.IsActive),
+                    team.MemberCount,
                     team.IsActive,
-                    team.TrainingEvents.Count,
+                    team.TrainingCount,
                     Math.Round(avgAttendance, 1)
-                ));
-            }
+                );
+            }).OrderByDescending(t => t.AverageAttendance).ThenBy(t => t.TeamName).ToList();
 
             return Ok(result);
         }

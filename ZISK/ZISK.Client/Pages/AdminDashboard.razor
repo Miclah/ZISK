@@ -13,6 +13,10 @@
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
     <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Large" Color="Color.Primary" />
     <MudText Typo="Typo.h4">Administrátorský panel</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadDashboardData">
+        Obnoviť dáta
+    </MudButton>
 </MudStack>
 
 @if (_isLoading)
@@ -51,6 +55,41 @@ else if (_dashboardStats != null)
             </MudPaper>
         </MudItem>
     </MudGrid>
+}
+
+@if (!_isLoading && _teamStats.Any())
+{
+    <MudPaper Class="pa-4 mb-5" Elevation="2">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-2">
+            <MudText Typo="Typo.h6">Výkonnosť tímov (top 5)</MudText>
+            <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/admin/statistiky">Detail štatistík</MudButton>
+        </MudStack>
+        <MudSimpleTable Dense="true" Hover="true">
+            <thead>
+                <tr>
+                    <th>Tím</th>
+                    <th>Členovia</th>
+                    <th>Tréningy</th>
+                    <th>Účasť</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var team in _teamStats.Take(5))
+                {
+                    <tr>
+                        <td>@team.TeamName</td>
+                        <td>@team.MemberCount</td>
+                        <td>@team.TrainingCount</td>
+                        <td>
+                            <MudChip T="string" Size="Size.Small" Color="@GetAttendanceColor(team.AverageAttendance)">
+                                @team.AverageAttendance%
+                            </MudChip>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
 }
 
 <MudText Typo="Typo.h6" Class="mb-3">Správa systému</MudText>
@@ -158,6 +197,7 @@ else if (_dashboardStats != null)
 @code {
     private bool _isLoading = true;
     private DashboardStatsDto? _dashboardStats;
+    private List<TeamStatsDto> _teamStats = new();
 
     private List<BreadcrumbItem> _breadcrumbs = new()
     {
@@ -167,10 +207,21 @@ else if (_dashboardStats != null)
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
         try
         {
             _isLoading = true;
-            _dashboardStats = await StatsApi.GetDashboardStatsAsync();
+            var dashboardTask = StatsApi.GetDashboardStatsAsync();
+            var teamStatsTask = StatsApi.GetTeamStatsAsync();
+
+            await Task.WhenAll(dashboardTask, teamStatsTask);
+
+            _dashboardStats = await dashboardTask;
+            _teamStats = await teamStatsTask;
         }
         catch (Exception ex)
         {
@@ -181,4 +232,11 @@ else if (_dashboardStats != null)
             _isLoading = false;
         }
     }
+
+    private Color GetAttendanceColor(decimal percent) => percent switch
+    {
+        >= 80 => Color.Success,
+        >= 60 => Color.Warning,
+        _ => Color.Error
+    };
 }

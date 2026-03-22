@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using ZISK.Data;
 using ZISK.Data.Entities;
+using ZISK.Services;
 using ZISK.Shared.DTOs.Users;
 
 namespace ZISK.Controllers
@@ -15,13 +17,19 @@ namespace ZISK.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IAuditService _auditService;
+        private readonly ILogger<UsersController> _logger;
 
         public UsersController(
             ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            IAuditService auditService,
+            ILogger<UsersController> logger)
         {
             _context = context;
             _userManager = userManager;
+            _auditService = auditService;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -59,11 +67,20 @@ namespace ZISK.Controllers
                 return NotFound();
 
             var roles = await _userManager.GetRolesAsync(user);
-            var teams = await _context.CoachTeams
-                .Where(ct => ct.CoachId == id)
-                .Include(ct => ct.Team)
-                .Select(ct => new UserTeamDto(ct.TeamId, ct.Team.Name, ct.IsPrimary))
-                .ToListAsync();
+            List<UserTeamDto> teams;
+            try
+            {
+                teams = await _context.CoachTeams
+                    .Where(ct => ct.CoachId == id)
+                    .Include(ct => ct.Team)
+                    .Select(ct => new UserTeamDto(ct.TeamId, ct.Team.Name, ct.IsPrimary))
+                    .ToListAsync();
+            }
+            catch (SqlException ex) when (ex.Number == 208 && ex.Message.Contains("CoachTeams", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning(ex, "CoachTeams table is missing in database while loading user detail for {UserId}.", id);
+                teams = [];
+            }
 
             return Ok(new UserDto(
                 user.Id,
@@ -92,7 +109,7 @@ namespace ZISK.Controllers
             if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 4)
                 return BadRequest("Heslo musí mať minimálne 4 znaky");
 
-            var validRoles = new[] { "Admin", "Coach", "Parent" };
+            var validRoles = new[] { "Admin", "Coach", "Parent", "Athlete", "Child" };
             if (!validRoles.Contains(request.Role))
                 return BadRequest("Neplatná rola");
 
@@ -111,6 +128,7 @@ namespace ZISK.Controllers
                 return BadRequest(result.Errors.First().Description);
 
             await _userManager.AddToRoleAsync(user, request.Role);
+            _auditService.Log("Create", "User", user.Id, User, new { request.Email, request.Role });
 
             return await GetUser(user.Id);
         }
@@ -136,24 +154,37 @@ namespace ZISK.Controllers
                 var currentRoles = await _userManager.GetRolesAsync(user);
                 await _userManager.RemoveFromRolesAsync(user, currentRoles);
                 await _userManager.AddToRoleAsync(user, request.Role);
+                _auditService.Log("RoleChanged", "User", user.Id, User, new { From = currentRoles.FirstOrDefault(), To = request.Role });
             }
 
             if (request.TeamIds != null)
             {
-                var existingTeams = await _context.CoachTeams.Where(ct => ct.CoachId == id).ToListAsync();
-                _context.CoachTeams.RemoveRange(existingTeams);
-
-                for (int i = 0; i < request.TeamIds.Count; i++)
+                try
                 {
-                    _context.CoachTeams.Add(new CoachTeam
+                    var existingTeams = await _context.CoachTeams.Where(ct => ct.CoachId == id).ToListAsync();
+                    _context.CoachTeams.RemoveRange(existingTeams);
+
+                    for (int i = 0; i < request.TeamIds.Count; i++)
                     {
-                        CoachId = id,
-                        TeamId = request.TeamIds[i],
-                        IsPrimary = i == 0
-                    });
+                        _context.CoachTeams.Add(new CoachTeam
+                        {
+                            CoachId = id,
+                            TeamId = request.TeamIds[i],
+                            IsPrimary = i == 0
+                        });
+                    }
+
+                    await _context.SaveChangesAsync();
+                    _auditService.Log("TeamAssignmentUpdated", "User", user.Id, User, new { TeamCount = request.TeamIds.Count });
                 }
-                await _context.SaveChangesAsync();
+                catch (SqlException ex) when (ex.Number == 208 && ex.Message.Contains("CoachTeams", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogError(ex, "CoachTeams table is missing in database while updating team assignments for {UserId}.", id);
+                    return StatusCode(500, "Databáza nie je synchronizovaná. Reštartujte aplikáciu a aplikujte migrácie.");
+                }
             }
+
+            _auditService.Log("Update", "User", user.Id, User, new { request.FirstName, request.LastName, request.IsActive });
 
             return await GetUser(id);
         }
@@ -167,6 +198,7 @@ namespace ZISK.Controllers
 
             user.IsActive = !user.IsActive;
             await _userManager.UpdateAsync(user);
+            _auditService.Log("ToggleStatus", "User", user.Id, User, new { user.IsActive });
 
             return Ok();
         }

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using ZISK.Data;
 using ZISK.Data.Entities;
+using ZISK.Services;
 using ZISK.Shared.DTOs.Excuses;
 using ExcuseStatus = ZISK.Shared.Enums.ExcuseStatus;
 
@@ -15,10 +16,14 @@ namespace ZISK.Controllers;
 public class ExcusesController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly ITeamAccessService _teamAccessService;
+    private readonly IAuditService _auditService;
 
-    public ExcusesController(ApplicationDbContext context)
+    public ExcusesController(ApplicationDbContext context, ITeamAccessService teamAccessService, IAuditService auditService)
     {
         _context = context;
+        _teamAccessService = teamAccessService;
+        _auditService = auditService;
     }
 
     [HttpGet]
@@ -28,6 +33,12 @@ public class ExcusesController : ControllerBase
             .Include(ar => ar.Child)
                 .ThenInclude(c => c.Team)
             .AsNoTracking();
+
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(User);
+        if (accessibleTeamIds is not null)
+        {
+            query = query.Where(ar => ar.Child.TeamId.HasValue && accessibleTeamIds.Contains(ar.Child.TeamId.Value));
+        }
 
         if (status.HasValue)
         {
@@ -66,6 +77,10 @@ public class ExcusesController : ControllerBase
         if (excuse == null)
             return NotFound();
 
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(User);
+        if (accessibleTeamIds is not null && (!excuse.Child.TeamId.HasValue || !accessibleTeamIds.Contains(excuse.Child.TeamId.Value)))
+            return Forbid();
+
         return Ok(new ExcuseDto(
             excuse.Id,
             excuse.ChildId,
@@ -89,6 +104,11 @@ public class ExcusesController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
+        if (User.IsInRole("Child"))
+            return Forbid();
+
+        var userEmail = User.FindFirstValue(ClaimTypes.Email);
+
         if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Length < 3 || request.Reason.Length > 200)
             return BadRequest("Dôvod musí mať 3-200 znakov");
 
@@ -107,6 +127,18 @@ public class ExcusesController : ControllerBase
 
         if (child == null)
             return BadRequest("Dieťa neexistuje");
+
+        if (User.IsInRole("Parent"))
+        {
+            var ownsChild = await _context.ParentChildren.AnyAsync(pc => pc.ParentId == userId && pc.ChildId == request.ChildId);
+            if (!ownsChild)
+                return Forbid();
+        }
+        else if (User.IsInRole("Athlete"))
+        {
+            if (string.IsNullOrWhiteSpace(userEmail) || !string.Equals(child.Email, userEmail, StringComparison.OrdinalIgnoreCase))
+                return Forbid();
+        }
 
        
         if (request.TrainingEventId == null && request.DateFrom == null)
@@ -128,6 +160,7 @@ public class ExcusesController : ControllerBase
 
         _context.AbsenceRequests.Add(absence);
         await _context.SaveChangesAsync();
+        _auditService.Log("Create", "Excuse", absence.Id.ToString(), User, new { absence.ChildId, absence.DateFrom, absence.DateTo });
 
         return CreatedAtAction(nameof(GetExcuse), new { id = absence.Id }, new ExcuseDto(
             absence.Id,
@@ -160,6 +193,7 @@ public class ExcusesController : ControllerBase
         excuse.ProcessedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+            _auditService.Log("Review", "Excuse", excuse.Id.ToString(), User, new { excuse.ReviewedByUserId, excuse.ProcessedAt });
 
         return NoContent();
     }
@@ -177,12 +211,24 @@ public class ExcusesController : ControllerBase
                 return BadRequest("Dátum 'Do' nemôže byť pred dátumom 'Od'");
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userEmail = User.FindFirstValue(ClaimTypes.Email);
             var excuse = await _context.AbsenceRequests.FindAsync(id);
         
             if (excuse == null)
                 return NotFound();
 
-            if (excuse.ParentId != userId && !User.IsInRole("Admin"))
+            if (User.IsInRole("Child"))
+                return Forbid();
+
+            if (!User.IsInRole("Admin") && excuse.ParentId != userId)
+            {
+                if (!User.IsInRole("Athlete") || string.IsNullOrWhiteSpace(userEmail))
+                    return Forbid();
+
+                var isOwnProfile = await _context.ChildProfiles.AnyAsync(c => c.Id == excuse.ChildId && c.Email == userEmail);
+                if (!isOwnProfile)
+                    return Forbid();
+            }
                 return Forbid();
 
             excuse.DateFrom = request.DateFrom;
@@ -191,6 +237,7 @@ public class ExcusesController : ControllerBase
             excuse.Note = request.Note;
 
             await _context.SaveChangesAsync();
+            _auditService.Log("Update", "Excuse", excuse.Id.ToString(), User, new { excuse.DateFrom, excuse.DateTo });
 
             return NoContent();
         }
@@ -199,16 +246,29 @@ public class ExcusesController : ControllerBase
     public async Task<IActionResult> DeleteExcuse(Guid id)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userEmail = User.FindFirstValue(ClaimTypes.Email);
         var excuse = await _context.AbsenceRequests.FindAsync(id);
         
         if (excuse == null)
             return NotFound();
 
-        if (excuse.ParentId != userId && !User.IsInRole("Admin"))
+        if (User.IsInRole("Child"))
+            return Forbid();
+
+        if (!User.IsInRole("Admin") && excuse.ParentId != userId)
+        {
+            if (!User.IsInRole("Athlete") || string.IsNullOrWhiteSpace(userEmail))
+                return Forbid();
+
+            var isOwnProfile = await _context.ChildProfiles.AnyAsync(c => c.Id == excuse.ChildId && c.Email == userEmail);
+            if (!isOwnProfile)
+                return Forbid();
+        }
             return Forbid();
 
         _context.AbsenceRequests.Remove(excuse);
         await _context.SaveChangesAsync();
+        _auditService.Log("Delete", "Excuse", excuse.Id.ToString(), User);
 
         return NoContent();
     }
@@ -220,10 +280,29 @@ public class ExcusesController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        var excuses = await _context.AbsenceRequests
+        var userEmail = User.FindFirstValue(ClaimTypes.Email);
+        var query = _context.AbsenceRequests
             .Include(ar => ar.Child)
                 .ThenInclude(c => c.Team)
-            .Where(ar => ar.ParentId == userId)
+            .AsQueryable();
+
+        if (User.IsInRole("Parent"))
+        {
+            query = query.Where(ar => ar.ParentId == userId);
+        }
+        else if (User.IsInRole("Athlete") || User.IsInRole("Child"))
+        {
+            if (string.IsNullOrWhiteSpace(userEmail))
+                return Ok(new List<ExcuseListDto>());
+
+            query = query.Where(ar => ar.Child.Email == userEmail);
+        }
+        else
+        {
+            return Forbid();
+        }
+
+        var excuses = await query
             .OrderByDescending(ar => ar.CreatedAt)
             .Select(ar => new ExcuseListDto(
                 ar.Id,
@@ -250,12 +329,37 @@ public class ExcusesController : ControllerBase
         int count;
         if (User.IsInRole("Admin") || User.IsInRole("Coach"))
         {
-            count = await _context.AbsenceRequests.CountAsync();
+            var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(User);
+            if (accessibleTeamIds is null)
+            {
+                count = await _context.AbsenceRequests.CountAsync(ar => ar.Status == AbsenceRequestStatus.Received);
+            }
+            else
+            {
+                count = await _context.AbsenceRequests
+                    .CountAsync(ar => ar.Status == AbsenceRequestStatus.Received && ar.Child.TeamId.HasValue && accessibleTeamIds.Contains(ar.Child.TeamId.Value));
+            }
         }
         else
         {
-            count = await _context.AbsenceRequests
-                .CountAsync(ar => ar.ParentId == userId);
+            var userEmail = User.FindFirstValue(ClaimTypes.Email);
+            if (User.IsInRole("Parent"))
+            {
+                count = await _context.AbsenceRequests
+                    .CountAsync(ar => ar.Status == AbsenceRequestStatus.Received && ar.ParentId == userId);
+            }
+            else if (User.IsInRole("Athlete") || User.IsInRole("Child"))
+            {
+                if (string.IsNullOrWhiteSpace(userEmail))
+                    count = 0;
+                else
+                    count = await _context.AbsenceRequests
+                        .CountAsync(ar => ar.Status == AbsenceRequestStatus.Received && ar.Child.Email == userEmail);
+            }
+            else
+            {
+                count = 0;
+            }
         }
 
         return Ok(count);
