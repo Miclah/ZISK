@@ -5,6 +5,7 @@
 @inject IChildrenApi ChildrenApi
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @attribute [Authorize]
 
 <PageTitle>Nová ospravedlnenka</PageTitle>
@@ -23,6 +24,24 @@
     }
     else
     {
+        @if (_isChild)
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-3">
+                Ako rola <strong>Dieťa</strong> máte len náhľad ospravedlneniek. Vytvorenie ospravedlnenky vykoná rodič alebo športovec.
+            </MudAlert>
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="Cancel">Späť</MudButton>
+        }
+        else if (!_children.Any())
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-3">
+                @(_isAthlete
+                    ? "Momentálne nemáte prepojený športovec profil. Kontaktujte administrátora alebo trénera, aby vás prepojil na tím."
+                    : "Nemáte priradené žiadne dieťa. Kontaktujte administrátora alebo trénera.")
+            </MudAlert>
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="Cancel">Späť</MudButton>
+        }
+        else
+        {
         <MudForm @ref="_form" @bind-IsValid="_formIsValid">
             <MudStack Spacing="3">
                 <MudSelect T="Guid?" @bind-Value="_selectedChildId" Label="Dieťa" Variant="Variant.Outlined" 
@@ -70,6 +89,7 @@
                 </MudStack>
             </MudStack>
         </MudForm>
+        }
     }
 </MudPaper>
 
@@ -78,6 +98,8 @@
     private bool _formIsValid;
     private bool _isLoading = true;
     private bool _isSubmitting = false;
+    private bool _isAthlete;
+    private bool _isChild;
     private List<string> _validationErrors = new();
     private List<ChildDto> _children = new();
     
@@ -98,6 +120,10 @@
     {
         try
         {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            _isAthlete = authState.User.IsInRole("Athlete");
+            _isChild = authState.User.IsInRole("Child");
+
             _children = await ChildrenApi.GetMyChildrenAsync();
             if (_children.Count == 1)
             {
@@ -143,7 +169,13 @@
 
     private async Task Submit()
     {
-        await _form.Validate();
+        if (!_children.Any())
+            return;
+
+        if (_isChild)
+            return;
+
+        await _form.ValidateAsync();
         if (!ValidateForm()) return;
 
         _isSubmitting = true;
