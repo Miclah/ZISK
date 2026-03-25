@@ -29,6 +29,26 @@
             </div>
         }
 
+        @if (_showResendLink)
+        {
+            <div class="login-alert login-alert-info">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                <span>
+                    Neprišiel vám email?
+                    <a href="@($"/overenie/znovu?Email={Uri.EscapeDataString(_unconfirmedEmail ?? "")}")"
+                       style="color: #1565c0; font-weight: 600;">Odoslať znovu</a>
+                </span>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <div class="login-alert login-alert-success">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                <span>@successMessage</span>
+            </div>
+        }
+
         <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
             <DataAnnotationsValidator />
 
@@ -81,24 +101,23 @@
 
 @code {
     private string? errorMessage;
+    private string? successMessage;
+    private bool _showResendLink;
+    private string? _unconfirmedEmail;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    private InputModel? _input;
-
     [SupplyParameterFromForm]
-    private InputModel Input
-    {
-        get => _input ??= new();
-        set => _input = value;
-    }
+    private InputModel Input { get; set; } = new();
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
+        Input ??= new();
+
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
             if (HttpContext.User.Identity?.IsAuthenticated == true)
@@ -112,6 +131,8 @@
 
     public async Task LoginUser()
     {
+        _showResendLink = false;
+        _unconfirmedEmail = null;
 
         var user = await UserManager.FindByEmailAsync(Input.Email);
         if (user == null)
@@ -124,12 +145,6 @@
         {
             Logger.LogWarning("Inactive user {Email} attempted to log in.", Input.Email);
             errorMessage = "Váš účet bol deaktivovaný. Kontaktujte administrátora.";
-            return;
-        }
-
-        if (!user.EmailConfirmed)
-        {
-            errorMessage = "Váš email ešte nebol potvrdený. Skontrolujte svoju emailovú schránku.";
             return;
         }
 

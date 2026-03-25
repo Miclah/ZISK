@@ -64,6 +64,12 @@
     color: #2e7d32;
 }
 
+.login-alert-info {
+    background: rgba(33, 150, 243, 0.08);
+    border: 1px solid rgba(33, 150, 243, 0.3);
+    color: #1565c0;
+}
+
 .login-alert svg {
     flex-shrink: 0;
 }
@@ -186,6 +192,13 @@
 .btn-login:active {
     transform: translateY(0);
     box-shadow: 0 2px 6px rgba(30, 58, 95, 0.2);
+}
+
+.btn-login:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 .login-footer {

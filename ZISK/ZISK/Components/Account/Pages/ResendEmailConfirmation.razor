@@ -1,4 +1,7 @@
 ﻿@page "/Account/ResendEmailConfirmation"
+@page "/overenie/znovu"
+@attribute [AllowAnonymous]
+@layout ZISK.Components.Layout.LoginLayout
 
 @using System.ComponentModel.DataAnnotations
 @using System.Text
@@ -12,41 +15,77 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Resend email confirmation</PageTitle>
+<PageTitle>Opätovné odoslanie overenia - ZISK</PageTitle>
 
-<h1>Resend email confirmation</h1>
-<h2>Enter your email.</h2>
-<hr />
-<StatusMessage Message="@message" />
-<div class="row">
-    <div class="col-md-4">
+<div class="login-page">
+    <div class="login-card">
+        <div class="login-brand">
+            <h1>ZISK</h1>
+            <p>Opätovné overenie emailu</p>
+        </div>
+
+        @if (_sent)
+        {
+            <div class="login-alert login-alert-success">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                <span>Overovací email bol odoslaný. Skontrolujte svoju schránku aj priečinok spam.</span>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="login-alert">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <span>@errorMessage</span>
+            </div>
+        }
+
         <EditForm Model="Input" FormName="resend-email-confirmation" OnValidSubmit="OnValidSubmitAsync" method="post">
             <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" aria-required="true" placeholder="name@example.com" />
-                <label for="Input.Email" class="form-label">Email</label>
-                <ValidationMessage For="() => Input.Email" class="text-danger" />
+
+            <div class="form-field">
+                <label for="email">Emailová adresa</label>
+                <div class="input-wrapper">
+                    <svg class="input-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                    <InputText @bind-Value="Input.Email" id="email" placeholder="vas@email.sk" autocomplete="username" />
+                </div>
+                <ValidationMessage For="() => Input.Email" />
             </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Resend</button>
+
+            <button type="submit" class="btn-login" disabled="@_sent">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                Odoslať overovací email
+            </button>
         </EditForm>
+
+        <div class="login-footer">
+            <a href="/login" class="register-link">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                Späť na prihlásenie
+            </a>
+        </div>
     </div>
+
+    <p class="login-copyright">© 2026 ZISK</p>
 </div>
 
 @code {
-    private string? message;
-
-    private InputModel? _input;
+    private bool _sent;
+    private string? errorMessage;
 
     [SupplyParameterFromForm]
-    private InputModel Input
-    {
-        get => _input ??= new();
-        set => _input = value;
-    }
+    private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? Email { get; set; }
 
     protected override void OnInitialized()
     {
+        Input ??= new();
+        if (!string.IsNullOrEmpty(Email))
+        {
+            Input.Email = Email;
+        }
     }
 
     private async Task OnValidSubmitAsync()
@@ -54,7 +93,13 @@
         var user = await UserManager.FindByEmailAsync(Input.Email!);
         if (user is null)
         {
-            message = "Verification email sent. Please check your email.";
+            _sent = true;
+            return;
+        }
+
+        if (user.EmailConfirmed)
+        {
+            errorMessage = "Tento email je už overený. Môžete sa prihlásiť.";
             return;
         }
 
@@ -66,13 +111,13 @@
             new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code });
         await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
 
-        message = "Verification email sent. Please check your email.";
+        _sent = true;
     }
 
     private sealed class InputModel
     {
-        [Required]
-        [EmailAddress]
+        [Required(ErrorMessage = "Email je povinný")]
+        [EmailAddress(ErrorMessage = "Neplatný formát emailu")]
         public string Email { get; set; } = "";
     }
 }
