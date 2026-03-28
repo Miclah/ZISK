@@ -38,6 +38,10 @@ namespace ZISK.Controllers
             var users = await _userManager.Users.ToListAsync();
             var result = new List<UserListDto>();
 
+            var allCoachTeams = await _context.CoachTeams
+                .Include(ct => ct.Team)
+                .ToListAsync();
+
             foreach (var user in users)
             {
                 var roles = await _userManager.GetRolesAsync(user);
@@ -46,13 +50,19 @@ namespace ZISK.Controllers
                 if (role != null && userRole != role)
                     continue;
 
+                var userTeams = allCoachTeams
+                    .Where(ct => ct.CoachId == user.Id)
+                    .Select(ct => new UserTeamDto(ct.TeamId, ct.Team.Name, ct.IsPrimary))
+                    .ToList();
+
                 result.Add(new UserListDto(
                     user.Id,
                     user.FirstName,
                     user.LastName,
                     user.Email ?? "",
                     userRole,
-                    user.IsActive
+                    user.IsActive,
+                    userTeams
                 ));
             }
 
@@ -119,6 +129,10 @@ namespace ZISK.Controllers
                 Email = request.Email,
                 FirstName = request.FirstName,
                 LastName = request.LastName,
+                PhoneNumber = request.PhoneNumber,
+                RodneCislo = request.RodneCislo,
+                DateOfBirth = request.DateOfBirth.HasValue ? DateOnly.FromDateTime(request.DateOfBirth.Value) : null,
+                Bydlisko = request.Bydlisko,
                 EmailConfirmed = true,
                 IsActive = true
             };
@@ -146,6 +160,14 @@ namespace ZISK.Controllers
                 user.LastName = request.LastName;
             if (request.IsActive.HasValue)
                 user.IsActive = request.IsActive.Value;
+            if (request.PhoneNumber != null)
+                user.PhoneNumber = request.PhoneNumber;
+            if (request.RodneCislo != null)
+                user.RodneCislo = request.RodneCislo;
+            if (request.DateOfBirth.HasValue)
+                user.DateOfBirth = DateOnly.FromDateTime(request.DateOfBirth.Value);
+            if (request.Bydlisko != null)
+                user.Bydlisko = request.Bydlisko;
 
             await _userManager.UpdateAsync(user);
 
@@ -180,7 +202,7 @@ namespace ZISK.Controllers
                 catch (SqlException ex) when (ex.Number == 208 && ex.Message.Contains("CoachTeams", StringComparison.OrdinalIgnoreCase))
                 {
                     _logger.LogError(ex, "CoachTeams table is missing in database while updating team assignments for {UserId}.", id);
-                    return StatusCode(500, "Databáza nie je synchronizovaná. Reštartujte aplikáciu a aplikujte migrácie.");
+                    return StatusCode(500, "Databáza nie je synchronizovaná. Reštartujte aplikáciu a apliklite migrácie.");
                 }
             }
 
@@ -208,9 +230,25 @@ namespace ZISK.Controllers
         public async Task<ActionResult<List<UserListDto>>> GetCoaches()
         {
             var coaches = await _userManager.GetUsersInRoleAsync("Coach");
-            return Ok(coaches.Select(u => new UserListDto(
-                u.Id, u.FirstName, u.LastName, u.Email ?? "", "Coach", u.IsActive
-            )).ToList());
+            
+            var coachIds = coaches.Select(c => c.Id).ToList();
+            var allCoachTeams = await _context.CoachTeams
+                .Include(ct => ct.Team)
+                .Where(ct => coachIds.Contains(ct.CoachId))
+                .ToListAsync();
+
+            var result = coaches.Select(u => {
+                var userTeams = allCoachTeams
+                    .Where(ct => ct.CoachId == u.Id)
+                    .Select(ct => new UserTeamDto(ct.TeamId, ct.Team.Name, ct.IsPrimary))
+                    .ToList();
+
+                return new UserListDto(
+                    u.Id, u.FirstName, u.LastName, u.Email ?? "", "Coach", u.IsActive, userTeams
+                );
+            }).ToList();
+
+            return Ok(result);
         }
 
         [HttpPost("{userId}/teams/{teamId}")]
@@ -253,6 +291,23 @@ namespace ZISK.Controllers
 
             _context.CoachTeams.Remove(coachTeam);
             await _context.SaveChangesAsync();
+
+            return Ok();
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteUser(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+                return NotFound();
+
+            var result = await _userManager.DeleteAsync(user);
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            _auditService.Log("Delete", "User", id, User, null);
 
             return Ok();
         }

@@ -87,19 +87,29 @@
             </MudText>
 
             <MudNavLink Href="/admin"
-                        Icon="@Icons.Material.Rounded.AdminPanelSettings"
+                        Icon="@Icons.Material.Rounded.Dashboard"
                         Match="NavLinkMatch.All">
-                Admin panel
+                Nástenka
+            </MudNavLink>
+            <MudNavLink Href="/admin/pouzivatelia"
+                        Icon="@Icons.Material.Rounded.People"
+                        Match="NavLinkMatch.Prefix">
+                Používatelia
+            </MudNavLink>
+            <MudNavLink Href="/admin/timy"
+                        Icon="@Icons.Material.Rounded.Groups"
+                        Match="NavLinkMatch.Prefix">
+                Tímy
             </MudNavLink>
             <MudNavLink Href="/admin/treningy"
                         Icon="@Icons.Material.Rounded.Event"
                         Match="NavLinkMatch.Prefix">
                 Tréningy
             </MudNavLink>
-            <MudNavLink Href="/admin/pouzivatelia"
-                        Icon="@Icons.Material.Rounded.People"
+            <MudNavLink Href="/oznamy"
+                        Icon="@Icons.Material.Rounded.Announcement"
                         Match="NavLinkMatch.Prefix">
-                Používatelia
+                Systémové oznamy
             </MudNavLink>
             <MudNavLink Href="/admin/statistiky"
                         Icon="@Icons.Material.Rounded.Analytics"

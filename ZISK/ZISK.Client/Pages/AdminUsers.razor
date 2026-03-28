@@ -118,6 +118,10 @@ else
                     <MudIconButton Icon="@Icons.Material.Filled.SwitchAccount" Size="Size.Small" Color="Color.Warning"
                                    OnClick="@(() => OpenQuickRoleChange(context))" />
                 </MudTooltip>
+                <MudTooltip Text="Zmazať účet (natrvalo)">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                   OnClick="@(() => ConfirmDeleteUser(context))" />
+                </MudTooltip>
             </MudTd>
         </RowTemplate>
         <NoRecordsContent>
@@ -702,6 +706,31 @@ else
         finally
         {
             _isSaving = false;
+        }
+    }
+
+    private async Task ConfirmDeleteUser(UserListDto user)
+    {
+        bool? result = await DialogService.ShowMessageBoxAsync(
+            "Upozornenie: Trvalé zmazanie",
+            $"Naozaj chcete natrvalo zmazať používateľa '{user.FirstName} {user.LastName}'? Táto akcia je úplne nevratná a odstráni nielen prihlasovací účet, ale aj priradené práva.",
+            yesText: "Áno, trvalo zmazať", 
+            cancelText: "Zrušiť",
+            options: new DialogOptions { MaxWidth = MaxWidth.Small }
+        );
+
+        if (result == true)
+        {
+            try
+            {
+                await UsersApi.DeleteUserAsync(user.Id);
+                Snackbar.Add($"Používateľ {user.FirstName} {user.LastName} bol úspešne odstránený.", Severity.Success);
+                await LoadData();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Chyba pri mazaní: {ex.Message}", Severity.Error);
+            }
         }
     }
 }

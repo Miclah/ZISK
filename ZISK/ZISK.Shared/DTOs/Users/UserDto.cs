@@ -8,7 +8,11 @@ namespace ZISK.Shared.DTOs.Users
         string Role,
         bool IsActive,
         DateTime CreatedAt,
-        List<UserTeamDto> Teams
+        List<UserTeamDto> Teams,
+        string? PhoneNumber = null,
+        string? RodneCislo = null,
+        DateTime? DateOfBirth = null,
+        string? Bydlisko = null
     );
 
     public record UserTeamDto(
@@ -23,7 +27,8 @@ namespace ZISK.Shared.DTOs.Users
         string LastName,
         string Email,
         string Role,
-        bool IsActive
+        bool IsActive,
+        List<UserTeamDto> Teams
     );
 
     public record UpdateUserRequest(
@@ -31,6 +36,10 @@ namespace ZISK.Shared.DTOs.Users
         string? LastName,
         string? Role,
         bool? IsActive,
+        string? PhoneNumber,
+        string? RodneCislo,
+        DateTime? DateOfBirth,
+        string? Bydlisko,
         List<Guid>? TeamIds
     );
 
@@ -39,6 +48,11 @@ namespace ZISK.Shared.DTOs.Users
         string LastName,
         string Email,
         string Password,
-        string Role
+        string Role,
+        string? PhoneNumber = null,
+        string? RodneCislo = null,
+        DateTime? DateOfBirth = null,
+        string? Bydlisko = null,
+        string? ParentId = null
     );
 }

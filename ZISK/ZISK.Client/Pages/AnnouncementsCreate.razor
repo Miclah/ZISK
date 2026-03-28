@@ -26,13 +26,13 @@
 
                 <MudGrid>
                     <MudItem xs="12" sm="6">
-                        <MudSelect T="Guid?" @bind-Value="_targetTeamId" Label="Určené pre tím" Variant="Variant.Outlined" Clearable="true">
+                        <MudSelect T="Guid?" @bind-Value="_targetTeamId" Label="Určené pre tím" Variant="Variant.Outlined" Clearable="true" Placeholder="Celý klub">
                             @foreach (var team in _teams)
                             {
                                 <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
                             }
                         </MudSelect>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Prázdne = pre všetky tímy</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Ak nevyberiete, oznam sa zverejní pre celý klub</MudText>
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudSelect T="TargetAudience" @bind-Value="_targetAudience" Label="Cieľová skupina" Variant="Variant.Outlined">

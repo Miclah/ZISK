@@ -7,13 +7,21 @@ namespace ZISK.Shared.DTOs.Stats
         int ActiveMembers,
         int TotalUsers,
         int PendingExcuses,
-        AttendanceStatsDto AttendanceStats
+        int TotalCoaches,
+        AttendanceStatsDto AttendanceStats,
+        List<ActivityDto> RecentActivities
     );
 
     public record AttendanceStatsDto(
         decimal PresentPercent,
         decimal AbsentPercent,
         decimal ExcusedPercent
+    );
+
+    public record ActivityDto(
+        string Description,
+        DateTime Timestamp,
+        string Type
     );
 
     public record TeamStatsDto(
