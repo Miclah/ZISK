@@ -73,15 +73,20 @@
     private bool _sent;
     private string? errorMessage;
 
+    private InputModel? _input;
+
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel Input
+    {
+        get => _input ??= new();
+        set => _input = value;
+    }
 
     [SupplyParameterFromQuery]
     private string? Email { get; set; }
 
     protected override void OnInitialized()
     {
-        Input ??= new();
         if (!string.IsNullOrEmpty(Email))
         {
             Input.Email = Email;

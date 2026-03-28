@@ -229,7 +229,6 @@ public class ExcusesController : ControllerBase
                 if (!isOwnProfile)
                     return Forbid();
             }
-                return Forbid();
 
             excuse.DateFrom = request.DateFrom;
             excuse.DateTo = request.DateTo;
@@ -264,7 +263,6 @@ public class ExcusesController : ControllerBase
             if (!isOwnProfile)
                 return Forbid();
         }
-            return Forbid();
 
         _context.AbsenceRequests.Remove(excuse);
         await _context.SaveChangesAsync();

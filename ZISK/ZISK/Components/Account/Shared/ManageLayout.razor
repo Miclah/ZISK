@@ -1,17 +1,19 @@
 ﻿@inherits LayoutComponentBase
 @layout ZISK.Client.Layout.MainLayout
 
-<h1>Manage your account</h1>
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6 mb-16">
+    <MudText Typo="Typo.h4" Style="font-weight: 700; color: #1E3A8A;" Class="mb-2">Spravovať účet</MudText>
+    <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">Zmeňte si nastavenia svojho účtu</MudText>
+    <MudDivider Class="mb-6"/>
 
-<div>
-    <h2>Change your account settings</h2>
-    <hr />
-    <div class="row">
-        <div class="col-lg-3">
+    <MudGrid>
+        <MudItem xs="12" md="3">
             <ManageNavMenu />
-        </div>
-        <div class="col-lg-9">
-            @Body
-        </div>
-    </div>
-</div>
+        </MudItem>
+        <MudItem xs="12" md="9">
+            <MudPaper Elevation="0" Outlined="true" Class="pa-6 rounded-lg" Style="border-color: #E2E8F0; background: white;">
+                @Body
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>

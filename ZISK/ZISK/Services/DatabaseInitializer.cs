@@ -1,4 +1,6 @@
+using System.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using ZISK.Data;
 using ZISK.Data.Entities;
@@ -144,6 +146,13 @@ public class DatabaseInitializer
             return;
         }
 
+        var hasCoachTeamsTable = await CoachTeamsTableExistsAsync();
+        if (!hasCoachTeamsTable)
+        {
+            _logger.LogWarning("CoachTeams table is missing in database. Skipping coach-team seed assignments.");
+            return;
+        }
+
         var activeTeamIds = await _context.Teams
             .Where(t => t.IsActive)
             .Select(t => t.Id)
@@ -154,13 +163,24 @@ public class DatabaseInitializer
             return;
         }
 
-        var assignedTeamIds = await _context.CoachTeams
-            .Where(ct => ct.CoachId == coach.Id)
-            .Select(ct => ct.TeamId)
-            .ToListAsync();
+        List<Guid> assignedTeamIds;
+        bool hasPrimary;
 
-        var hasPrimary = await _context.CoachTeams
-            .AnyAsync(ct => ct.CoachId == coach.Id && ct.IsPrimary);
+        try
+        {
+            assignedTeamIds = await _context.CoachTeams
+                .Where(ct => ct.CoachId == coach.Id)
+                .Select(ct => ct.TeamId)
+                .ToListAsync();
+
+            hasPrimary = await _context.CoachTeams
+                .AnyAsync(ct => ct.CoachId == coach.Id && ct.IsPrimary);
+        }
+        catch (SqlException ex) when (ex.Number == 208 && ex.Message.Contains("CoachTeams", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning(ex, "CoachTeams table is missing. Skipping coach-team seed assignments.");
+            return;
+        }
 
         var firstNew = true;
         foreach (var teamId in activeTeamIds.Where(teamId => !assignedTeamIds.Contains(teamId)))
@@ -177,6 +197,40 @@ public class DatabaseInitializer
             firstNew = false;
         }
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (SqlException ex) when (ex.Number == 208 && ex.Message.Contains("CoachTeams", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning(ex, "CoachTeams table is missing while saving coach-team assignments. Skipping.");
+        }
+    }
+
+    private async Task<bool> CoachTeamsTableExistsAsync()
+    {
+        var connection = _context.Database.GetDbConnection();
+        var shouldClose = connection.State != ConnectionState.Open;
+
+        if (shouldClose)
+        {
+            await connection.OpenAsync();
+        }
+
+        try
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = "SELECT CASE WHEN OBJECT_ID(N'[dbo].[CoachTeams]', N'U') IS NULL THEN 0 ELSE 1 END";
+            var result = await command.ExecuteScalarAsync();
+
+            return result is not null && Convert.ToInt32(result) == 1;
+        }
+        finally
+        {
+            if (shouldClose)
+            {
+                await connection.CloseAsync();
+            }
+        }
     }
 }
