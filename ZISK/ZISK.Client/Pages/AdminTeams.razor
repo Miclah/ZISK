@@ -1,0 +1,422 @@
+@page "/admin/timy"
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Teams
+@using ZISK.Shared.DTOs.Users
+@inject ITeamsApi TeamsApi
+@inject IUsersApi UsersApi
+@inject IChildrenApi ChildrenApi
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Správa tímov</PageTitle>
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 px-0" />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Large" Color="Color.Primary" />
+        <MudText Typo="Typo.h4">Správa tímov</MudText>
+    </MudStack>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="OpenCreateDialog">
+        Vytvoriť nový tím
+    </MudButton>
+</MudStack>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    <MudGrid>
+        @foreach (var team in _teams)
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="3" Style="height: 100%; border-top: 4px solid var(--mud-palette-primary); border-radius: 8px;">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6" Style="font-weight: 600;">@team.Name</MudText>
+                            @if (!string.IsNullOrEmpty(team.ShortName))
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Skratka: @team.ShortName</MudText>
+                            }
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudMenu Icon="@Icons.Material.Filled.MoreVert" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                                <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="() => OpenEditDialog(team)">Upraviť názov</MudMenuItem>
+                                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="() => DeleteTeam(team)">Zmazať tím</MudMenuItem>
+                            </MudMenu>
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudStack Spacing="2">
+                            <MudStack Row="true" AlignItems="AlignItems.Center">
+                                <MudIcon Icon="@Icons.Material.Filled.PersonOutline" Size="Size.Small" Color="Color.Secondary" />
+                                <MudText Typo="Typo.body2">
+                                    Tréneri: 
+                                    @(GetCoachNamesForTeam(team.Id))
+                                </MudText>
+                            </MudStack>
+                            <MudStack Row="true" AlignItems="AlignItems.Center">
+                                <MudIcon Icon="@Icons.Material.Filled.PeopleOutline" Size="Size.Small" Color="Color.Secondary" />
+                                <MudText Typo="Typo.body2">
+                                    Členovia: @team.MemberCount
+                                </MudText>
+                            </MudStack>
+                            @if (!string.IsNullOrEmpty(team.Description))
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2" Style="font-style: italic;">
+                                    @team.Description
+                                </MudText>
+                            }
+                        </MudStack>
+                    </MudCardContent>
+                    <MudCardActions Class="d-flex justify-end p-2" Style="border-top: 1px solid var(--mud-palette-background-grey);">
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="() => OpenRosterDialog(team.Id)">
+                            Spravovať súpisku
+                        </MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+        
+        @if (!_teams.Any())
+        {
+            <MudItem xs="12">
+                <MudAlert Severity="Severity.Info">Žiadne tímy. Vytvorte prvý tím kliknutím na tlačidlo vyššie.</MudAlert>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+<MudDialog @bind-Visible="_editDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(_isCreating ? "Vytvoriť nový tím" : "Upraviť tím")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3" Class="py-2">
+            <MudTextField @bind-Value="_editName" Label="Názov tímu *" Required="true" 
+                          Error="@(!string.IsNullOrEmpty(_editNameError))" ErrorText="@_editNameError" />
+            <MudSelect T="string" @bind-Value="_selectedCoachId" Label="Priradený tréner" Variant="Variant.Outlined" Clearable="true">
+                @foreach (var coach in _coaches)
+                {
+                    <MudSelectItem Value="@coach.Id">@coach.FirstName @coach.LastName</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField @bind-Value="_editShortName" Label="Skratka (voliteľné)" MaxLength="10" />
+            <MudTextField @bind-Value="_editDescription" Label="Popis" Lines="3" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _editDialogVisible = false">Zrušiť</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveTeam" Disabled="_isSaving">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Uložiť
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudDialog @bind-Visible="_rosterDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Spravovanie súpisky: @_rosterTeamName</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_isLoadingRoster)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else
+        {
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4" Elevation="1" Style="height: 400px; display: flex; flex-direction: column;">
+                        <MudText Typo="Typo.subtitle1" Class="mb-2">Dostupní / v iných tímoch</MudText>
+                        <MudTextField @bind-Value="_rosterSearch" Label="Hľadať" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-3" />
+                        <div style="flex-grow: 1; overflow-y: auto;">
+                            <MudList T="ChildDto" Dense="true">
+                                @foreach (var child in _availableChildren.Where(c => string.IsNullOrEmpty(_rosterSearch) || $"{c.FirstName} {c.LastName}".Contains(_rosterSearch, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    <MudListItem OnClick="() => AddChildToTeam(child)" T="ChildDto">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                            <MudText>@child.FirstName @child.LastName</MudText>
+                                            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" Color="Color.Primary" />
+                                        </MudStack>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        </div>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4 flex-column d-flex" Elevation="1" Style="height: 400px;">
+                        <MudText Typo="Typo.subtitle1" Class="mb-2">Aktuálna súpiska tímu</MudText>
+                        <div style="flex-grow: 1; overflow-y: auto;">
+                            <MudList T="TeamMemberDto" Dense="true">
+                                @if (!_rosterMembers.Any())
+                                {
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="p-2">Tím je momentálne prázdny</MudText>
+                                }
+                                @foreach (var member in _rosterMembers)
+                                {
+                                    <MudListItem OnClick="() => RemoveChildFromTeam(member)" T="TeamMemberDto">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                            <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Color="Color.Error" />
+                                            <MudText>@member.FirstName @member.LastName</MudText>
+                                        </MudStack>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        </div>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+</MudDialog>
+
+@code {
+    private bool _isLoading = true;
+    private string? _error;
+    private List<TeamDto> _teams = new();
+    private List<UserListDto> _coaches = new();
+
+    private bool _editDialogVisible = false;
+    private bool _isCreating = true;
+    private bool _isSaving = false;
+    private TeamDto? _selectedTeam;
+
+    private string _editName = "";
+    private string _editShortName = "";
+    private string _editDescription = "";
+    private string? _selectedCoachId;
+    private string _editNameError = "";
+
+    private bool _rosterDialogVisible = false;
+    private bool _isLoadingRoster = false;
+    private Guid _rosterTeamId;
+    private string _rosterTeamName = "";
+    private string _rosterSearch = "";
+    private List<TeamMemberDto> _rosterMembers = new();
+    private List<ChildDto> _availableChildren = new();
+    private List<ChildDto> _allChildren = new();
+
+    private List<BreadcrumbItem> _breadcrumbs = new()
+    {
+        new BreadcrumbItem("Domov", href: "/"),
+        new BreadcrumbItem("Administrácia", href: "/admin"),
+        new BreadcrumbItem("Správa tímov", href: null, disabled: true)
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            _isLoading = true;
+            _error = null;
+            
+            var teamsTask = TeamsApi.GetTeamsAsync(null);
+            var usersTask = UsersApi.GetUsersAsync("Coach");
+            
+            await Task.WhenAll(teamsTask, usersTask);
+            
+            _teams = await teamsTask;
+            _coaches = await usersTask;
+        }
+        catch (Exception ex)
+        {
+            _error = "Nepodarilo sa načítať dáta: " + ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private string GetCoachNamesForTeam(Guid teamId)
+    {
+        var coaches = _coaches
+            .Where(u => u.Teams.Any(t => t.TeamId == teamId))
+            .Select(u => $"{u.FirstName} {u.LastName}")
+            .ToList();
+
+        return coaches.Any() ? string.Join(", ", coaches) : "Nepriradený";
+    }
+
+    private void OpenCreateDialog()
+    {
+        _isCreating = true;
+        _selectedTeam = null;
+        _editName = "";
+        _editShortName = "";
+        _editDescription = "";
+        _selectedCoachId = null;
+        _editNameError = "";
+        _editDialogVisible = true;
+    }
+
+    private void OpenEditDialog(TeamDto team)
+    {
+        _isCreating = false;
+        _selectedTeam = team;
+        _editName = team.Name;
+        _editShortName = team.ShortName ?? "";
+        _editDescription = team.Description ?? "";
+        _selectedCoachId = _coaches.FirstOrDefault(c => c.Teams.Any(t => t.TeamId == team.Id))?.Id;
+        _editNameError = "";
+        _editDialogVisible = true;
+    }
+
+    private async Task SaveTeam()
+    {
+        if (string.IsNullOrWhiteSpace(_editName))
+        {
+            _editNameError = "Názov tímu je povinný";
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            if (_isCreating)
+            {
+                var createdTeam = await TeamsApi.CreateTeamAsync(new CreateTeamRequest(_editName, _editShortName, _editDescription));
+                await SyncTeamCoachAssignment(createdTeam.Id);
+                Snackbar.Add("Tím bol vytvorený", Severity.Success);
+            }
+            else if (_selectedTeam != null)
+            {
+                await TeamsApi.UpdateTeamAsync(_selectedTeam.Id, new UpdateTeamRequest(_editName, _editShortName, _editDescription, true));
+                await SyncTeamCoachAssignment(_selectedTeam.Id);
+                Snackbar.Add("Tím bol upravený", Severity.Success);
+            }
+            
+            _editDialogVisible = false;
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri ukladaní tímu: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task SyncTeamCoachAssignment(Guid teamId)
+    {
+        var assignedCoaches = _coaches.Where(c => c.Teams.Any(t => t.TeamId == teamId)).ToList();
+
+        foreach (var coach in assignedCoaches)
+        {
+            await UsersApi.RemoveTeamAsync(coach.Id, teamId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(_selectedCoachId))
+        {
+            await UsersApi.AssignTeamAsync(_selectedCoachId, teamId, true);
+        }
+    }
+
+    private async Task DeleteTeam(TeamDto team)
+    {
+        bool? result = await DialogService.ShowMessageBoxAsync(
+            "Potvrdenie zmazania",
+            $"Naozaj chcete zmazať tím '{team.Name}'? Táto akcia je nevratná a odstráni prepojenia na tím zo všetkých profilov.",
+            yesText: "Zmazať", cancelText: "Zrušiť",
+            options: new DialogOptions { MaxWidth = MaxWidth.Small }
+        );
+
+        if (result == true)
+        {
+            try
+            {
+                await TeamsApi.DeleteTeamAsync(team.Id);
+                Snackbar.Add($"Tím '{team.Name}' bol zmazaný", Severity.Success);
+                await LoadData();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Chyba pri mazaní tímu: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenRosterDialog(Guid teamId)
+    {
+        _rosterTeamId = teamId;
+        _rosterTeamName = _teams.FirstOrDefault(t => t.Id == teamId)?.Name ?? "";
+        _rosterDialogVisible = true;
+        _rosterSearch = "";
+        await LoadRosterData();
+    }
+
+    private async Task LoadRosterData()
+    {
+        _isLoadingRoster = true;
+        try
+        {
+            var teamDetail = await TeamsApi.GetTeamAsync(_rosterTeamId);
+            _allChildren = await ChildrenApi.GetAllChildrenAsync();
+            
+            _rosterMembers = teamDetail.Members;
+            
+            var currentMemberIds = _rosterMembers.Select(m => m.Id).ToHashSet();
+            _availableChildren = _allChildren.Where(c => !currentMemberIds.Contains(c.Id)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Nepodarilo sa načítať súpisku: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoadingRoster = false;
+        }
+    }
+
+    private async Task AddChildToTeam(ChildDto child)
+    {
+        try
+        {
+            await TeamsApi.AddMemberAsync(_rosterTeamId, child.Id);
+            Snackbar.Add($"{child.FirstName} {child.LastName} bol pridaný do tímu", Severity.Success);
+            await LoadRosterData();
+
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task RemoveChildFromTeam(TeamMemberDto member)
+    {
+        try
+        {
+            await TeamsApi.RemoveMemberAsync(_rosterTeamId, member.Id);
+            Snackbar.Add($"{member.FirstName} {member.LastName} bol odstránený z tímu", Severity.Success);
+            await LoadRosterData();
+
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+        }
+    }
+}
