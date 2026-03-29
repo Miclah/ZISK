@@ -1,33 +1,35 @@
 ﻿<MudStack Class="pa-3" Style="height: 100%;" Justify="Justify.SpaceBetween">
     <MudNavMenu Rounded="true" Margin="Margin.Dense" Color="Color.Primary">
 
-        <MudText Typo="Typo.caption" Class="px-3 pt-2 pb-1" Style="font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.8px; font-size: 0.65rem;">
-            Hlavné
-        </MudText>
+        <AuthorizeView Roles="Parent,Athlete,Coach,Child">
+            <MudText Typo="Typo.caption" Class="px-3 pt-2 pb-1" Style="font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.8px; font-size: 0.65rem;">
+                Hlavné
+            </MudText>
 
-        <MudNavLink Href="/"
-                    Icon="@Icons.Material.Rounded.Dashboard"
-                    Match="NavLinkMatch.All">
-            Prehľad
-        </MudNavLink>
+            <MudNavLink Href="/"
+                        Icon="@Icons.Material.Rounded.Dashboard"
+                        Match="NavLinkMatch.All">
+                Prehľad
+            </MudNavLink>
 
-        <MudNavLink Href="/rozvrh"
-                    Icon="@Icons.Material.Rounded.FitnessCenter"
-                    Match="NavLinkMatch.Prefix">
-            Rozvrh tréningov
-        </MudNavLink>
+            <MudNavLink Href="/rozvrh"
+                        Icon="@Icons.Material.Rounded.FitnessCenter"
+                        Match="NavLinkMatch.Prefix">
+                Rozvrh tréningov
+            </MudNavLink>
 
-        <MudNavLink Href="/oznamy"
-                    Icon="@Icons.Material.Rounded.Announcement"
-                    Match="NavLinkMatch.Prefix">
-            Oznamy
-        </MudNavLink>
+            <MudNavLink Href="/oznamy"
+                        Icon="@Icons.Material.Rounded.Announcement"
+                        Match="NavLinkMatch.Prefix">
+                Oznamy
+            </MudNavLink>
 
-        <MudNavLink Href="/profil"
-                    Icon="@Icons.Material.Rounded.Person"
-                    Match="NavLinkMatch.Prefix">
-            Môj profil
-        </MudNavLink>
+            <MudNavLink Href="/profil"
+                        Icon="@Icons.Material.Rounded.Person"
+                        Match="NavLinkMatch.Prefix">
+                Môj profil
+            </MudNavLink>
+        </AuthorizeView>
 
         <AuthorizeView Roles="Parent,Athlete">
             <MudDivider Class="my-2 mx-2" Light="true" />
@@ -61,7 +63,7 @@
             </MudNavLink>
         </AuthorizeView>
 
-        <AuthorizeView Roles="Coach,Admin">
+        <AuthorizeView Roles="Coach">
             <MudDivider Class="my-2 mx-2" Light="true" />
             <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1" Style="font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.8px; font-size: 0.65rem;">
                 Tréner
@@ -101,20 +103,10 @@
                         Match="NavLinkMatch.Prefix">
                 Tímy
             </MudNavLink>
-            <MudNavLink Href="/admin/treningy"
-                        Icon="@Icons.Material.Rounded.Event"
-                        Match="NavLinkMatch.Prefix">
-                Tréningy
-            </MudNavLink>
-            <MudNavLink Href="/oznamy"
+            <MudNavLink Href="/admin/systemove-oznamy"
                         Icon="@Icons.Material.Rounded.Announcement"
                         Match="NavLinkMatch.Prefix">
                 Systémové oznamy
-            </MudNavLink>
-            <MudNavLink Href="/admin/statistiky"
-                        Icon="@Icons.Material.Rounded.Analytics"
-                        Match="NavLinkMatch.Prefix">
-                Štatistiky
             </MudNavLink>
         </AuthorizeView>
     </MudNavMenu>

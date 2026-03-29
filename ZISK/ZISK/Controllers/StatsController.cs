@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ZISK.Data;
@@ -14,12 +13,10 @@ namespace ZISK.Controllers
     public class StatsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
-        private readonly UserManager<ApplicationUser> _userManager;
 
-        public StatsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public StatsController(ApplicationDbContext context)
         {
             _context = context;
-            _userManager = userManager;
         }
 
         [HttpGet("dashboard")]
@@ -29,27 +26,8 @@ namespace ZISK.Controllers
             var members = await _context.ChildProfiles.AsNoTracking().ToListAsync();
             var users = await _context.Users.CountAsync();
             var pendingExcuses = await _context.AbsenceRequests.CountAsync(ar => ar.Status == AbsenceRequestStatus.Received);
-            
-            var coachesCount = (await _userManager.GetUsersInRoleAsync("Coach")).Count;
 
             var attendanceStats = await GetAttendanceStatsInternal(30);
-
-            var recentUsers = await _context.Users
-                .OrderByDescending(u => u.CreatedAt)
-                .Take(5)
-                .Select(u => new ActivityDto($"Nový používateľ: {u.FirstName} {u.LastName}", u.CreatedAt, "User"))
-                .ToListAsync();
-
-            var recentTeams = teams
-                .OrderByDescending(t => t.CreatedAt)
-                .Take(5)
-                .Select(t => new ActivityDto($"Nový tím: {t.Name}", t.CreatedAt, "Team"))
-                .ToList();
-
-            var recentActivities = recentUsers.Concat(recentTeams)
-                .OrderByDescending(a => a.Timestamp)
-                .Take(5)
-                .ToList();
 
             return Ok(new DashboardStatsDto(
                 TotalTeams: teams.Count,
@@ -58,9 +36,7 @@ namespace ZISK.Controllers
                 ActiveMembers: members.Count(m => m.IsActive),
                 TotalUsers: users,
                 PendingExcuses: pendingExcuses,
-                TotalCoaches: coachesCount,
-                AttendanceStats: attendanceStats,
-                RecentActivities: recentActivities
+                AttendanceStats: attendanceStats
             ));
         }
 

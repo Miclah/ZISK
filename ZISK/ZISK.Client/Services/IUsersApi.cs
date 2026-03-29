@@ -26,6 +26,9 @@ namespace ZISK.Client.Services
         [Get("/api/users/coaches")]
         Task<List<UserListDto>> GetCoachesAsync();
 
+        [Get("/api/users/parents")]
+        Task<List<ParentOptionDto>> GetParentsAsync();
+
         [Post("/api/users/{userId}/teams/{teamId}")]
         Task AssignTeamAsync(string userId, Guid teamId, [Query] bool isPrimary = false);
 

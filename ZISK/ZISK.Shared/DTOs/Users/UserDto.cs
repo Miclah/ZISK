@@ -5,14 +5,15 @@ namespace ZISK.Shared.DTOs.Users
         string FirstName,
         string LastName,
         string Email,
+        string? PhoneNumber,
         string Role,
         bool IsActive,
         DateTime CreatedAt,
+        string? RodneCislo,
+        string? Bydlisko,
+        DateOnly? DateOfBirth,
         List<UserTeamDto> Teams,
-        string? PhoneNumber = null,
-        string? RodneCislo = null,
-        DateTime? DateOfBirth = null,
-        string? Bydlisko = null
+        List<ParentOptionDto> Parents
     );
 
     public record UserTeamDto(
@@ -26,8 +27,11 @@ namespace ZISK.Shared.DTOs.Users
         string FirstName,
         string LastName,
         string Email,
+        string? PhoneNumber,
         string Role,
         bool IsActive,
+        DateTime CreatedAt,
+        string? TeamName,
         List<UserTeamDto> Teams
     );
 
@@ -36,11 +40,12 @@ namespace ZISK.Shared.DTOs.Users
         string? LastName,
         string? Role,
         bool? IsActive,
+        List<Guid>? TeamIds,
         string? PhoneNumber,
         string? RodneCislo,
-        DateTime? DateOfBirth,
         string? Bydlisko,
-        List<Guid>? TeamIds
+        DateOnly? DateOfBirth,
+        List<string>? ParentIds
     );
 
     public record CreateUserRequest(
@@ -49,10 +54,15 @@ namespace ZISK.Shared.DTOs.Users
         string Email,
         string Password,
         string Role,
-        string? PhoneNumber = null,
-        string? RodneCislo = null,
-        DateTime? DateOfBirth = null,
-        string? Bydlisko = null,
-        string? ParentId = null
+        string? PhoneNumber,
+        string? RodneCislo,
+        string? Bydlisko,
+        DateOnly? DateOfBirth,
+        List<string>? ParentIds
+    );
+
+    public record ParentOptionDto(
+        string Id,
+        string FullName
     );
 }
