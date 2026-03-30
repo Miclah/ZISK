@@ -35,9 +35,11 @@ public class DatabaseInitializer
         var admin = await EnsureUserAsync("admin@zisk.sk", "admin123", "Admin", "Admin", "ZISK");
         var coach = await EnsureUserAsync("trener@zisk.sk", "trener123", "Coach", "Ján", "Tréner");
         var parent = await EnsureUserAsync("rodic@zisk.sk", "rodic123", "Parent", "Peter", "Rodič");
+        var child = await EnsureUserAsync("dieta@zisk.sk", "dieta123", "Child", "Tomáš", "Dieťa");
 
         await SeedTeamsAsync();
         await SeedChildrenAsync(parent);
+        await EnsureChildProfileForSeedChildAsync(child, parent);
         await EnsureCoachTeamAssignmentsAsync(coach);
     }
 
@@ -50,6 +52,70 @@ public class DatabaseInitializer
             if (!await _roleManager.RoleExistsAsync(role))
             {
                 await _roleManager.CreateAsync(new IdentityRole(role));
+            }
+        }
+    }
+
+    private async Task EnsureChildProfileForSeedChildAsync(ApplicationUser? childUser, ApplicationUser? parent)
+    {
+        if (childUser == null || string.IsNullOrWhiteSpace(childUser.Email))
+            return;
+
+        var childProfile = await _context.ChildProfiles
+            .FirstOrDefaultAsync(c => c.Email == childUser.Email);
+
+        if (childProfile == null)
+        {
+            childProfile = await _context.ChildProfiles
+                .OrderBy(c => c.CreatedAt)
+                .FirstOrDefaultAsync(c => c.IsActive && string.IsNullOrWhiteSpace(c.Email));
+
+            if (childProfile != null)
+            {
+                childProfile.Email = childUser.Email;
+                childProfile.FirstName = childUser.FirstName;
+                childProfile.LastName = childUser.LastName;
+            }
+            else
+            {
+                var teamId = await _context.Teams
+                    .Where(t => t.IsActive)
+                    .Select(t => (Guid?)t.Id)
+                    .FirstOrDefaultAsync();
+
+                childProfile = new ChildProfile
+                {
+                    Id = Guid.NewGuid(),
+                    FirstName = childUser.FirstName,
+                    LastName = childUser.LastName,
+                    DateOfBirth = new DateOnly(2012, 1, 1),
+                    Email = childUser.Email,
+                    TeamId = teamId,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.ChildProfiles.Add(childProfile);
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        if (parent != null)
+        {
+            var hasLink = await _context.ParentChildren
+                .AnyAsync(pc => pc.ParentId == parent.Id && pc.ChildId == childProfile.Id);
+
+            if (!hasLink)
+            {
+                _context.ParentChildren.Add(new ParentChild
+                {
+                    ParentId = parent.Id,
+                    ChildId = childProfile.Id,
+                    IsPrimary = false
+                });
+
+                await _context.SaveChangesAsync();
             }
         }
     }

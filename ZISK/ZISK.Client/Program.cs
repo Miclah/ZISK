@@ -11,6 +11,7 @@ builder.Services.AddMudServices();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddAuthenticationStateDeserialization();
+builder.Services.AddScoped<UserContextService>();
 
 var baseAddress = new Uri(builder.HostEnvironment.BaseAddress);
 

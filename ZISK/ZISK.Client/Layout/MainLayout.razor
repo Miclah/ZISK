@@ -3,15 +3,20 @@
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Teams
 @using System.Security.Claims
+@using Refit
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ITeamsApi TeamsApi
+@inject IChildrenApi ChildrenApi
+@inject UserContextService UserContextService
 
 <MudThemeProvider Theme="AppTheme.SportClubTheme" />
 <MudPopoverProvider />
 <MudDialogProvider FullWidth="true" MaxWidth="MaxWidth.Small" CloseButton="true" />
 <MudSnackbarProvider />
 
+<ErrorBoundary>
+    <ChildContent>
 <MudLayout>
     <MudAppBar Elevation="0" Fixed="true" Style="border-bottom: 1px solid rgba(255,255,255,0.08);">
         <MudIconButton Icon="@Icons.Material.Rounded.Menu"
@@ -33,6 +38,24 @@
                 </MudChip>
             }
         </MudStack>
+
+        @if (_showContextSwitcher)
+        {
+            <MudSelect T="string"
+                       Value="@_selectedContextKey"
+                       ValueChanged="OnContextChanged"
+                       Label="Kontext"
+                       Variant="Variant.Outlined"
+                       Dense="true"
+                       Margin="Margin.Dense"
+                       Class="ml-2"
+                       Style="max-width: 220px; background: rgba(255,255,255,0.06); border-radius: 8px;">
+                @foreach (var option in UserContextService.Options)
+                {
+                    <MudSelectItem Value="@option.Key">@option.Label</MudSelectItem>
+                }
+            </MudSelect>
+        }
 
         <MudSpacer />
 
@@ -119,7 +142,18 @@
 
     <MudMainContent Class="pa-6" Style="@MainContentStyle">
         <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
-            @Body
+            <ErrorBoundary>
+                <ChildContent>
+                    @Body
+                </ChildContent>
+                <ErrorContent>
+                    <MudPaper Class="pa-4" Elevation="2">
+                        <MudAlert Severity="Severity.Error" Dense="true">
+                            Stránka sa nepodarilo načítať. Skúste obnoviť stránku alebo sa znovu prihlásiť.
+                        </MudAlert>
+                    </MudPaper>
+                </ErrorContent>
+            </ErrorBoundary>
         </MudContainer>
     </MudMainContent>
 
@@ -134,14 +168,37 @@
             </MudPaper>
         </MudHidden>
     }
-</MudLayout>
+
+    @if (_isParentAthlete)
+    {
+        <MudHidden Breakpoint="Breakpoint.MdAndUp">
+            <MudPaper Elevation="6" Class="pa-2 d-flex justify-space-around" Style="position: fixed; left: 0; right: 0; bottom: 0; z-index: 1200; border-top: 1px solid var(--mud-palette-lines-default);">
+                <MudIconButton Icon="@Icons.Material.Rounded.Home" Color="Color.Primary" Href="/domov" />
+                <MudIconButton Icon="@Icons.Material.Rounded.Event" Color="Color.Primary" Href="/dochadzka/prehlad" />
+                <MudIconButton Icon="@Icons.Material.Rounded.Description" Color="Color.Primary" Href="/ospravedlnenky" />
+            </MudPaper>
+        </MudHidden>
+    }
+    </MudLayout>
+    </ChildContent>
+    <ErrorContent>
+        <MudPaper Class="pa-4 ma-4" Elevation="2">
+            <MudAlert Severity="Severity.Error" Dense="true">
+                Nastala chyba v rozhraní. Skúste obnoviť stránku (Ctrl+F5).
+            </MudAlert>
+        </MudPaper>
+    </ErrorContent>
+</ErrorBoundary>
 
 @code {
     private bool _drawerOpen = true;
     private bool _isCoach;
+    private bool _isParentAthlete;
     private string? _coachTeamName;
+    private bool _showContextSwitcher;
+    private string _selectedContextKey = UserContextService.AllKey;
 
-    private string MainContentStyle => _isCoach
+    private string MainContentStyle => (_isCoach || _isParentAthlete)
         ? "background: #F8FAFC; min-height: 100vh; padding-bottom: 90px;"
         : "background: #F8FAFC; min-height: 100vh;";
 
@@ -149,6 +206,7 @@
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         _isCoach = authState.User.IsInRole("Coach");
+        _isParentAthlete = authState.User.IsInRole("Parent") || authState.User.IsInRole("Athlete");
 
         if (_isCoach)
         {
@@ -162,6 +220,45 @@
                 _coachTeamName = null;
             }
         }
+
+        if (_isParentAthlete)
+        {
+            try
+            {
+                var children = await ChildrenApi.GetMyChildrenAsync();
+                var options = new List<UserContextOption>();
+
+                if (children.Count > 1)
+                {
+                    options.Add(new UserContextOption(UserContextService.AllKey, "Všetci", null, null, false));
+                }
+
+                foreach (var person in children.OrderBy(c => c.LastName).ThenBy(c => c.FirstName))
+                {
+                    var label = person.IsOwnProfile
+                        ? $"Moje tréningy ({person.FirstName})"
+                        : $"{person.FirstName} {person.LastName}";
+                    options.Add(new UserContextOption(person.Id.ToString(), label, person.Id, person.TeamId, person.IsOwnProfile));
+                }
+
+                if (!options.Any())
+                {
+                    options.Add(new UserContextOption(UserContextService.AllKey, "Všetci", null, null, false));
+                }
+
+                UserContextService.SetOptions(options);
+                _selectedContextKey = UserContextService.SelectedKey;
+                _showContextSwitcher = UserContextService.Options.Count > 1 && !string.IsNullOrWhiteSpace(_selectedContextKey);
+            }
+            catch (ApiException ex) when (ex.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+            {
+                _showContextSwitcher = false;
+            }
+            catch
+            {
+                _showContextSwitcher = false;
+            }
+        }
     }
 
     private void DrawerToggle() => _drawerOpen = !_drawerOpen;
@@ -169,5 +266,14 @@
     private void NavigateToProfile()
     {
         NavigationManager.NavigateTo("/profil");
+    }
+
+    private void OnContextChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return;
+
+        _selectedContextKey = value;
+        UserContextService.SetSelected(value);
     }
 }

@@ -79,13 +79,15 @@ builder.Services.AddTransient<IEmailSender<ApplicationUser>, SmtpEmailSender>();
 builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ITeamAccessService, TeamAccessService>();
+builder.Services.AddScoped<UserContextService>();
 builder.Services.AddScoped<DatabaseInitializer>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<ForwardAuthHeaderHandler>();
 
 builder.Services.AddMudServices();
 
-var baseAddress = new Uri("http://localhost:5224");
+var baseAddressString = builder.Configuration["ApiBaseAddress"] ?? "http://localhost:5224";
+var baseAddress = new Uri(baseAddressString);
 builder.Services.AddRefitClient<IExcusesApi>()
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
     .AddHttpMessageHandler<ForwardAuthHeaderHandler>();

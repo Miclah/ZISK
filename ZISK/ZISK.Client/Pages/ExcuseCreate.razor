@@ -5,6 +5,7 @@
 @inject IExcusesApi ExcusesApi
 @inject IChildrenApi ChildrenApi
 @inject ITrainingsApi TrainingsApi
+@inject UserContextService UserContextService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -142,10 +143,20 @@
             _isChild = authState.User.IsInRole("Child");
 
             _children = await ChildrenApi.GetMyChildrenAsync();
+
             if (_children.Count == 1)
             {
                 _selectedPersonId = _children[0].Id;
                 await OnSelectedPersonChanged();
+            }
+            else
+            {
+                var selected = UserContextService.SelectedOption;
+                if (selected?.ChildId is not null && _children.Any(c => c.Id == selected.ChildId.Value))
+                {
+                    _selectedPersonId = selected.ChildId.Value;
+                    await OnSelectedPersonChanged();
+                }
             }
         }
         catch (Exception ex)

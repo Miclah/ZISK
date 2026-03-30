@@ -2,14 +2,25 @@
 
 <Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
-        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
-            <NotAuthorized>
-                <RedirectToLogin />
-            </NotAuthorized>
-            <Authorizing>
-                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-            </Authorizing>
-        </AuthorizeRouteView>
+        <ErrorBoundary>
+            <ChildContent>
+                <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+                    <NotAuthorized>
+                        <RedirectToLogin />
+                    </NotAuthorized>
+                    <Authorizing>
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                    </Authorizing>
+                </AuthorizeRouteView>
+            </ChildContent>
+            <ErrorContent>
+                <div style="padding: 1rem; font-family: Inter, Segoe UI, Roboto, sans-serif;">
+                    <div style="background:#fff1f2; color:#991b1b; border:1px solid #fecdd3; border-radius:12px; padding:1rem;">
+                        Nastala chyba pri načítaní stránky. Obnovte stránku (Ctrl+F5).
+                    </div>
+                </div>
+            </ErrorContent>
+        </ErrorBoundary>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
     <NotFound>
