@@ -1,7 +1,11 @@
 ﻿@inherits LayoutComponentBase
 @using ZISK.Client.Layout
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Teams
 @using System.Security.Claims
 @inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ITeamsApi TeamsApi
 
 <MudThemeProvider Theme="AppTheme.SportClubTheme" />
 <MudPopoverProvider />
@@ -21,6 +25,13 @@
                      Style="color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.2); font-size: 0.65rem; height: 20px;">
                 v1.0
             </MudChip>
+            @if (_isCoach && !string.IsNullOrWhiteSpace(_coachTeamName))
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
+                         Style="background: rgba(255,255,255,0.15); color: white; font-size: 0.65rem; height: 20px;">
+                    @_coachTeamName
+                </MudChip>
+            }
         </MudStack>
 
         <MudSpacer />
@@ -106,15 +117,52 @@
         </MudDrawerContainer>
     </MudDrawer>
 
-    <MudMainContent Class="pa-6" Style="background: #F8FAFC; min-height: 100vh;">
+    <MudMainContent Class="pa-6" Style="@MainContentStyle">
         <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
             @Body
         </MudContainer>
     </MudMainContent>
+
+    @if (_isCoach)
+    {
+        <MudHidden Breakpoint="Breakpoint.MdAndUp">
+            <MudPaper Elevation="6" Class="pa-2 d-flex justify-space-around" Style="position: fixed; left: 0; right: 0; bottom: 0; z-index: 1200; border-top: 1px solid var(--mud-palette-lines-default);">
+                <MudIconButton Icon="@Icons.Material.Rounded.Home" Color="Color.Primary" Href="/coach" />
+                <MudIconButton Icon="@Icons.Material.Rounded.Event" Color="Color.Primary" Href="/coach/treningy" />
+                <MudIconButton Icon="@Icons.Material.Rounded.Groups" Color="Color.Primary" Href="/coach/tim" />
+                <MudIconButton Icon="@Icons.Material.Rounded.Announcement" Color="Color.Primary" Href="/coach/oznamy" />
+            </MudPaper>
+        </MudHidden>
+    }
 </MudLayout>
 
 @code {
     private bool _drawerOpen = true;
+    private bool _isCoach;
+    private string? _coachTeamName;
+
+    private string MainContentStyle => _isCoach
+        ? "background: #F8FAFC; min-height: 100vh; padding-bottom: 90px;"
+        : "background: #F8FAFC; min-height: 100vh;";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _isCoach = authState.User.IsInRole("Coach");
+
+        if (_isCoach)
+        {
+            try
+            {
+                var teams = await TeamsApi.GetTeamsAsync(true);
+                _coachTeamName = teams.FirstOrDefault()?.Name;
+            }
+            catch
+            {
+                _coachTeamName = null;
+            }
+        }
+    }
 
     private void DrawerToggle() => _drawerOpen = !_drawerOpen;
 

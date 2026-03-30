@@ -1,7 +1,7 @@
 ﻿<MudStack Class="pa-3" Style="height: 100%;" Justify="Justify.SpaceBetween">
     <MudNavMenu Rounded="true" Margin="Margin.Dense" Color="Color.Primary">
 
-        <AuthorizeView Roles="Parent,Athlete,Coach,Child">
+        <AuthorizeView Roles="Parent,Athlete,Child">
             <MudText Typo="Typo.caption" Class="px-3 pt-2 pb-1" Style="font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.8px; font-size: 0.65rem;">
                 Hlavné
             </MudText>
@@ -69,16 +69,28 @@
                 Tréner
             </MudText>
 
-            <MudNavLink Href="/dochadzka"
-                        Icon="@Icons.Material.Rounded.CheckCircle"
+            <MudNavLink Href="/coach"
+                        Icon="@Icons.Material.Rounded.Home"
                         Match="NavLinkMatch.Prefix">
-                Označiť dochádzku
+                Nástenka
             </MudNavLink>
 
-            <MudNavLink Href="/admin/ospravedlnenky"
-                        Icon="@Icons.Material.Rounded.Description"
+            <MudNavLink Href="/coach/treningy"
+                        Icon="@Icons.Material.Rounded.Event"
                         Match="NavLinkMatch.Prefix">
-                Ospravedlnenky
+                Tréningy
+            </MudNavLink>
+
+            <MudNavLink Href="/coach/tim"
+                        Icon="@Icons.Material.Rounded.Groups"
+                        Match="NavLinkMatch.Prefix">
+                Môj tím
+            </MudNavLink>
+
+            <MudNavLink Href="/coach/oznamy"
+                        Icon="@Icons.Material.Rounded.Announcement"
+                        Match="NavLinkMatch.Prefix">
+                Oznamy
             </MudNavLink>
         </AuthorizeView>
 

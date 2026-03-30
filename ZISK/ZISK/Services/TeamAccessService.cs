@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using ZISK.Data;
@@ -7,6 +8,7 @@ namespace ZISK.Services;
 
 public class TeamAccessService : ITeamAccessService
 {
+    private static bool? _isCoachTeamsAvailable;
     private readonly ApplicationDbContext _context;
     private readonly ILogger<TeamAccessService> _logger;
 
@@ -35,17 +37,24 @@ public class TeamAccessService : ITeamAccessService
         if (user.IsInRole("Coach"))
         {
             List<Guid> coachTeams;
-            try
+            if (!await CoachTeamsTableExistsAsync())
             {
-                coachTeams = await _context.CoachTeams
-                    .Where(ct => ct.CoachId == userId)
-                    .Select(ct => ct.TeamId)
-                    .ToListAsync();
-            }
-            catch (SqlException ex) when (ex.Number == 208 && ex.Message.Contains("CoachTeams", StringComparison.OrdinalIgnoreCase))
-            {
-                _logger.LogWarning(ex, "CoachTeams table is missing in database while resolving access for coach {UserId}.", userId);
                 coachTeams = [];
+            }
+            else
+            {
+                try
+                {
+                    coachTeams = await _context.CoachTeams
+                        .Where(ct => ct.CoachId == userId)
+                        .Select(ct => ct.TeamId)
+                        .ToListAsync();
+                }
+                catch (SqlException ex) when (ex.Number == 208 && ex.Message.Contains("CoachTeams", StringComparison.OrdinalIgnoreCase))
+                {
+                    _isCoachTeamsAvailable = false;
+                    coachTeams = [];
+                }
             }
 
             foreach (var teamId in coachTeams)
@@ -83,5 +92,47 @@ public class TeamAccessService : ITeamAccessService
         }
 
         return result;
+    }
+
+    private async Task<bool> CoachTeamsTableExistsAsync()
+    {
+        if (_isCoachTeamsAvailable.HasValue)
+            return _isCoachTeamsAvailable.Value;
+
+        try
+        {
+            var appliedMigrations = await _context.Database.GetAppliedMigrationsAsync();
+            if (!appliedMigrations.Any(m => m.Contains("CreateIdentitySchema", StringComparison.OrdinalIgnoreCase)))
+            {
+                _isCoachTeamsAvailable = false;
+                return false;
+            }
+
+            var connection = _context.Database.GetDbConnection();
+            var shouldClose = connection.State != ConnectionState.Open;
+
+            if (shouldClose)
+                await connection.OpenAsync();
+
+            try
+            {
+                await using var command = connection.CreateCommand();
+                command.CommandText = "SELECT CASE WHEN OBJECT_ID(N'[dbo].[CoachTeams]', N'U') IS NULL THEN 0 ELSE 1 END";
+                var result = await command.ExecuteScalarAsync();
+                _isCoachTeamsAvailable = Convert.ToInt32(result) == 1;
+                return _isCoachTeamsAvailable.Value;
+            }
+            finally
+            {
+                if (shouldClose)
+                    await connection.CloseAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Unable to verify CoachTeams table existence for team access.");
+            _isCoachTeamsAvailable = false;
+            return false;
+        }
     }
 }

@@ -16,6 +16,7 @@ namespace ZISK.Controllers
     [Authorize(Roles = "Admin")]
     public class UsersController : ControllerBase
     {
+        private static bool? _isCoachTeamsAvailable;
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IAuditService _auditService;
@@ -45,10 +46,18 @@ namespace ZISK.Controllers
             List<CoachTeam> allCoachTeams = [];
             if (await CoachTeamsTableExistsAsync())
             {
-                allCoachTeams = await _context.CoachTeams
-                    .AsNoTracking()
-                    .Include(ct => ct.Team)
-                    .ToListAsync();
+                try
+                {
+                    allCoachTeams = await _context.CoachTeams
+                        .AsNoTracking()
+                        .Include(ct => ct.Team)
+                        .ToListAsync();
+                }
+                catch (SqlException ex) when (ex.Number == 208 && ex.Message.Contains("CoachTeams", StringComparison.OrdinalIgnoreCase))
+                {
+                    _isCoachTeamsAvailable = false;
+                    allCoachTeams = [];
+                }
             }
 
             var childProfiles = await _context.ChildProfiles
@@ -342,10 +351,18 @@ namespace ZISK.Controllers
             List<CoachTeam> allCoachTeams = [];
             if (await CoachTeamsTableExistsAsync())
             {
-                allCoachTeams = await _context.CoachTeams
-                    .Include(ct => ct.Team)
-                    .Where(ct => coachIds.Contains(ct.CoachId))
-                    .ToListAsync();
+                try
+                {
+                    allCoachTeams = await _context.CoachTeams
+                        .Include(ct => ct.Team)
+                        .Where(ct => coachIds.Contains(ct.CoachId))
+                        .ToListAsync();
+                }
+                catch (SqlException ex) when (ex.Number == 208 && ex.Message.Contains("CoachTeams", StringComparison.OrdinalIgnoreCase))
+                {
+                    _isCoachTeamsAvailable = false;
+                    allCoachTeams = [];
+                }
             }
 
             var result = coaches.Select(u =>
@@ -579,8 +596,18 @@ namespace ZISK.Controllers
 
         private async Task<bool> CoachTeamsTableExistsAsync()
         {
+            if (_isCoachTeamsAvailable.HasValue)
+                return _isCoachTeamsAvailable.Value;
+
             try
             {
+                var appliedMigrations = await _context.Database.GetAppliedMigrationsAsync();
+                if (!appliedMigrations.Any(m => m.Contains("CreateIdentitySchema", StringComparison.OrdinalIgnoreCase)))
+                {
+                    _isCoachTeamsAvailable = false;
+                    return false;
+                }
+
                 var connection = _context.Database.GetDbConnection();
                 var shouldClose = connection.State != ConnectionState.Open;
 
@@ -592,7 +619,8 @@ namespace ZISK.Controllers
                     using var command = connection.CreateCommand();
                     command.CommandText = "SELECT CASE WHEN OBJECT_ID(N'[dbo].[CoachTeams]', N'U') IS NULL THEN 0 ELSE 1 END";
                     var result = await command.ExecuteScalarAsync();
-                    return Convert.ToInt32(result) == 1;
+                    _isCoachTeamsAvailable = Convert.ToInt32(result) == 1;
+                    return _isCoachTeamsAvailable.Value;
                 }
                 finally
                 {
@@ -603,6 +631,7 @@ namespace ZISK.Controllers
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Unable to verify CoachTeams table existence.");
+                _isCoachTeamsAvailable = false;
                 return false;
             }
         }
