@@ -1,15 +1,15 @@
 ﻿<MudStack Class="pa-3" Style="height: 100%;" Justify="Justify.SpaceBetween">
     <MudNavMenu Rounded="true" Margin="Margin.Dense" Color="Color.Primary">
 
-        <AuthorizeView Roles="Parent,Athlete,Child">
+        <AuthorizeView Roles="Parent,Athlete">
             <MudText Typo="Typo.caption" Class="px-3 pt-2 pb-1" Style="font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.8px; font-size: 0.65rem;">
                 Hlavné
             </MudText>
 
-            <MudNavLink Href="/"
+            <MudNavLink Href="/domov"
                         Icon="@Icons.Material.Rounded.Dashboard"
-                        Match="NavLinkMatch.All">
-                Prehľad
+                        Match="NavLinkMatch.Prefix">
+                Nástenka
             </MudNavLink>
 
             <MudNavLink Href="/rozvrh"
@@ -56,10 +56,22 @@
                 Dieťa
             </MudText>
 
-            <MudNavLink Href="/dochadzka/prehlad"
-                        Icon="@Icons.Material.Rounded.EventNote"
+            <MudNavLink Href="/dieta"
+                        Icon="@Icons.Material.Rounded.Dashboard"
                         Match="NavLinkMatch.Prefix">
-                Moja dochádzka
+                Môj prehľad
+            </MudNavLink>
+
+            <MudNavLink Href="/rozvrh"
+                        Icon="@Icons.Material.Rounded.Event"
+                        Match="NavLinkMatch.Prefix">
+                Rozvrh
+            </MudNavLink>
+
+            <MudNavLink Href="/oznamy"
+                        Icon="@Icons.Material.Rounded.Announcement"
+                        Match="NavLinkMatch.Prefix">
+                Oznamy
             </MudNavLink>
         </AuthorizeView>
 

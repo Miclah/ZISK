@@ -38,10 +38,9 @@
 
         <AuthorizeView>
             <Authorized Context="authContext">
-                <MudMenu AnchorOrigin="Origin.BottomRight"
-                         TransformOrigin="Origin.TopRight">
-                    <ActivatorContent>
-                        <div class="d-flex align-center cursor-pointer px-2 py-1" style="border-radius: 8px;">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="NavigateToProfile" Class="px-2 py-1">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                             <MudAvatar Size="Size.Small"
                                        Style="background: linear-gradient(135deg, #FF6B35, #e55a2b); width: 32px; height: 32px; font-size: 0.8rem; font-weight: 700;">
                                 @(authContext.User.FindFirst(ClaimTypes.GivenName)?.Value?.Length > 0
@@ -56,10 +55,10 @@
                                     @authContext.User.FindFirst(ClaimTypes.Role)?.Value
                                 </MudText>
                             </MudStack>
-                            <MudIcon Icon="@Icons.Material.Rounded.KeyboardArrowDown" Size="Size.Small"
-                                     Style="color: rgba(255,255,255,0.5); margin-left: 4px;" Class="d-none d-sm-flex" />
-                        </div>
-                    </ActivatorContent>
+                        </MudStack>
+                    </MudButton>
+
+                    <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Icon="@Icons.Material.Rounded.KeyboardArrowDown">
                     <ChildContent>
                         <div style="min-width: 280px; padding: 0;">
                             <div style="background: linear-gradient(135deg, #1E3A5F, #2d5a8e); padding: 1.25rem; border-radius: 4px 4px 0 0;">
@@ -100,7 +99,8 @@
                             </div>
                         </div>
                     </ChildContent>
-                </MudMenu>
+                    </MudMenu>
+                </MudStack>
             </Authorized>
         </AuthorizeView>
     </MudAppBar>

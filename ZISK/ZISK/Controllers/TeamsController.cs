@@ -70,6 +70,13 @@ public class TeamsController : ControllerBase
         if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(team.Id))
             return Forbid();
 
+        var memberIds = team.Members.Select(m => m.Id).ToList();
+        var parentLinks = await _context.ParentChildren
+            .Include(pc => pc.Parent)
+            .Where(pc => memberIds.Contains(pc.ChildId))
+            .AsNoTracking()
+            .ToListAsync();
+
         return Ok(new TeamDetailDto(
             team.Id,
             team.Name,
@@ -82,7 +89,12 @@ public class TeamsController : ControllerBase
                 m.FirstName,
                 m.LastName,
                 m.Email,
-                m.DateOfBirth
+                m.DateOfBirth,
+                parentLinks
+                    .Where(p => p.ChildId == m.Id)
+                    .Select(p => $"{p.Parent.FirstName} {p.Parent.LastName} ({(string.IsNullOrWhiteSpace(p.Parent.PhoneNumber) ? "bez telefónu" : p.Parent.PhoneNumber)})")
+                    .Distinct()
+                    .ToList()
             )).OrderBy(m => m.LastName).ToList()
         ));
     }

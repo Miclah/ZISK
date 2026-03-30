@@ -26,41 +26,54 @@ public class ChildrenController : ControllerBase
             return Unauthorized();
 
         var userEmail = User.FindFirstValue(ClaimTypes.Email);
+        var result = new List<ChildDto>();
 
         if (User.IsInRole("Athlete") || User.IsInRole("Child"))
         {
-            if (string.IsNullOrWhiteSpace(userEmail))
+            if (!string.IsNullOrWhiteSpace(userEmail))
             {
-                return Ok(new List<ChildDto>());
-            }
+                var ownProfiles = await _context.ChildProfiles
+                    .Include(c => c.Team)
+                    .Where(c => c.IsActive && c.Email == userEmail)
+                    .Select(c => new ChildDto(
+                        c.Id,
+                        c.FirstName,
+                        c.LastName,
+                        c.TeamId,
+                        c.Team != null ? c.Team.Name : null,
+                        true
+                    ))
+                    .ToListAsync();
 
-            var ownProfiles = await _context.ChildProfiles
-                .Include(c => c.Team)
-                .Where(c => c.IsActive && c.Email == userEmail)
-                .Select(c => new ChildDto(
-                    c.Id,
-                    c.FirstName,
-                    c.LastName,
-                    c.Team != null ? c.Team.Name : null
+                result.AddRange(ownProfiles);
+            }
+        }
+
+        if (User.IsInRole("Parent"))
+        {
+            var children = await _context.ParentChildren
+                .Include(pc => pc.Child)
+                    .ThenInclude(c => c.Team)
+                .Where(pc => pc.ParentId == userId)
+                .Select(pc => new ChildDto(
+                    pc.Child.Id,
+                    pc.Child.FirstName,
+                    pc.Child.LastName,
+                    pc.Child.TeamId,
+                    pc.Child.Team != null ? pc.Child.Team.Name : null,
+                    false
                 ))
                 .ToListAsync();
 
-            return Ok(ownProfiles);
+            result.AddRange(children);
         }
 
-        var children = await _context.ParentChildren
-            .Include(pc => pc.Child)
-                .ThenInclude(c => c.Team)
-            .Where(pc => pc.ParentId == userId)
-            .Select(pc => new ChildDto(
-                pc.Child.Id,
-                pc.Child.FirstName,
-                pc.Child.LastName,
-                pc.Child.Team != null ? pc.Child.Team.Name : null
-            ))
-            .ToListAsync();
-
-        return Ok(children);
+        return Ok(result
+            .GroupBy(c => c.Id)
+            .Select(g => g.First())
+            .OrderBy(c => c.LastName)
+            .ThenBy(c => c.FirstName)
+            .ToList());
     }
 
     [HttpGet]
@@ -74,7 +87,9 @@ public class ChildrenController : ControllerBase
                 c.Id,
                 c.FirstName,
                 c.LastName,
-                c.Team != null ? c.Team.Name : null
+                c.TeamId,
+                c.Team != null ? c.Team.Name : null,
+                false
             ))
             .ToListAsync();
 
@@ -82,4 +97,4 @@ public class ChildrenController : ControllerBase
     }
 }
 
-public record ChildDto(Guid Id, string FirstName, string LastName, string? TeamName);
+public record ChildDto(Guid Id, string FirstName, string LastName, Guid? TeamId, string? TeamName, bool IsOwnProfile);

@@ -10,114 +10,182 @@
 
 <PageTitle>Moja dochádzka</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Prehľad dochádzky</MudText>
+<MudText Typo="Typo.h4" Class="mb-4">Rozvrh a dochádzka</MudText>
 
-<MudPaper Class="pa-4 mb-4" Elevation="2">
-    <MudGrid>
-        <MudItem xs="12" sm="6" md="3">
-            <MudDatePicker @bind-Date="_dateFrom" Label="Od dátumu" Variant="Variant.Outlined" />
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudDatePicker @bind-Date="_dateTo" Label="Do dátumu" Variant="Variant.Outlined" />
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3" Class="d-flex align-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadAttendance">
-                Zobraziť
-            </MudButton>
-        </MudItem>
-    </MudGrid>
-</MudPaper>
+<MudTabs Rounded="true" Elevation="1" Class="mb-4">
+    <MudTabPanel Text="Nadchádzajúce">
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (!_upcoming.Any())
+        {
+            <MudAlert Severity="Severity.Info">Žiadne nadchádzajúce tréningy.</MudAlert>
+        }
+        else
+        {
+            <MudStack Spacing="2" Class="pa-2">
+                @foreach (var item in _upcoming)
+                {
+                    <MudPaper Class="pa-3" Elevation="1">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body1">@item.Training.Title</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@item.Training.StartTime.ToString("dd.MM.yyyy HH:mm") - @item.Training.EndTime.ToString("HH:mm")</MudText>
+                                @if (!string.IsNullOrWhiteSpace(item.Training.Location))
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@item.Training.Location</MudText>
+                                }
+                            </MudStack>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary">Pre: @item.ForName</MudChip>
+                        </MudStack>
+                    </MudPaper>
+                }
+            </MudStack>
+        }
+    </MudTabPanel>
 
-<MudGrid Class="mb-4">
-    <MudItem xs="6" sm="4">
-        <MudPaper Class="pa-3" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Success">@GetCount(AttendanceStatus.Present)</MudText>
-            <MudText Typo="Typo.body2">Prítomný</MudText>
+    <MudTabPanel Text="História">
+        <MudPaper Class="pa-4 mb-4" Elevation="2">
+            <MudGrid>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudDatePicker @bind-Date="_dateFrom" Label="Od dátumu" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudDatePicker @bind-Date="_dateTo" Label="Do dátumu" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3" Class="d-flex align-end">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadAttendance">
+                        Zobraziť
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
         </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="4">
-        <MudPaper Class="pa-3" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Error">@GetCount(AttendanceStatus.Absent)</MudText>
-            <MudText Typo="Typo.body2">Neprítomný</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="4">
-        <MudPaper Class="pa-3" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Info">@GetCount(AttendanceStatus.Excused)</MudText>
-            <MudText Typo="Typo.body2">Ospravedlnený</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
 
-@if (_isLoading)
-{
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
-}
-else if (!_attendance.Any())
-{
-    <MudPaper Class="pa-6" Elevation="1">
-        <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Secondary">
-            Žiadne záznamy o dochádzke za vybrané obdobie
-        </MudText>
-    </MudPaper>
-}
-else
-{
-    <MudPaper Class="pa-4" Elevation="2">
-        <MudTable Items="@_attendance" Hover="true" Dense="true">
-            <HeaderContent>
-                <MudTh>Dátum</MudTh>
-                <MudTh>Tréning</MudTh>
-                <MudTh>Stav</MudTh>
-                <MudTh>Poznámka trénera</MudTh>
-                <MudTh>Akcia</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="Dátum">
-                    <MudText Typo="Typo.body2">@context.Date.ToString("dd.MM.yyyy")</MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                        @context.Date.ToString("dddd", new System.Globalization.CultureInfo("sk-SK"))
-                    </MudText>
-                </MudTd>
-                <MudTd DataLabel="Tréning">@context.TrainingName</MudTd>
-                <MudTd DataLabel="Stav">
-                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
-                        @GetStatusText(context.Status)
-                    </MudChip>
-                </MudTd>
-                <MudTd DataLabel="Poznámka">
-                    @if (!string.IsNullOrEmpty(context.Note))
-                    {
-                        <MudText Typo="Typo.body2">@context.Note</MudText>
-                    }
-                    else
-                    {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">-</MudText>
-                    }
-                </MudTd>
-                <MudTd DataLabel="Akcia">
-                    @if (context.Status == AttendanceStatus.Absent)
-                    {
-                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
-                                   OnClick="@(() => NavigateToExcuse())">
-                            Podať ospravedlnenku
-                        </MudButton>
-                    }
-                </MudTd>
-            </RowTemplate>
-        </MudTable>
-    </MudPaper>
-}
+        <MudGrid Class="mb-4">
+            <MudItem xs="6" sm="4">
+                <MudPaper Class="pa-3" Elevation="1">
+                    <MudText Typo="Typo.h4" Color="Color.Success">@GetCount(AttendanceStatus.Present)</MudText>
+                    <MudText Typo="Typo.body2">Prítomný</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="6" sm="4">
+                <MudPaper Class="pa-3" Elevation="1">
+                    <MudText Typo="Typo.h4" Color="Color.Error">@GetCount(AttendanceStatus.Absent)</MudText>
+                    <MudText Typo="Typo.body2">Neospravedlnený</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="6" sm="4">
+                <MudPaper Class="pa-3" Elevation="1">
+                    <MudText Typo="Typo.h4" Color="Color.Warning">@GetCount(AttendanceStatus.Excused)</MudText>
+                    <MudText Typo="Typo.body2">Ospravedlnený</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (!_attendance.Any())
+        {
+            <MudPaper Class="pa-6" Elevation="1">
+                <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Secondary">
+                    Žiadne záznamy o dochádzke za vybrané obdobie
+                </MudText>
+            </MudPaper>
+        }
+        else
+        {
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudTable Items="@_attendance" Hover="true" Dense="true">
+                    <HeaderContent>
+                        <MudTh>Dátum</MudTh>
+                        <MudTh>Tréning</MudTh>
+                        <MudTh>Stav</MudTh>
+                        <MudTh>Poznámka trénera</MudTh>
+                        <MudTh>Akcia</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Dátum">
+                            <MudText Typo="Typo.body2">@context.Date.ToString("dd.MM.yyyy")</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @context.Date.ToString("dddd", new System.Globalization.CultureInfo("sk-SK"))
+                            </MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Tréning">@context.TrainingName</MudTd>
+                        <MudTd DataLabel="Stav">
+                            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+                                @GetStatusText(context.Status)
+                            </MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Poznámka">
+                            @if (!string.IsNullOrEmpty(context.Note))
+                            {
+                                <MudText Typo="Typo.body2">@context.Note</MudText>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">-</MudText>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Akcia">
+                            @if (context.Status == AttendanceStatus.Absent)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                           OnClick="@(() => NavigateToExcuse())">
+                                    Podať ospravedlnenku
+                                </MudButton>
+                            }
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+        }
+    </MudTabPanel>
+</MudTabs>
 
 @code {
+    private record UpcomingItem(TrainingEventDto Training, string ForName, string TeamName);
+
     private bool _isLoading = true;
     private List<UserAttendanceDto> _attendance = new();
+    private List<UpcomingItem> _upcoming = new();
     private DateTime? _dateFrom = DateTime.Now.AddDays(-30);
     private DateTime? _dateTo = DateTime.Now;
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadUpcoming();
         await LoadAttendance();
+    }
+
+    private async Task LoadUpcoming()
+    {
+        try
+        {
+            var people = await ChildrenApi.GetMyChildrenAsync();
+            var tasks = people
+                .Where(p => p.TeamId.HasValue)
+                .Select(async p => new
+                {
+                    Person = p,
+                    Trainings = await TrainingsApi.GetTrainingsAsync(p.TeamId, DateTime.Now, DateTime.Now.AddMonths(1))
+                });
+
+            var results = await Task.WhenAll(tasks);
+            _upcoming = results
+                .SelectMany(r => r.Trainings.Select(t => new UpcomingItem(
+                    t,
+                    r.Person.IsOwnProfile ? "Seba" : $"{r.Person.FirstName} {r.Person.LastName}",
+                    r.Person.TeamName ?? "Bez tímu")))
+                .OrderBy(x => x.Training.StartTime)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri načítaní rozvrhu: {ex.Message}", Severity.Error);
+        }
     }
 
     private async Task LoadAttendance()

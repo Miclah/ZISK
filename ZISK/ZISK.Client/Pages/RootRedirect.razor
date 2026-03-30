@@ -1,0 +1,36 @@
+@page "/"
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@attribute [Authorize]
+
+<PageTitle>Presmerovanie</PageTitle>
+
+<MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-4" />
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.IsInRole("Admin"))
+        {
+            NavigationManager.NavigateTo("/admin", replace: true);
+            return;
+        }
+
+        if (user.IsInRole("Coach"))
+        {
+            NavigationManager.NavigateTo("/coach", replace: true);
+            return;
+        }
+
+        if (user.IsInRole("Child"))
+        {
+            NavigationManager.NavigateTo("/dieta", replace: true);
+            return;
+        }
+
+        NavigationManager.NavigateTo("/domov", replace: true);
+    }
+}

@@ -50,6 +50,7 @@ public class ExcusesController : ControllerBase
             .OrderByDescending(ar => ar.CreatedAt)
             .Select(ar => new ExcuseListDto(
                 ar.Id,
+                ar.TrainingEventId,
                 $"{ar.Child.FirstName} {ar.Child.LastName}",
                 ar.Child.Team != null ? ar.Child.Team.Name : "Bez tímu",
                 ar.DateFrom,
@@ -109,7 +110,7 @@ public class ExcusesController : ControllerBase
 
         var userEmail = User.FindFirstValue(ClaimTypes.Email);
 
-        if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Length < 3 || request.Reason.Length > 200)
+        if (!string.IsNullOrWhiteSpace(request.Reason) && (request.Reason.Length < 3 || request.Reason.Length > 200))
             return BadRequest("Dôvod musí mať 3-200 znakov");
 
         if (request.Note != null && request.Note.Length > 500)
@@ -152,7 +153,7 @@ public class ExcusesController : ControllerBase
             TrainingEventId = request.TrainingEventId,
             DateFrom = request.DateFrom,
             DateTo = request.DateTo,
-            Reason = request.Reason,
+            Reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
             Note = request.Note,
             Status = AbsenceRequestStatus.Received,
             CreatedAt = DateTime.UtcNow
@@ -304,6 +305,7 @@ public class ExcusesController : ControllerBase
             .OrderByDescending(ar => ar.CreatedAt)
             .Select(ar => new ExcuseListDto(
                 ar.Id,
+                ar.TrainingEventId,
                 $"{ar.Child.FirstName} {ar.Child.LastName}",
                 ar.Child.Team != null ? ar.Child.Team.Name : "Bez tímu",
                 ar.DateFrom,

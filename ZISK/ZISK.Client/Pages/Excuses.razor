@@ -86,6 +86,26 @@ else
     </MudTable>
 }
 
+@if (_canCreateExcuse)
+{
+    <MudFab Icon="@Icons.Material.Filled.Add" Color="Color.Primary" Href="/ospravedlnenky/vytvorit" Class="parent-excuse-fab" />
+}
+
+<style>
+    .parent-excuse-fab {
+        position: fixed;
+        right: 20px;
+        bottom: 90px;
+        z-index: 1201;
+    }
+
+    @@media (min-width: 960px) {
+        .parent-excuse-fab {
+            display: none;
+        }
+    }
+</style>
+
 @code {
     private bool _isLoading = true;
     private string? _error;

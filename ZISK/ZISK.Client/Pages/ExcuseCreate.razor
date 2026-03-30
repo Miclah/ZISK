@@ -1,8 +1,10 @@
 ﻿@page "/ospravedlnenky/vytvorit"
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Excuses
+@using ZISK.Shared.DTOs.Trainings
 @inject IExcusesApi ExcusesApi
 @inject IChildrenApi ChildrenApi
+@inject ITrainingsApi TrainingsApi
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -44,27 +46,43 @@
         {
         <MudForm @ref="_form" @bind-IsValid="_formIsValid">
             <MudStack Spacing="3">
-                <MudSelect T="Guid?" @bind-Value="_selectedChildId" Label="Dieťa" Variant="Variant.Outlined" 
-                           Required="true" RequiredError="Vyberte dieťa">
-                    @foreach (var child in _children)
+                <MudSelect T="Guid?"
+                           @bind-Value="_selectedPersonId"
+                           @bind-Value:after="OnSelectedPersonChanged"
+                           Label="Koho ospravedlňujem?"
+                           Variant="Variant.Outlined"
+                           Required="true"
+                           RequiredError="Vyberte osobu">
+                    @foreach (var child in _children.OrderBy(c => c.LastName).ThenBy(c => c.FirstName))
                     {
-                        <MudSelectItem Value="@((Guid?)child.Id)">@child.FirstName @child.LastName</MudSelectItem>
+                        <MudSelectItem Value="@((Guid?)child.Id)">
+                            @(child.IsOwnProfile ? $"Seba ({child.FirstName} {child.LastName})" : $"{child.FirstName} {child.LastName}")
+                        </MudSelectItem>
                     }
                 </MudSelect>
 
-                <MudDatePicker @bind-Date="_dateFrom" Label="Od dátumu" Variant="Variant.Outlined" 
-                               Required="true" RequiredError="Zadajte dátum"
-                               MinDate="DateTime.Now.AddDays(-30)" MaxDate="DateTime.Now.AddDays(30)" />
+                <MudSelect T="Guid?"
+                           @bind-Value="_selectedTrainingId"
+                           Label="Na ktorý tréning?"
+                           Variant="Variant.Outlined"
+                           Disabled="@(!_selectedPersonId.HasValue || !_availableTrainings.Any())"
+                           Required="true"
+                           RequiredError="Vyberte tréning">
+                    @foreach (var training in _availableTrainings)
+                    {
+                        <MudSelectItem Value="@((Guid?)training.Id)">
+                            @training.StartTime.ToString("dd.MM.yyyy HH:mm") | @training.Title @(string.IsNullOrWhiteSpace(training.Location) ? string.Empty : $"| {training.Location}")
+                        </MudSelectItem>
+                    }
+                </MudSelect>
 
-                <MudDatePicker @bind-Date="_dateTo" Label="Do dátumu (voliteľné)" Variant="Variant.Outlined"
-                               MinDate="_dateFrom ?? DateTime.Now" />
+                @if (_selectedPersonId.HasValue && !_availableTrainings.Any())
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true">Pre vybranú osobu nie sú dostupné žiadne nadchádzajúce tréningy.</MudAlert>
+                }
 
                 <MudTextField @bind-Value="_reason" Label="Dôvod" Variant="Variant.Outlined" 
-                              Required="true" RequiredError="Zadajte dôvod"
                               Counter="200" MaxLength="200" />
-
-                <MudTextField @bind-Value="_note" Label="Poznámka (voliteľné)" Variant="Variant.Outlined" 
-                              Lines="3" Counter="500" MaxLength="500" />
 
                 @if (_validationErrors.Any())
                 {
@@ -102,12 +120,11 @@
     private bool _isChild;
     private List<string> _validationErrors = new();
     private List<ChildDto> _children = new();
+    private List<TrainingEventDto> _availableTrainings = new();
     
-    private Guid? _selectedChildId;
-    private DateTime? _dateFrom;
-    private DateTime? _dateTo;
+    private Guid? _selectedPersonId;
+    private Guid? _selectedTrainingId;
     private string _reason = "";
-    private string _note = "";
 
     private List<BreadcrumbItem> _breadcrumbs = new()
     {
@@ -127,7 +144,8 @@
             _children = await ChildrenApi.GetMyChildrenAsync();
             if (_children.Count == 1)
             {
-                _selectedChildId = _children[0].Id;
+                _selectedPersonId = _children[0].Id;
+                await OnSelectedPersonChanged();
             }
         }
         catch (Exception ex)
@@ -144,22 +162,40 @@
     {
         _validationErrors.Clear();
 
-        if (!_selectedChildId.HasValue)
-            _validationErrors.Add("Vyberte dieťa");
+        if (!_selectedPersonId.HasValue)
+            _validationErrors.Add("Vyberte osobu");
 
-        if (!_dateFrom.HasValue)
-            _validationErrors.Add("Zadajte dátum absencie");
+        if (!_selectedTrainingId.HasValue)
+            _validationErrors.Add("Vyberte tréning");
 
-        if (string.IsNullOrWhiteSpace(_reason))
-            _validationErrors.Add("Zadajte dôvod ospravedlnenky");
-
-        if (_reason.Length < 3)
+        if (!string.IsNullOrWhiteSpace(_reason) && _reason.Length < 3)
             _validationErrors.Add("Dôvod musí mať aspoň 3 znaky");
 
-        if (_dateTo.HasValue && _dateTo < _dateFrom)
-            _validationErrors.Add("Dátum 'Do' nemôže byť pred dátumom 'Od'");
-
         return !_validationErrors.Any();
+    }
+
+    private async Task OnSelectedPersonChanged()
+    {
+        _selectedTrainingId = null;
+        _availableTrainings = [];
+
+        if (!_selectedPersonId.HasValue)
+            return;
+
+        var selected = _children.FirstOrDefault(c => c.Id == _selectedPersonId.Value);
+        if (selected?.TeamId is null)
+            return;
+
+        try
+        {
+            _availableTrainings = (await TrainingsApi.GetTrainingsAsync(selected.TeamId, DateTime.Now, DateTime.Now.AddMonths(2)))
+                .OrderBy(t => t.StartTime)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri načítaní tréningov: {ex.Message}", Severity.Error);
+        }
     }
 
     private void Cancel()
@@ -183,12 +219,12 @@
         try
         {
             var request = new CreateExcuseRequest(
-                ChildId: _selectedChildId!.Value,
-                TrainingEventId: null,
-                DateFrom: _dateFrom,
-                DateTo: _dateTo,
-                Reason: _reason.Trim(),
-                Note: string.IsNullOrWhiteSpace(_note) ? null : _note.Trim()
+                ChildId: _selectedPersonId!.Value,
+                TrainingEventId: _selectedTrainingId,
+                DateFrom: null,
+                DateTo: null,
+                Reason: string.IsNullOrWhiteSpace(_reason) ? null : _reason.Trim(),
+                Note: null
             );
 
             await ExcusesApi.CreateExcuseAsync(request);

@@ -15,11 +15,14 @@
 
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
     <MudText Typo="Typo.h5">Tréningy</MudText>
-    <MudHidden Breakpoint="Breakpoint.SmAndDown">
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Rounded.Add" OnClick="OpenCreateDialog">
-            Pridať tréning
-        </MudButton>
-    </MudHidden>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Rounded.Add" OnClick="OpenCreateDialog">
+        Pridať tréning
+    </MudButton>
+</MudStack>
+
+<MudStack Row="true" Spacing="1" Class="mb-3">
+    <MudChip T="string" Variant="@(_listMode == "Week" ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick='() => ChangeListMode("Week")'>Týždeň</MudChip>
+    <MudChip T="string" Variant="@(_listMode == "Month" ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick='() => ChangeListMode("Month")'>Mesiac</MudChip>
 </MudStack>
 
 @if (_isLoading)
@@ -33,7 +36,7 @@ else if (!_trainings.Any())
 else
 {
     <MudStack Spacing="2">
-        @foreach (var training in _trainings)
+        @foreach (var training in VisibleTrainings)
         {
             <MudPaper Class="pa-3" Elevation="1">
                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
@@ -45,10 +48,24 @@ else
                             <MudText Typo="Typo.caption" Color="Color.Secondary">@training.Location</MudText>
                         }
                     </MudStack>
-                    <MudMenu Icon="@Icons.Material.Rounded.MoreVert">
-                        <MudMenuItem Icon="@Icons.Material.Rounded.Edit" OnClick="() => OpenEditDialog(training)">Upraviť</MudMenuItem>
-                        <MudMenuItem Icon="@Icons.Material.Rounded.Delete" IconColor="Color.Error" OnClick="() => OpenDeleteDialog(training)">Zrušiť tréning</MudMenuItem>
-                    </MudMenu>
+
+                    <MudHidden Breakpoint="Breakpoint.SmAndDown">
+                        <MudStack Row="true" Spacing="1">
+                            <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Rounded.Edit" OnClick="() => OpenEditDialog(training)">
+                                Upraviť
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Error" StartIcon="@Icons.Material.Rounded.Delete" OnClick="() => OpenDeleteDialog(training)">
+                                Zrušiť
+                            </MudButton>
+                        </MudStack>
+                    </MudHidden>
+
+                    <MudHidden Breakpoint="Breakpoint.MdAndUp">
+                        <MudMenu Icon="@Icons.Material.Rounded.MoreVert">
+                            <MudMenuItem Icon="@Icons.Material.Rounded.Edit" OnClick="() => OpenEditDialog(training)">Upraviť</MudMenuItem>
+                            <MudMenuItem Icon="@Icons.Material.Rounded.Delete" IconColor="Color.Error" OnClick="() => OpenDeleteDialog(training)">Zrušiť tréning</MudMenuItem>
+                        </MudMenu>
+                    </MudHidden>
                 </MudStack>
             </MudPaper>
         }
@@ -109,6 +126,7 @@ else
     private bool _isLoading = true;
     private Guid? _teamId;
     private List<TrainingEventDto> _trainings = [];
+    private string _listMode = "Week";
 
     private bool _editDialogVisible;
     private TrainingEventDto? _editingTraining;
@@ -125,6 +143,21 @@ else
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
+    }
+
+    private IEnumerable<TrainingEventDto> VisibleTrainings
+    {
+        get
+        {
+            var now = DateTime.Now;
+            var to = _listMode == "Week" ? now.AddDays(7) : now.AddMonths(1);
+            return _trainings.Where(t => t.StartTime >= now && t.StartTime <= to);
+        }
+    }
+
+    private void ChangeListMode(string mode)
+    {
+        _listMode = mode;
     }
 
     private async Task LoadData()

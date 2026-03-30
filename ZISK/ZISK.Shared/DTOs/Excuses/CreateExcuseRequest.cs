@@ -5,6 +5,6 @@ public record CreateExcuseRequest(
     Guid? TrainingEventId,
     DateTime? DateFrom,
     DateTime? DateTo,
-    string Reason,
+    string? Reason,
     string? Note
 );
