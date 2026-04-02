@@ -157,28 +157,7 @@
         </MudContainer>
     </MudMainContent>
 
-    @if (_isCoach)
-    {
-        <MudHidden Breakpoint="Breakpoint.MdAndUp">
-            <MudPaper Elevation="6" Class="pa-2 d-flex justify-space-around" Style="position: fixed; left: 0; right: 0; bottom: 0; z-index: 1200; border-top: 1px solid var(--mud-palette-lines-default);">
-                <MudIconButton Icon="@Icons.Material.Rounded.Home" Color="Color.Primary" Href="/coach" />
-                <MudIconButton Icon="@Icons.Material.Rounded.Event" Color="Color.Primary" Href="/coach/treningy" />
-                <MudIconButton Icon="@Icons.Material.Rounded.Groups" Color="Color.Primary" Href="/coach/tim" />
-                <MudIconButton Icon="@Icons.Material.Rounded.Announcement" Color="Color.Primary" Href="/coach/oznamy" />
-            </MudPaper>
-        </MudHidden>
-    }
 
-    @if (_isParentAthlete)
-    {
-        <MudHidden Breakpoint="Breakpoint.MdAndUp">
-            <MudPaper Elevation="6" Class="pa-2 d-flex justify-space-around" Style="position: fixed; left: 0; right: 0; bottom: 0; z-index: 1200; border-top: 1px solid var(--mud-palette-lines-default);">
-                <MudIconButton Icon="@Icons.Material.Rounded.Home" Color="Color.Primary" Href="/domov" />
-                <MudIconButton Icon="@Icons.Material.Rounded.Event" Color="Color.Primary" Href="/dochadzka/prehlad" />
-                <MudIconButton Icon="@Icons.Material.Rounded.Description" Color="Color.Primary" Href="/ospravedlnenky" />
-            </MudPaper>
-        </MudHidden>
-    }
     </MudLayout>
     </ChildContent>
     <ErrorContent>
@@ -198,9 +177,7 @@
     private bool _showContextSwitcher;
     private string _selectedContextKey = UserContextService.AllKey;
 
-    private string MainContentStyle => (_isCoach || _isParentAthlete)
-        ? "background: #F8FAFC; min-height: 100vh; padding-bottom: 90px;"
-        : "background: #F8FAFC; min-height: 100vh;";
+    private string MainContentStyle => "background: #F8FAFC; min-height: 100vh;";
 
     protected override async Task OnInitializedAsync()
     {

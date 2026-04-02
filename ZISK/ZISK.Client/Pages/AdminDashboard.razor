@@ -15,7 +15,7 @@
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
     <MudIcon Icon="@Icons.Material.Filled.Dashboard" Size="Size.Large" Color="Color.Primary" />
-    <MudText Typo="Typo.h4">Nástenka (Dashboard)</MudText>
+    <MudText Typo="Typo.h4">Nástenka</MudText>
     <MudSpacer />
     <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadDashboardData">
         Obnoviť dáta
@@ -28,82 +28,120 @@
 }
 else if (_dashboardStats != null)
 {
-    <MudGrid Class="mb-6">
-        <MudItem xs="12" sm="6" lg="3">
-            <MudPaper Class="pa-4 d-flex align-center cursor-pointer" Elevation="3" Style="border-left: 4px solid var(--mud-palette-info);" @onclick='() => NavigateTo("/admin/pouzivatelia")'>
-                <MudIcon Icon="@Icons.Material.Filled.PeopleAlt" Size="Size.Large" Color="Color.Info" Class="mr-4" />
-                <div>
-                    <MudText Typo="Typo.body1" Color="Color.Secondary">Celkový počet členov</MudText>
-                    <MudText Typo="Typo.h4">@_dashboardStats.TotalMembers</MudText>
-                </div>
-            </MudPaper>
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="2" Class="cursor-pointer" @onclick='() => NavigateTo("/admin/pouzivatelia")'>
+                <MudCardContent>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.body2" Color="Color.Default">Celkový počet členov</MudText>
+                            <MudText Typo="Typo.h4">@_dashboardStats.TotalMembers</MudText>
+                        </MudStack>
+                        <MudIcon Icon="@Icons.Material.Filled.PeopleAlt" Color="Color.Primary" Style="opacity: 0.35;" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
         </MudItem>
-        <MudItem xs="12" sm="6" lg="3">
-            <MudPaper Class="pa-4 d-flex align-center cursor-pointer" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);" @onclick='() => NavigateTo("/admin/timy")'>
-                <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Large" Color="Color.Primary" Class="mr-4" />
-                <div>
-                    <MudText Typo="Typo.body1" Color="Color.Secondary">Počet aktívnych tímov</MudText>
-                    <MudText Typo="Typo.h4">@_dashboardStats.ActiveTeams</MudText>
-                </div>
-            </MudPaper>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="2" Class="cursor-pointer" @onclick='() => NavigateTo("/admin/timy")'>
+                <MudCardContent>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.body2" Color="Color.Default">Počet aktívnych tímov</MudText>
+                            <MudText Typo="Typo.h4">@_dashboardStats.ActiveTeams</MudText>
+                        </MudStack>
+                        <MudIcon Icon="@Icons.Material.Filled.Groups" Color="Color.Success" Style="opacity: 0.35;" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
         </MudItem>
-        <MudItem xs="12" sm="6" lg="3">
-            <MudPaper Class="pa-4 d-flex align-center cursor-pointer" Elevation="3" Style="border-left: 4px solid var(--mud-palette-success);" @onclick='() => NavigateTo("/admin/pouzivatelia")'>
-                <MudIcon Icon="@Icons.Material.Filled.Sports" Size="Size.Large" Color="Color.Success" Class="mr-4" />
-                <div>
-                    <MudText Typo="Typo.body1" Color="Color.Secondary">Počet trénerov</MudText>
-                    <MudText Typo="Typo.h4">@_coachCount</MudText>
-                </div>
-            </MudPaper>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="2" Class="cursor-pointer" @onclick='() => NavigateTo("/admin/pouzivatelia")'>
+                <MudCardContent>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.body2" Color="Color.Default">Počet trénerov</MudText>
+                            <MudText Typo="Typo.h4">@_coachCount</MudText>
+                        </MudStack>
+                        <MudIcon Icon="@Icons.Material.Filled.Sports" Color="Color.Info" Style="opacity: 0.35;" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
         </MudItem>
-        <MudItem xs="12" sm="6" lg="3">
-            <MudPaper Class="pa-4 d-flex align-center cursor-pointer" Elevation="3" Style="border-left: 4px solid var(--mud-palette-success);" @onclick='() => NavigateTo("/admin/pouzivatelia")'>
-                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" Color="Color.Secondary" Class="mr-4" />
-                <div>
-                    <MudText Typo="Typo.body1" Color="Color.Secondary">Používateľské účty</MudText>
-                    <MudText Typo="Typo.h4">@_dashboardStats.TotalUsers</MudText>
-                </div>
-            </MudPaper>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="2" Class="cursor-pointer" @onclick='() => NavigateTo("/admin/pouzivatelia")'>
+                <MudCardContent>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.body2" Color="Color.Default">Používateľské účty</MudText>
+                            <MudText Typo="Typo.h4">@_dashboardStats.TotalUsers</MudText>
+                        </MudStack>
+                        <MudIcon Icon="@Icons.Material.Filled.Person" Color="Color.Secondary" Style="opacity: 0.35;" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
         </MudItem>
     </MudGrid>
 
     <MudGrid>
         <MudItem xs="12" md="7">
-            <MudPaper Class="pa-5" Elevation="3" Style="height: 100%;">
+            <MudPaper Class="pa-5" Elevation="2" Style="height: 100%;">
                 <MudText Typo="Typo.h6" Class="mb-4">Posledná aktivita v systéme</MudText>
 
-                <MudTable Items="_latestUsers" Dense="true" Hover="true" Elevation="0">
-                    <HeaderContent>
-                        <MudTh>Používateľ</MudTh>
-                        <MudTh>Rola</MudTh>
-                        <MudTh>Dátum registrácie</MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd>@context.FirstName @context.LastName</MudTd>
-                        <MudTd>@GetRoleText(context.Role)</MudTd>
-                        <MudTd>@context.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
-                    </RowTemplate>
-                    <NoRecordsContent>
+                <MudHidden Breakpoint="Breakpoint.SmAndDown">
+                    <MudTable Items="_latestUsers" Dense="true" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Používateľ</MudTh>
+                            <MudTh>Rola</MudTh>
+                            <MudTh>Dátum registrácie</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.FirstName @context.LastName</MudTd>
+                            <MudTd>@GetRoleText(context.Role)</MudTd>
+                            <MudTd>@context.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Zatiaľ nie je dostupná žiadna aktivita.</MudText>
+                        </NoRecordsContent>
+                    </MudTable>
+                </MudHidden>
+
+                <MudHidden Breakpoint="Breakpoint.MdAndUp">
+                    @if (!_latestUsers.Any())
+                    {
                         <MudText Typo="Typo.body2" Color="Color.Secondary">Zatiaľ nie je dostupná žiadna aktivita.</MudText>
-                    </NoRecordsContent>
-                </MudTable>
+                    }
+                    else
+                    {
+                        <MudStack Spacing="2">
+                            @foreach (var user in _latestUsers)
+                            {
+                                <MudPaper Class="pa-3" Elevation="1">
+                                    <MudText Typo="Typo.subtitle2">@user.FirstName @user.LastName</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@GetRoleText(user.Role)</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@user.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
+                                </MudPaper>
+                            }
+                        </MudStack>
+                    }
+                </MudHidden>
             </MudPaper>
         </MudItem>
-        
+
         <MudItem xs="12" md="5">
-            <MudPaper Class="pa-5" Elevation="3" Style="height: 100%;">
-                <MudText Typo="Typo.h6" Class="mb-4">Rýchle akcie</MudText>
-                <MudStack Spacing="3">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" FullWidth="true" Href="/admin/pouzivatelia" Style="justify-content: flex-start; padding: 12px;">
+            <MudPaper Class="pa-5" Elevation="2" Style="height: 100%;">
+                <MudText Typo="Typo.h6" Class="mb-2">Rýchle akcie</MudText>
+                <MudList T="string" Dense="true" Clickable="true">
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.PersonAdd" OnClick='() => NavigateTo("/admin/pouzivatelia")'>
                         Pridať používateľa
-                    </MudButton>
-                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.GroupAdd" FullWidth="true" Href="/admin/timy" Style="justify-content: flex-start; padding: 12px;">
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.GroupAdd" OnClick='() => NavigateTo("/admin/timy")'>
                         Vytvoriť nový tím
-                    </MudButton>
-                    <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.Announcement" FullWidth="true" Href="/admin/systemove-oznamy" Style="justify-content: flex-start; padding: 12px;">
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Campaign" OnClick='() => NavigateTo("/admin/systemove-oznamy")'>
                         Zverejniť globálny oznam
-                    </MudButton>
-                </MudStack>
+                    </MudListItem>
+                </MudList>
             </MudPaper>
         </MudItem>
     </MudGrid>

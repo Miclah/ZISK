@@ -33,29 +33,55 @@ else if (!_announcements.Any())
 }
 else
 {
-    <MudTable Items="_announcements" Hover="true" Dense="true" Elevation="2">
-        <HeaderContent>
-            <MudTh>Názov</MudTh>
-            <MudTh>Dátum</MudTh>
-            <MudTh>Autor</MudTh>
-            <MudTh>Cieľ</MudTh>
-            <MudTh Style="text-align:right">Akcie</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd>
-                <MudStack Spacing="0">
-                    <MudText Typo="Typo.body1">@context.Title</MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContentPreview</MudText>
-                </MudStack>
-            </MudTd>
-            <MudTd>@context.PublishDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
-            <MudTd>@context.AuthorName</MudTd>
-            <MudTd>@(string.IsNullOrWhiteSpace(context.TargetTeamName) ? "Celý klub" : context.TargetTeamName)</MudTd>
-            <MudTd Style="text-align:right">
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => ConfirmDelete(context))" />
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
+    <div class="d-none d-lg-block">
+        <MudTable Items="_announcements" Hover="true" Dense="true" Elevation="2">
+            <HeaderContent>
+                <MudTh>Názov</MudTh>
+                <MudTh>Dátum</MudTh>
+                <MudTh>Autor</MudTh>
+                <MudTh>Cieľ</MudTh>
+                <MudTh Style="text-align:right">Akcie</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.body1">@context.Title</MudText>
+                        <MudText Typo="Typo.caption" Class="text-muted">@context.ContentPreview</MudText>
+                    </MudStack>
+                </MudTd>
+                <MudTd>@context.PublishDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+                <MudTd>@context.AuthorName</MudTd>
+                <MudTd>@(string.IsNullOrWhiteSpace(context.TargetTeamName) ? "Celý klub" : context.TargetTeamName)</MudTd>
+                <MudTd Style="text-align:right">
+                    <button type="button" class="btn btn-sm btn-outline-danger ms-2" @onclick="() => ConfirmDelete(context)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </div>
+
+    <div class="d-block d-lg-none">
+        @foreach (var announcement in _announcements)
+        {
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h6 class="card-title mb-1">@announcement.Title</h6>
+                    <p class="card-text text-muted mb-2">@announcement.ContentPreview</p>
+                    <div class="small text-muted mb-3">
+                        <div>@announcement.PublishDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
+                        <div>@announcement.AuthorName</div>
+                        <div>@(string.IsNullOrWhiteSpace(announcement.TargetTeamName) ? "Celý klub" : announcement.TargetTeamName)</div>
+                    </div>
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-sm btn-outline-danger ms-2" @onclick="() => ConfirmDelete(announcement)">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
 }
 
 <MudDialog @bind-Visible="_createDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
@@ -137,7 +163,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Nepodarilo sa načítať oznamy: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Nepodarilo sa načítať oznamy: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -192,7 +218,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri ukladaní oznamu: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Chyba pri ukladaní oznamu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -220,7 +246,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri mazaní oznamu: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Chyba pri mazaní oznamu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 }
