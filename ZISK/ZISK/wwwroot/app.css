@@ -1,16 +1,48 @@
 html, body {
     margin: 0;
     padding: 0;
-    min-width: 360px;
     min-height: 100vh;
 }
 
 body {
-    overflow-x: auto;
+    overflow-x: hidden;
 }
 
-@media (max-width: 359px) {
-    body {
-        min-width: 320px;
-    }
+#app {
+    width: 100%;
+    max-width: 100%;
+}
+
+.mud-snackbar {
+    max-width: min(92vw, 560px) !important;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.admin-team-card {
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.admin-team-card:hover {
+    box-shadow: var(--mud-elevation-4);
+    transform: translateY(-2px);
+}
+
+.hover-effect {
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.hover-effect:hover {
+    box-shadow: var(--mud-elevation-4);
+    transform: translateY(-2px);
+}
+
+.profile-data-grid dt,
+.profile-data-grid dd {
+    margin-bottom: 0.75rem;
+}
+
+.profile-data-grid dt:last-of-type,
+.profile-data-grid dd:last-of-type {
+    margin-bottom: 0;
 }
