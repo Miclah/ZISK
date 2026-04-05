@@ -34,50 +34,46 @@ else if (_error != null)
 }
 else
 {
-    <MudGrid>
+    <MudGrid Spacing="3">
         @foreach (var team in _teams)
         {
             <MudItem xs="12" sm="6" md="4">
-                <MudCard Elevation="3" Style="height: 100%; border-top: 4px solid var(--mud-palette-primary); border-radius: 8px;">
+                <MudCard Elevation="2" Class="rounded-lg hover-effect" Style="height: 100%; border-top: 4px solid var(--mud-palette-primary);">
                     <MudCardHeader>
                         <CardHeaderContent>
-                            <MudText Typo="Typo.h6" Style="font-weight: 600;">@team.Name</MudText>
-                            @if (!string.IsNullOrEmpty(team.ShortName))
-                            {
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">Skratka: @team.ShortName</MudText>
-                            }
+                            <MudText Typo="Typo.h6">@team.Name</MudText>
                         </CardHeaderContent>
                         <CardHeaderActions>
-                            <MudMenu Icon="@Icons.Material.Filled.MoreVert" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
-                                <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="() => OpenEditDialog(team)">Upraviť názov</MudMenuItem>
-                                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="() => DeleteTeam(team)">Zmazať tím</MudMenuItem>
-                            </MudMenu>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                @if (!string.IsNullOrWhiteSpace(team.ShortName))
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Dark" Class="ml-auto">@team.ShortName</MudChip>
+                                }
+                                <MudMenu Icon="@Icons.Material.Filled.MoreVert" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                                    <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="() => OpenEditDialog(team)">Upraviť názov</MudMenuItem>
+                                    <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="() => DeleteTeam(team)">Zmazať tím</MudMenuItem>
+                                </MudMenu>
+                            </MudStack>
                         </CardHeaderActions>
                     </MudCardHeader>
                     <MudCardContent>
-                        <MudStack Spacing="2">
-                            <MudStack Row="true" AlignItems="AlignItems.Center">
-                                <MudIcon Icon="@Icons.Material.Filled.PersonOutline" Size="Size.Small" Color="Color.Secondary" />
-                                <MudText Typo="Typo.body2">
-                                    Tréneri: 
-                                    @(GetCoachNamesForTeam(team.Id))
-                                </MudText>
-                            </MudStack>
-                            <MudStack Row="true" AlignItems="AlignItems.Center">
-                                <MudIcon Icon="@Icons.Material.Filled.PeopleOutline" Size="Size.Small" Color="Color.Secondary" />
-                                <MudText Typo="Typo.body2">
-                                    Členovia: @team.MemberCount
-                                </MudText>
-                            </MudStack>
-                            @if (!string.IsNullOrEmpty(team.Description))
-                            {
-                                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2" Style="font-style: italic;">
-                                    @team.Description
-                                </MudText>
-                            }
-                        </MudStack>
+                        <div class="d-flex align-center mb-1">
+                            <MudIcon Icon="@Icons.Material.Filled.Sports" Size="Size.Small" Class="mr-2 text-muted" />
+                            <MudText Typo="Typo.body2">Tréneri: @(GetCoachNamesForTeam(team.Id))</MudText>
+                        </div>
+                        <div class="d-flex align-center mb-1">
+                            <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" Class="mr-2 text-muted" />
+                            <MudText Typo="Typo.body2">Členovia: @team.MemberCount</MudText>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(team.Description))
+                        {
+                            <div class="d-flex align-start mt-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Class="mr-2 mt-1" Color="Color.Secondary" />
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@team.Description</MudText>
+                            </div>
+                        }
                     </MudCardContent>
-                    <MudCardActions Class="d-flex justify-end p-2" Style="border-top: 1px solid var(--mud-palette-background-grey);">
+                    <MudCardActions Class="justify-end">
                         <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="() => OpenRosterDialog(team.Id)">
                             Spravovať súpisku
                         </MudButton>

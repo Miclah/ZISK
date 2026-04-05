@@ -139,7 +139,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní tímov: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Chyba pri načítaní tímov: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 
@@ -243,7 +243,7 @@
                     }
                     catch (Exception ex)
                     {
-                        Snackbar.Add($"Chyba pri nahrávaní {file.Name}: {ex.Message}", Severity.Warning);
+                        Snackbar.Add($"Chyba pri nahrávaní {file.Name}: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Warning);
                     }
                 }
             }
@@ -253,7 +253,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
