@@ -20,52 +20,69 @@
 }
 else
 {
-    <MudPaper Class="pa-4 mb-4" Elevation="2">
-        <MudStack Spacing="2">
-            <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Najbližší tréning</MudText>
+    <MudCard Elevation="2" Class="mb-4">
+        <MudCardContent>
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Najbližší tréning</MudText>
 
-            @if (_nextTraining is null)
+                @if (_nextTraining is null)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true">Nemáte naplánovaný žiadny nadchádzajúci tréning.</MudAlert>
+                }
+                else
+                {
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.body1">@_nextTraining.Title</MudText>
+                        <MudText Typo="Typo.body1" Color="Color.Primary" Class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small" Class="mr-2" />
+                            @_nextTraining.StartTime.ToString("dd.MM.yyyy HH:mm") - @_nextTraining.EndTime.ToString("HH:mm")
+                        </MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Default" Class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Place" Size="Size.Small" Class="mr-2" />
+                            Miesto: @(_nextTraining.Location ?? "Neuvedené")
+                        </MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Default" Class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" Class="mr-2" />
+                            @_memberCount hráčov, @_excusedCount ospravedlnení
+                        </MudText>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-3"
+                                   StartIcon="@Icons.Material.Rounded.ChevronRight"
+                                   OnClick='() => NavigationManager.NavigateTo($"/coach/treningy/{_nextTraining!.Id}")'>
+                            Prejsť na tréning
+                        </MudButton>
+                    </MudStack>
+                }
+            </MudStack>
+        </MudCardContent>
+    </MudCard>
+
+    <MudCard Elevation="2">
+        <MudCardContent>
+            <MudText Typo="Typo.subtitle1" Style="font-weight:600;" Class="mb-2">Nové ospravedlnenky</MudText>
+
+            @if (!_recentExcuses.Any())
             {
-                <MudAlert Severity="Severity.Info" Dense="true">Nemáte naplánovaný žiadny nadchádzajúci tréning.</MudAlert>
+                <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Class="py-6" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircleOutline" Size="Size.Large" Color="Color.Default" />
+                    <MudText Typo="Typo.body1" Color="Color.Default">Aktuálne nemáte žiadne nové ospravedlnenky.</MudText>
+                </MudStack>
             }
             else
             {
-                <MudStack Spacing="1">
-                    <MudText Typo="Typo.body1">@_nextTraining.Title</MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">@_nextTraining.StartTime.ToString("dd.MM.yyyy HH:mm") - @_nextTraining.EndTime.ToString("HH:mm")</MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Miesto: @(_nextTraining.Location ?? "Neuvedené")</MudText>
-                    <MudText Typo="Typo.body2">@_memberCount hráčov, @_excusedCount ospravedlnení</MudText>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Rounded.ChevronRight"
-                               OnClick='() => NavigationManager.NavigateTo($"/coach/treningy/{_nextTraining!.Id}")'>
-                        Prejsť na tréning
-                    </MudButton>
-                </MudStack>
+                <MudList T="ExcuseListDto" Dense="true">
+                    @foreach (var excuse in _recentExcuses)
+                    {
+                        <MudListItem T="ExcuseListDto">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body2">@excuse.ChildName</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@((excuse.DateFrom ?? excuse.CreatedAt).ToString("dd.MM.yyyy")) • @excuse.Reason</MudText>
+                            </MudStack>
+                        </MudListItem>
+                    }
+                </MudList>
             }
-        </MudStack>
-    </MudPaper>
-
-    <MudPaper Class="pa-4" Elevation="2">
-        <MudText Typo="Typo.subtitle1" Style="font-weight:600;" Class="mb-2">Nové ospravedlnenky</MudText>
-
-        @if (!_recentExcuses.Any())
-        {
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne nové ospravedlnenky.</MudText>
-        }
-        else
-        {
-            <MudList T="ExcuseListDto" Dense="true">
-                @foreach (var excuse in _recentExcuses)
-                {
-                    <MudListItem T="ExcuseListDto">
-                        <MudStack Spacing="0">
-                            <MudText Typo="Typo.body2">@excuse.ChildName</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">@((excuse.DateFrom ?? excuse.CreatedAt).ToString("dd.MM.yyyy")) • @excuse.Reason</MudText>
-                        </MudStack>
-                    </MudListItem>
-                }
-            </MudList>
-        }
-    </MudPaper>
+        </MudCardContent>
+    </MudCard>
 }
 
 @code {

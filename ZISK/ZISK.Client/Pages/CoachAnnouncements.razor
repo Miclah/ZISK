@@ -28,10 +28,10 @@ else
     <MudStack Spacing="2">
         @foreach (var ann in _announcements)
         {
-            <MudPaper Class="pa-3" Elevation="1">
-                <MudText Typo="Typo.subtitle2">@ann.Title</MudText>
-                <MudText Typo="Typo.body2">@ann.ContentPreview</MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">@ann.PublishDate.ToString("dd.MM.yyyy HH:mm")</MudText>
+            <MudPaper Elevation="1" Class="pa-4 mb-3">
+                <MudText Typo="Typo.caption" Class="text-muted mb-2">@ann.PublishDate.ToString("dd.MM.yyyy HH:mm")</MudText>
+                <MudText Typo="Typo.h6">@ann.Title</MudText>
+                <MudText Typo="Typo.body1">@ann.ContentPreview</MudText>
             </MudPaper>
         }
     </MudStack>
@@ -81,7 +81,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní oznamov: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Chyba pri načítaní oznamov: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -117,7 +117,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri ukladaní oznamu: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Chyba pri ukladaní oznamu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 }

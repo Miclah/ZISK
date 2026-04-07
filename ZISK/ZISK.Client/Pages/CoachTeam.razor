@@ -11,7 +11,7 @@
 
 <MudText Typo="Typo.h5" Class="mb-3">Môj tím a ospravedlnenky</MudText>
 
-<MudTabs Rounded="true" Elevation="1">
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
     <MudTabPanel Text="Súpiska">
         @if (_isLoading)
         {
@@ -23,13 +23,20 @@
         }
         else
         {
-            <MudList T="TeamMemberDto" Dense="true">
+            <MudList T="TeamMemberDto" Dense="true" Clickable="true">
                 @foreach (var member in _members.OrderBy(m => m.LastName).ThenBy(m => m.FirstName))
                 {
                     <MudListItem T="TeamMemberDto" OnClick="() => OpenMemberDetail(member)">
-                        <MudStack Row="true" Justify="Justify.SpaceBetween" Style="width:100%">
-                            <MudText Typo="Typo.body2">@member.FirstName @member.LastName</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">@member.DateOfBirth.ToString("dd.MM.yyyy")</MudText>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width:100%">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudAvatar Color="Color.Primary" Variant="Variant.Filled">
+                                    @GetInitials(member.FirstName, member.LastName)
+                                </MudAvatar>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body1">@member.FirstName @member.LastName</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@member.DateOfBirth.ToString("dd.MM.yyyy")</MudText>
+                                </MudStack>
+                            </MudStack>
                         </MudStack>
                     </MudListItem>
                 }
@@ -48,13 +55,14 @@
         }
         else
         {
-            <MudList T="ExcuseListDto" Dense="true">
+            <MudList T="ExcuseListDto" Dense="true" Clickable="true">
                 @foreach (var excuse in _excuses.OrderByDescending(e => e.CreatedAt))
                 {
-                    <MudListItem T="ExcuseListDto" OnClick="() => OpenExcuseDetail(excuse)">
+                    <MudListItem T="ExcuseListDto" AvatarIcon="@Icons.Material.Filled.EventBusy" AvatarColor="Color.Warning"
+                                 OnClick="() => OpenExcuseDetail(excuse)">
                         <MudStack Spacing="0" Style="width:100%">
-                            <MudText Typo="Typo.body2">@excuse.ChildName</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">@((excuse.DateFrom ?? excuse.CreatedAt).ToString("dd.MM.yyyy")) • @excuse.Reason</MudText>
+                            <MudText Typo="Typo.subtitle2">@excuse.ChildName</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@((excuse.DateFrom ?? excuse.CreatedAt).ToString("dd.MM.yyyy")) • @excuse.Reason</MudText>
                         </MudStack>
                     </MudListItem>
                 }
@@ -162,5 +170,12 @@
     {
         _selectedExcuse = excuse;
         _excuseDialogVisible = true;
+    }
+
+    private static string GetInitials(string firstName, string lastName)
+    {
+        var first = string.IsNullOrWhiteSpace(firstName) ? "?" : firstName.Trim()[0].ToString().ToUpperInvariant();
+        var last = string.IsNullOrWhiteSpace(lastName) ? string.Empty : lastName.Trim()[0].ToString().ToUpperInvariant();
+        return $"{first}{last}";
     }
 }

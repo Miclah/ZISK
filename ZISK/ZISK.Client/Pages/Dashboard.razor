@@ -14,60 +14,70 @@
 
 <PageTitle>Nástenka</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Nástenka</MudText>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Nástenka</MudText>
 
-@if (_isLoading)
-{
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
-}
-else
-{
-    <MudPaper Class="pa-4 mb-4" Elevation="2">
-        <MudText Typo="Typo.h6" Class="mb-2">Najbližšie udalosti</MudText>
-
-        @if (_nextEvent?.Training is null)
-        {
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadna nadchádzajúca udalosť.</MudText>
-        }
-        else
-        {
-            var training = _nextEvent.Training;
-            <MudStack Spacing="1">
-                <MudText Typo="Typo.body1" Style="font-weight:600;">@training.Title</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">@training.StartTime.ToString("dd.MM.yyyy HH:mm") - @training.EndTime.ToString("HH:mm")</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">Miesto: @(training.Location ?? "Neuvedené")</MudText>
-                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="mt-1">Pre: @_nextEvent.ForName</MudChip>
-            </MudStack>
-        }
-    </MudPaper>
-
-    <MudText Typo="Typo.h6" Class="mb-3">Oznamy</MudText>
-
-    @if (!_announcements.Any())
+    @if (_isLoading)
     {
-        <MudPaper Class="pa-4" Elevation="1">
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne nové oznamy.</MudText>
-        </MudPaper>
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
     }
     else
     {
-        <MudStack Spacing="2">
-            @foreach (var announcement in _announcements)
-            {
-                <MudPaper Class="pa-3" Elevation="1" Style="@GetAnnouncementStyle(announcement)">
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
-                        <MudStack Spacing="0">
-                            <MudText Typo="Typo.subtitle2">@announcement.Title</MudText>
-                            <MudText Typo="Typo.body2">@announcement.ContentPreview</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">@announcement.PublishDate.ToString("dd.MM.yyyy HH:mm")</MudText>
-                        </MudStack>
-                        <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(announcement.Priority)">@GetPriorityText(announcement.Priority)</MudChip>
+        <MudCard Elevation="2" Class="mb-4">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Class="mb-2">Najbližšie udalosti</MudText>
+
+                @if (_nextEvent?.Training is null)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Default">Žiadna nadchádzajúca udalosť.</MudText>
+                }
+                else
+                {
+                    var training = _nextEvent.Training;
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.body1" Style="font-weight:600;">@training.Title</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Default">@training.StartTime.ToString("dd.MM.yyyy HH:mm") - @training.EndTime.ToString("HH:mm")</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Default">Miesto: @(training.Location ?? "Neuvedené")</MudText>
+                        <MudChip T="string" Icon="@Icons.Material.Filled.Person" Size="Size.Small" Color="Color.Info" Class="ml-auto">
+                            Pre: @_nextEvent.ForName
+                        </MudChip>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-2"
+                                   OnClick='() => NavigationManager.NavigateTo("/rozvrh")'>
+                            Zobraziť rozvrh
+                        </MudButton>
                     </MudStack>
-                </MudPaper>
-            }
-        </MudStack>
+                }
+            </MudCardContent>
+        </MudCard>
+
+        <MudText Typo="Typo.h6" Class="mb-3">Oznamy</MudText>
+
+        @if (!_announcements.Any())
+        {
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.body2" Color="Color.Default">Žiadne nové oznamy.</MudText>
+            </MudPaper>
+        }
+        else
+        {
+            <MudStack Spacing="2">
+                @foreach (var announcement in _announcements)
+                {
+                    <MudPaper Class="pa-3" Elevation="1" Style="@GetAnnouncementStyle(announcement)">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.subtitle2">@announcement.Title</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Default">@announcement.ContentPreview</MudText>
+                                <MudText Typo="Typo.caption" Class="text-muted">@announcement.PublishDate.ToString("dd.MM.yyyy HH:mm")</MudText>
+                            </MudStack>
+                            <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(announcement.Priority)">@GetPriorityText(announcement.Priority)</MudChip>
+                        </MudStack>
+                    </MudPaper>
+                }
+            </MudStack>
+        }
     }
-}
+</MudContainer>
 
 @code {
     private record ContextTraining(TrainingEventDto? Training, string ForName, Guid? TeamId);
