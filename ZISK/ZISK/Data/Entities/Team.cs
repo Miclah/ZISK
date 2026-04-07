@@ -22,5 +22,6 @@ namespace ZISK.Data.Entities
 
         public ICollection<ChildProfile> Members { get; set; } = [];
         public ICollection<TrainingEvent> TrainingEvents { get; set; } = [];
+        public ICollection<CoachTeam> Coaches { get; set; } = [];
     }
 }

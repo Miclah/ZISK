@@ -80,6 +80,7 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ITeamAccessService, TeamAccessService>();
 builder.Services.AddScoped<UserContextService>();
 builder.Services.AddScoped<DatabaseInitializer>();
+builder.Services.AddScoped<UsernameGenerator>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<ForwardAuthHeaderHandler>();
 

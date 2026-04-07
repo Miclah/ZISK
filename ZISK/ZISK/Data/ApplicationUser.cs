@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
+using ZISK.Data.Entities;
 
 namespace ZISK.Data
-{ 
+{
     public class ApplicationUser : IdentityUser
     {
         [Required]
@@ -12,6 +13,9 @@ namespace ZISK.Data
         [Required]
         [MaxLength(100)]
         public string LastName { get; set; } = string.Empty;
+
+        [MaxLength(20)]
+        public override string? PhoneNumber { get; set; }
 
         [MaxLength(20)]
         public string? RodneCislo { get; set; }
@@ -25,5 +29,6 @@ namespace ZISK.Data
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public ICollection<ParentChild> Children { get; set; } = [];
+        public ICollection<CoachTeam> CoachTeams { get; set; } = [];
     }
 }

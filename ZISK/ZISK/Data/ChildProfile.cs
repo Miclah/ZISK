@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using ZISK.Data.Entities;
 
@@ -26,6 +26,11 @@ namespace ZISK.Data
 
         [MaxLength(100)]
         public string? Email { get; set; }
+
+        public string? UserId { get; set; }
+
+        [ForeignKey(nameof(UserId))]
+        public ApplicationUser? User { get; set; }
 
         public bool IsActive { get; set; } = true;
 
