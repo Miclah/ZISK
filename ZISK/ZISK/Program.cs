@@ -2,11 +2,10 @@
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
-using Refit;
-using ZISK.Client.Services;
 using ZISK.Components;
 using ZISK.Components.Account;
 using ZISK.Data;
+using ZISK.Extensions;
 using ZISK.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -78,43 +77,14 @@ builder.Services.AddTransient<IEmailSender<ApplicationUser>, SmtpEmailSender>();
 builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ITeamAccessService, TeamAccessService>();
-builder.Services.AddScoped<UserContextService>();
 builder.Services.AddScoped<DatabaseInitializer>();
 builder.Services.AddScoped<UsernameGenerator>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<ForwardAuthHeaderHandler>();
 
 builder.Services.AddMudServices();
-
-var baseAddressString = builder.Configuration["ApiBaseAddress"] ?? "http://localhost:5224";
-var baseAddress = new Uri(baseAddressString);
-builder.Services.AddRefitClient<IExcusesApi>()
-    .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
-builder.Services.AddRefitClient<IAttendanceApi>()
-    .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
-builder.Services.AddRefitClient<ITrainingsApi>()
-    .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
-builder.Services.AddRefitClient<ITeamsApi>()
-    .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
-builder.Services.AddRefitClient<IAnnouncementsApi>()
-    .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
-builder.Services.AddRefitClient<IDocumentsApi>()
-    .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
-builder.Services.AddRefitClient<IChildrenApi>()
-    .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
-builder.Services.AddRefitClient<IUsersApi>()
-    .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
-builder.Services.AddRefitClient<IStatsApi>()
-    .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
+builder.Services.AddApplicationServices();
+builder.Services.AddRefitClients(builder.Configuration);
 
 var app = builder.Build();
 

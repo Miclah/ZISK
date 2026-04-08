@@ -1,8 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using ZISK.Data;
-using ZISK.Data.Entities;
+using ZISK.Services;
 using ZISK.Shared.DTOs.Documents;
 using DocumentCategory = ZISK.Shared.Enums.DocumentCategory;
 
@@ -13,199 +11,90 @@ namespace ZISK.Controllers;
 [Authorize]
 public class DocumentsController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IDocumentService _documentService;
     private readonly IWebHostEnvironment _environment;
 
-    public DocumentsController(ApplicationDbContext context, IWebHostEnvironment environment)
+    public DocumentsController(IDocumentService documentService, IWebHostEnvironment environment)
     {
-        _context = context;
+        _documentService = documentService;
         _environment = environment;
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<DocumentDto>>> GetDocuments(
-        [FromQuery] DocumentCategory? category = null)
+    public async Task<ActionResult<List<DocumentDto>>> GetDocuments([FromQuery] DocumentCategory? category = null)
     {
-        var query = _context.Documents.AsNoTracking();
-
-        if (category.HasValue)
-        {
-            var dbCategory = (Data.Entities.DocumentCategory)(int)category.Value;
-            query = query.Where(d => d.Category == dbCategory);
-        }
-
-        // TODO: Filter podľa role používateľa
-
-        var documents = await query
-            .OrderByDescending(d => d.UploadedAt)
-            .Select(d => new DocumentDto(
-                d.Id,
-                d.Title,
-                d.FilePath,
-                (DocumentCategory)(int)d.Category,
-                d.TargetRoleId,
-                d.UploadedAt
-            ))
-            .ToListAsync();
-
-        return Ok(documents);
+        var result = await _documentService.GetDocumentsAsync(category);
+        return Ok(result);
     }
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<DocumentDto>> GetDocument(Guid id)
     {
-        var document = await _context.Documents
-            .AsNoTracking()
-            .FirstOrDefaultAsync(d => d.Id == id);
-
-        if (document == null)
-            return NotFound();
-
-        return Ok(new DocumentDto(
-            document.Id,
-            document.Title,
-            document.FilePath,
-            (DocumentCategory)(int)document.Category,
-            document.TargetRoleId,
-            document.UploadedAt
-        ));
+        try
+        {
+            var result = await _documentService.GetDocumentAsync(id);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException) { return NotFound(); }
     }
 
     [HttpPost]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<DocumentDto>> CreateDocument([FromBody] CreateDocumentRequest request)
     {
-        var document = new Document
-        {
-            Id = Guid.NewGuid(),
-            Title = request.Title,
-            FilePath = string.Empty, 
-            Category = (Data.Entities.DocumentCategory)(int)request.Category,
-            TargetRoleId = request.TargetRoleId,
-            UploadedAt = DateTime.UtcNow
-        };
-
-        _context.Documents.Add(document);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetDocument), new { id = document.Id }, new DocumentDto(
-            document.Id,
-            document.Title,
-            document.FilePath,
-            (DocumentCategory)(int)document.Category,
-            document.TargetRoleId,
-            document.UploadedAt
-        ));
+        var result = await _documentService.CreateDocumentAsync(request);
+        return CreatedAtAction(nameof(GetDocument), new { id = result.Id }, result);
     }
 
     [HttpPost("{id:guid}/upload")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UploadFile(Guid id, IFormFile file)
     {
-        var document = await _context.Documents.FindAsync(id);
-        if (document == null)
-            return NotFound();
-
-        if (file == null || file.Length == 0)
-            return BadRequest("Súbor je prázdny");
-
-        var allowedExtensions = new[] { ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".jpg", ".png" };
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        
-        if (!allowedExtensions.Contains(extension))
-            return BadRequest("Nepodporovaný typ súboru");
-
-        var uploadsFolder = Path.Combine(_environment.WebRootPath ?? "wwwroot", "uploads", "documents");
-        Directory.CreateDirectory(uploadsFolder);
-
-        var uniqueFileName = $"{Guid.NewGuid()}{extension}";
-        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-        using (var stream = new FileStream(filePath, FileMode.Create))
+        try
         {
-            await file.CopyToAsync(stream);
+            var filePath = await _documentService.UploadFileAsync(id, file);
+            return Ok(new { filePath });
         }
-
-        document.FilePath = $"/uploads/documents/{uniqueFileName}";
-        await _context.SaveChangesAsync();
-
-        return Ok(new { filePath = document.FilePath });
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
     }
 
     [HttpPut("{id:guid}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateDocument(Guid id, [FromBody] UpdateDocumentRequest request)
     {
-        var document = await _context.Documents.FindAsync(id);
-        if (document == null)
-            return NotFound();
-
-        document.Title = request.Title;
-        document.Category = (Data.Entities.DocumentCategory)(int)request.Category;
-        document.TargetRoleId = request.TargetRoleId;
-
-        await _context.SaveChangesAsync();
-
-        return NoContent();
+        try
+        {
+            await _documentService.UpdateDocumentAsync(id, request);
+            return NoContent();
+        }
+        catch (KeyNotFoundException) { return NotFound(); }
     }
 
     [HttpDelete("{id:guid}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteDocument(Guid id)
     {
-        var document = await _context.Documents.FindAsync(id);
-        if (document == null)
-            return NotFound();
-
-        if (!string.IsNullOrEmpty(document.FilePath))
+        try
         {
-            var fullPath = Path.Combine(_environment.WebRootPath ?? "wwwroot", document.FilePath.TrimStart('/'));
-            if (System.IO.File.Exists(fullPath))
-            {
-                System.IO.File.Delete(fullPath);
-            }
+            await _documentService.DeleteDocumentAsync(id);
+            return NoContent();
         }
-
-        _context.Documents.Remove(document);
-        await _context.SaveChangesAsync();
-
-        return NoContent();
+        catch (KeyNotFoundException) { return NotFound(); }
     }
 
     [HttpGet("{id:guid}/download")]
     public async Task<IActionResult> DownloadDocument(Guid id)
     {
-        var document = await _context.Documents.FindAsync(id);
-        if (document == null)
-            return NotFound();
-
-        if (string.IsNullOrEmpty(document.FilePath))
-            return BadRequest("Dokument nemá priradený súbor");
-
-        var fullPath = Path.Combine(_environment.WebRootPath ?? "wwwroot", document.FilePath.TrimStart('/'));
-        if (!System.IO.File.Exists(fullPath))
-            return NotFound("Súbor neexistuje");
-
-        var contentType = GetContentType(document.FilePath);
-        var fileName = Path.GetFileName(document.FilePath);
-
-        return PhysicalFile(fullPath, contentType, fileName);
-    }
-
-    // AI
-    private static string GetContentType(string filePath)
-    {
-        var extension = Path.GetExtension(filePath).ToLowerInvariant();
-        return extension switch
+        try
         {
-            ".pdf" => "application/pdf",
-            ".doc" => "application/msword",
-            ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            ".xls" => "application/vnd.ms-excel",
-            ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".png" => "image/png",
-            _ => "application/octet-stream"
-        };
+            var (relativePath, contentType, fileName) = await _documentService.GetDocumentFileAsync(id);
+            var fullPath = Path.Combine(_environment.WebRootPath ?? "wwwroot", relativePath.TrimStart('/'));
+            if (!System.IO.File.Exists(fullPath))
+                return NotFound("Súbor neexistuje");
+            return PhysicalFile(fullPath, contentType, fileName);
+        }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
 }
