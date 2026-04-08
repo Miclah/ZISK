@@ -5,115 +5,55 @@
 
 <PageTitle>Môj profil - ZISK</PageTitle>
 
-<MudGrid Justify="Justify.Center">
-    <MudItem xs="12" md="10" lg="8">
-        <MudPaper Elevation="0" Style="border-radius: 16px; overflow: hidden; border: 1px solid #E2E8F0;" Class="mb-4">
-            <div style="background: linear-gradient(135deg, #1E3A5F 0%, #2d5a8e 100%); height: 120px; position: relative;">
-                <div style="position: absolute; bottom: -40px; left: 32px;">
-                    <MudAvatar Style="width: 80px; height: 80px; font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #FF6B35, #e55a2b); border: 4px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                        @(_firstName?.Length > 0 ? _firstName[0].ToString().ToUpper() : "?")
-                    </MudAvatar>
-                </div>
-            </div>
-            <div style="padding: 56px 32px 24px 32px;">
-                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
-                    <MudStack Spacing="0">
-                        <MudText Typo="Typo.h5" Style="font-weight: 700;">@_firstName @_lastName</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">@_email</MudText>
-                    </MudStack>
-                    <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
-                             Style="font-weight: 600;">
-                        @_role
-                    </MudChip>
-                </MudStack>
-            </div>
-        </MudPaper>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudPaper Elevation="1" Class="pa-4 mb-4 d-flex align-center">
+        <MudAvatar Color="Color.Primary" Style="height:60px; width:60px;" Class="mr-4">
+            @(_firstName?.Length > 0 ? _firstName[0].ToString().ToUpper() : "?")
+        </MudAvatar>
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@_firstName @_lastName</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@_email</MudText>
+        </MudStack>
+    </MudPaper>
 
-        <MudGrid Spacing="4">
-            <MudItem xs="12" sm="6">
-                <MudPaper Elevation="0" Class="pa-5" Style="border-radius: 14px; border: 1px solid #E2E8F0; height: 100%;">
-                    <MudStack Spacing="3">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudAvatar Size="Size.Small" Style="background: #EFF6FF; color: #1E3A5F;">
-                                <MudIcon Icon="@Icons.Material.Rounded.Person" Size="Size.Small" />
-                            </MudAvatar>
-                            <MudText Typo="Typo.subtitle2" Style="font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.75rem;">
-                                Osobné údaje
-                            </MudText>
-                        </MudStack>
-                        <MudStack Spacing="2">
-                            <div>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">Meno</MudText>
-                                <MudText Typo="Typo.body1" Style="font-weight: 500;">@_firstName</MudText>
-                            </div>
-                            <MudDivider DividerType="DividerType.FullWidth" Light="true" />
-                            <div>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">Priezvisko</MudText>
-                                <MudText Typo="Typo.body1" Style="font-weight: 500;">@_lastName</MudText>
-                            </div>
-                        </MudStack>
+    <MudGrid Spacing="3">
+        <MudItem xs="12" sm="6">
+            <MudCard Elevation="1">
+                <MudCardContent>
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Osobné údaje</MudText>
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Meno</MudText>
+                        <MudText Typo="Typo.body2">@_firstName</MudText>
+                        <MudDivider />
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Priezvisko</MudText>
+                        <MudText Typo="Typo.body2">@_lastName</MudText>
                     </MudStack>
-                </MudPaper>
-            </MudItem>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
 
-            <MudItem xs="12" sm="6">
-                <MudPaper Elevation="0" Class="pa-5" Style="border-radius: 14px; border: 1px solid #E2E8F0; height: 100%;">
-                    <MudStack Spacing="3">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudAvatar Size="Size.Small" Style="background: #FFF7ED; color: #FF6B35;">
-                                <MudIcon Icon="@Icons.Material.Rounded.Email" Size="Size.Small" />
-                            </MudAvatar>
-                            <MudText Typo="Typo.subtitle2" Style="font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.75rem;">
-                                Kontakt a rola
-                            </MudText>
-                        </MudStack>
-                        <MudStack Spacing="2">
-                            <div>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">Email</MudText>
-                                <MudText Typo="Typo.body1" Style="font-weight: 500;">@_email</MudText>
-                            </div>
-                            <MudDivider DividerType="DividerType.FullWidth" Light="true" />
-                            <div>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">Rola v systéme</MudText>
-                                <MudText Typo="Typo.body1" Style="font-weight: 500;">@_role</MudText>
-                            </div>
-                        </MudStack>
+        <MudItem xs="12" sm="6">
+            <MudCard Elevation="1">
+                <MudCardContent>
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Kontakt</MudText>
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Email</MudText>
+                        <MudText Typo="Typo.body2">@_email</MudText>
+                        <MudDivider />
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Rola v systéme</MudText>
+                        <MudText Typo="Typo.body2">@_role</MudText>
                     </MudStack>
-                </MudPaper>
-            </MudItem>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
 
-            <MudItem xs="12">
-                <MudPaper Elevation="0" Class="pa-5" Style="border-radius: 14px; border: 1px solid #E2E8F0;">
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudAvatar Size="Size.Small" Style="background: #EEF2FF; color: #1E3A5F;">
-                                <MudIcon Icon="@Icons.Material.Rounded.ManageAccounts" Size="Size.Small" />
-                            </MudAvatar>
-                            <MudText Typo="Typo.subtitle2" Style="font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.75rem;">
-                                Nastavenia účtu
-                            </MudText>
-                        </MudStack>
-                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info">
-                            Prihlásený od @_joinedDateLabel
-                        </MudChip>
-                    </MudStack>
-
-                    <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Rounded.Edit" Href="/Account/Manage">
-                            Upraviť profil
-                        </MudButton>
-                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Rounded.Lock" Href="/Account/Manage/ChangePassword">
-                            Zmeniť heslo
-                        </MudButton>
-                        <MudButton Variant="Variant.Text" Color="Color.Info" StartIcon="@Icons.Material.Rounded.Mail" Href="/Account/Manage/Email">
-                            Email nastavenia
-                        </MudButton>
-                    </MudStack>
-                </MudPaper>
-            </MudItem>
-        </MudGrid>
-    </MudItem>
-</MudGrid>
+    <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Rounded.Lock" Href="/Account/Manage/ChangePassword">
+            Zmeniť heslo
+        </MudButton>
+    </MudStack>
+</MudContainer>
 
 @code {
     private string _firstName = string.Empty;

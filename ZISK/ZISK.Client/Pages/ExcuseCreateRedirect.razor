@@ -1,0 +1,10 @@
+@page "/ospravedlnenky/vytvorit"
+@inject NavigationManager NavigationManager
+@attribute [Authorize]
+
+@code {
+    protected override void OnInitialized()
+    {
+        NavigationManager.NavigateTo("/ospravedlnenky?create=true", replace: true);
+    }
+}

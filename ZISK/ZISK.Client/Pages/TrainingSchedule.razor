@@ -11,107 +11,109 @@
 
 <PageTitle>Rozvrh tréningov</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Rozvrh tréningov</MudText>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Rozvrh tréningov</MudText>
 
-@if (_isLoading)
-{
-    <MudProgressCircular Indeterminate="true" />
-}
-else
-{
-    <MudGrid>
-        <MudItem xs="12" md="5">
-            <MudPaper Class="pa-4 mb-4" Elevation="2">
-                <MudSelect T="Guid?" @bind-Value="_selectedTeamId" @bind-Value:after="LoadTrainings"
-                           Label="Tím" Variant="Variant.Outlined" Dense="true" Class="mb-3">
-                    <MudSelectItem Value="@((Guid?)null)">Všetky tímy</MudSelectItem>
-                    @foreach (var team in _teams)
-                    {
-                        <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
-                    }
-                </MudSelect>
-
-                <MudDatePicker Label="Kalendár tréningov"
-                               Variant="Variant.Outlined"
-                               PickerVariant="PickerVariant.Static"
-                               @bind-Date="_selectedDate"
-                               @bind-Date:after="LoadTrainings"
-                               AdditionalDateClassesFunc="GetDateClass" />
-            </MudPaper>
-        </MudItem>
-
-        <MudItem xs="12" md="7">
-            <MudPaper Class="pa-4 mb-4" Elevation="2">
-                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
-                    <MudText Typo="Typo.h6">Tréningy v deň @SelectedDateLabel</MudText>
-                    <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
-                        @TrainingsForSelectedDate.Count
-                    </MudChip>
-                </MudStack>
-
-                @if (!TrainingsForSelectedDate.Any())
-                {
-                    <MudAlert Severity="Severity.Info">V tento deň nie je naplánovaný tréning.</MudAlert>
-                }
-                else
-                {
-                    <MudStack Spacing="2">
-                        @foreach (var training in TrainingsForSelectedDate)
+    @if (_isLoading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <MudGrid>
+            <MudItem xs="12" md="5">
+                <MudPaper Class="pa-4 mb-4" Elevation="2">
+                    <MudSelect T="Guid?" @bind-Value="_selectedTeamId" @bind-Value:after="LoadTrainings"
+                               Label="Tím" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                        <MudSelectItem Value="@((Guid?)null)">Všetky tímy</MudSelectItem>
+                        @foreach (var team in _teams)
                         {
-                            <MudPaper Class="pa-3" Elevation="1" Style="border-left: 3px solid #1976d2;">
-                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                    <MudStack Spacing="0">
-                                        <MudText Typo="Typo.subtitle2">@training.Title</MudText>
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                            @training.StartTime.ToString("HH:mm") - @training.EndTime.ToString("HH:mm") | @training.TeamName
-                                        </MudText>
-                                        @if (!string.IsNullOrWhiteSpace(training.Location))
-                                        {
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@training.Location</MudText>
-                                        }
-                                    </MudStack>
-                                    <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(training.Type)">
-                                        @GetTypeText(training.Type)
-                                    </MudChip>
-                                </MudStack>
-                            </MudPaper>
+                            <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
                         }
+                    </MudSelect>
+
+                    <MudDatePicker Label="Kalendár tréningov"
+                                   Variant="Variant.Outlined"
+                                   PickerVariant="PickerVariant.Static"
+                                   @bind-Date="_selectedDate"
+                                   @bind-Date:after="LoadTrainings"
+                                   AdditionalDateClassesFunc="GetDateClass" />
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="7">
+                <MudPaper Class="pa-4 mb-4" Elevation="2">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                        <MudText Typo="Typo.h6">Tréningy v deň @SelectedDateLabel</MudText>
+                        <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
+                            @TrainingsForSelectedDate.Count
+                        </MudChip>
                     </MudStack>
-                }
-            </MudPaper>
 
-            <MudPaper Class="pa-4" Elevation="2">
-                <MudText Typo="Typo.h6" Class="mb-3">Najbližšie tréningy (14 dní)</MudText>
+                    @if (!TrainingsForSelectedDate.Any())
+                    {
+                        <MudAlert Severity="Severity.Info">V tento deň nie je naplánovaný tréning.</MudAlert>
+                    }
+                    else
+                    {
+                        <MudStack Spacing="2">
+                            @foreach (var training in TrainingsForSelectedDate)
+                            {
+                                <MudPaper Class="pa-3" Elevation="1" Style="border-left: 3px solid #1976d2;">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.subtitle2">@training.Title</MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                @training.StartTime.ToString("HH:mm") - @training.EndTime.ToString("HH:mm") | @training.TeamName
+                                            </MudText>
+                                            @if (!string.IsNullOrWhiteSpace(training.Location))
+                                            {
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">@training.Location</MudText>
+                                            }
+                                        </MudStack>
+                                        <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(training.Type)">
+                                            @GetTypeText(training.Type)
+                                        </MudChip>
+                                    </MudStack>
+                                </MudPaper>
+                            }
+                        </MudStack>
+                    }
+                </MudPaper>
 
-                @if (!UpcomingTrainings.Any())
-                {
-                    <MudAlert Severity="Severity.Info">Žiadne blízke tréningy.</MudAlert>
-                }
-                else
-                {
-                    <MudTable Items="@UpcomingTrainings" Dense="true" Hover="true">
-                        <HeaderContent>
-                            <MudTh>Dátum</MudTh>
-                            <MudTh>Názov</MudTh>
-                            <MudTh>Tím</MudTh>
-                            <MudTh>Typ</MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd>@context.StartTime.ToString("ddd dd.MM HH:mm", CultureInfo.GetCultureInfo("sk-SK"))</MudTd>
-                            <MudTd>@context.Title</MudTd>
-                            <MudTd>@context.TeamName</MudTd>
-                            <MudTd>
-                                <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.Type)">
-                                    @GetTypeText(context.Type)
-                                </MudChip>
-                            </MudTd>
-                        </RowTemplate>
-                    </MudTable>
-                }
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
-}
+                <MudPaper Class="pa-4" Elevation="2">
+                    <MudText Typo="Typo.h6" Class="mb-3">Najbližšie tréningy (14 dní)</MudText>
+
+                    @if (!UpcomingTrainings.Any())
+                    {
+                        <MudAlert Severity="Severity.Info">Žiadne blízke tréningy.</MudAlert>
+                    }
+                    else
+                    {
+                        <MudTable Items="@UpcomingTrainings" Dense="true" Hover="true">
+                            <HeaderContent>
+                                <MudTh>Dátum</MudTh>
+                                <MudTh>Názov</MudTh>
+                                <MudTh>Tím</MudTh>
+                                <MudTh>Typ</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd>@context.StartTime.ToString("ddd dd.MM HH:mm", CultureInfo.GetCultureInfo("sk-SK"))</MudTd>
+                                <MudTd>@context.Title</MudTd>
+                                <MudTd>@context.TeamName</MudTd>
+                                <MudTd>
+                                    <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.Type)">
+                                        @GetTypeText(context.Type)
+                                    </MudChip>
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
 
 @code {
     private bool _isLoading = true;
