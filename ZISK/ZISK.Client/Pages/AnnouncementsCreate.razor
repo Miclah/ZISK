@@ -26,13 +26,13 @@
 
                 <MudGrid>
                     <MudItem xs="12" sm="6">
-                        <MudSelect T="Guid?" @bind-Value="_targetTeamId" Label="Určené pre tím" Variant="Variant.Outlined" Clearable="true">
+                        <MudSelect T="Guid?" @bind-Value="_targetTeamId" Label="Určené pre tím" Variant="Variant.Outlined" Clearable="true" Placeholder="Celý klub">
                             @foreach (var team in _teams)
                             {
                                 <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
                             }
                         </MudSelect>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Prázdne = pre všetky tímy</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Ak nevyberiete, oznam sa zverejní pre celý klub</MudText>
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudSelect T="TargetAudience" @bind-Value="_targetAudience" Label="Cieľová skupina" Variant="Variant.Outlined">
@@ -64,18 +64,17 @@
                 // AI
                 <MudText Typo="Typo.subtitle1">Prílohy (voliteľné)</MudText>
                 
-                <MudFileUpload T="IReadOnlyList<IBrowserFile>" 
-                               FilesChanged="OnFilesSelected"
-                               Accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
-                               MaximumFileCount="5">
-                    <ActivatorContent>
-                        <MudButton Variant="Variant.Outlined" 
-                                   Color="Color.Primary" 
-                                   StartIcon="@Icons.Material.Filled.CloudUpload">
-                            Vybrať súbory
-                        </MudButton>
-                    </ActivatorContent>
-                </MudFileUpload>
+                <MudButton HtmlTag="label"
+                           for="announcement-files"
+                           Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.CloudUpload">
+                    Vybrať súbory
+                </MudButton>
+                <InputFile id="announcement-files"
+                           OnChange="OnFilesSelected"
+                           multiple
+                           accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif" />
 
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                     Podporované formáty: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF (max 10MB)
@@ -140,7 +139,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní tímov: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Chyba pri načítaní tímov: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 
@@ -154,8 +153,10 @@
         NavigationManager.NavigateTo("/oznamy");
     }
 
-    private void OnFilesSelected(IReadOnlyList<IBrowserFile> files)
+    private void OnFilesSelected(InputFileChangeEventArgs args)
     {
+        var files = args.GetMultipleFiles(5);
+
         foreach (var file in files)
         {
             if (file.Size > 10 * 1024 * 1024)
@@ -242,7 +243,7 @@
                     }
                     catch (Exception ex)
                     {
-                        Snackbar.Add($"Chyba pri nahrávaní {file.Name}: {ex.Message}", Severity.Warning);
+                        Snackbar.Add($"Chyba pri nahrávaní {file.Name}: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Warning);
                     }
                 }
             }
@@ -252,7 +253,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {

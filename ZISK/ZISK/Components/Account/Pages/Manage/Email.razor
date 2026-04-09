@@ -12,43 +12,44 @@
 @inject IdentityUserAccessor UserAccessor
 @inject NavigationManager NavigationManager
 
-<PageTitle>Manage email</PageTitle>
+<PageTitle>Spravovať email</PageTitle>
 
-<h3>Manage email</h3>
+<MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 700; color: #1E3A8A;">Zdrojový email</MudText>
 
 <StatusMessage Message="@message"/>
 <div class="row">
-    <div class="col-xl-6">
+    <div class="col-md-8 col-lg-6">
         <form @onsubmit="OnSendEmailVerificationAsync" @formname="send-verification" id="send-verification-form" method="post">
             <AntiforgeryToken />
         </form>
         <EditForm Model="Input" FormName="change-email" OnValidSubmit="OnValidSubmitAsync" method="post">
             <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert" />
+            <ValidationSummary class="text-danger mb-3" role="alert" />
+
             @if (isEmailConfirmed)
             {
-                <div class="form-floating mb-3 input-group">
-                    <input type="text" value="@email" id="email" class="form-control" placeholder="Enter your email" disabled />
-                    <div class="input-group-append">
-                        <span class="h-100 input-group-text text-success font-weight-bold">✓</span>
-                    </div>
-                    <label for="email" class="form-label">Email</label>
+                <div class="form-floating mb-4 position-relative">
+                    <input type="text" value="@email" id="email" class="form-control" placeholder="Email" disabled style="background-color: #F8FAFC; border-color: #E2E8F0; padding-right: 2.5rem;" />
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" Style="position: absolute; right: 1rem; top: 1.25rem;" />
+                    <label for="email" class="form-label" style="color: #64748B;">Aktuálny email</label>
                 </div>
             }
             else
             {
-                <div class="form-floating mb-3">
-                    <input type="text" value="@email" id="email" class="form-control" placeholder="Enter your email" disabled />
-                    <label for="email" class="form-label">Email</label>
-                    <button type="submit" class="btn btn-link" form="send-verification-form">Send verification email</button>
+                <div class="form-floating mb-4">
+                    <input type="text" value="@email" id="email" class="form-control" placeholder="Email" disabled style="background-color: #F8FAFC; border-color: #E2E8F0;" />
+                    <label for="email" class="form-label" style="color: #64748B;">Aktuálny email (Neoverený)</label>
+                    <button type="submit" class="mud-button-root mud-button mud-button-text mud-button-text-primary mt-2" form="send-verification-form" style="text-transform: none;">Odoslať overovací email</button>
                 </div>
             }
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.NewEmail" id="Input.NewEmail" class="form-control" autocomplete="email" aria-required="true" placeholder="Enter a new email" />
-                <label for="Input.NewEmail" class="form-label">New email</label>
+
+            <div class="form-floating mb-4">
+                <InputText @bind-Value="Input.NewEmail" id="Input.NewEmail" class="form-control" autocomplete="email" aria-required="true" placeholder="Nový email" style="border-color: #E2E8F0;" />
+                <label for="Input.NewEmail" class="form-label" style="color: #64748B;">Nová e-mailová adresa</label>
                 <ValidationMessage For="() => Input.NewEmail" class="text-danger" />
             </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Change email</button>
+
+            <button type="submit" class="mud-button-root mud-button mud-button-filled mud-button-filled-primary mud-button-filled-size-large mud-width-full" style="background-color: #FF6B35; color: white; font-weight: 600; text-transform: none; border-radius: 8px;">Zmeniť e-mail</button>
         </EditForm>
     </div>
 </div>
@@ -62,12 +63,17 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
+    private InputModel? _input;
+
     [SupplyParameterFromForm(FormName = "change-email")]
-    private InputModel Input { get; set; } = new();
+    private InputModel Input
+    {
+        get => _input ??= new();
+        set => _input = value;
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        Input ??= new();
         user = await UserAccessor.GetRequiredUserAsync(HttpContext);
         email = await UserManager.GetEmailAsync(user);
         isEmailConfirmed = await UserManager.IsEmailConfirmedAsync(user);

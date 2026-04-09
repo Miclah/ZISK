@@ -17,7 +17,7 @@ namespace ZISK.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.11")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -215,7 +215,8 @@ namespace ZISK.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PhoneNumber")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
@@ -243,6 +244,14 @@ namespace ZISK.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
+
+                    b.HasIndex("PhoneNumber")
+                        .IsUnique()
+                        .HasFilter("[PhoneNumber] IS NOT NULL");
+
+                    b.HasIndex("RodneCislo")
+                        .IsUnique()
+                        .HasFilter("[RodneCislo] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });
@@ -279,9 +288,18 @@ namespace ZISK.Migrations
                     b.Property<Guid?>("TeamId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("Email");
+
                     b.HasIndex("TeamId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("[UserId] IS NOT NULL");
 
                     b.ToTable("ChildProfiles");
                 });
@@ -339,6 +357,8 @@ namespace ZISK.Migrations
                     b.HasIndex("ParentId");
 
                     b.HasIndex("ReviewedByUserId");
+
+                    b.HasIndex("Status");
 
                     b.HasIndex("TrainingEventId");
 
@@ -528,7 +548,12 @@ namespace ZISK.Migrations
                     b.Property<DateTime>("UploadedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("UploadedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UploadedByUserId");
 
                     b.ToTable("Documents");
                 });
@@ -686,7 +711,14 @@ namespace ZISK.Migrations
                         .HasForeignKey("TeamId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("ZISK.Data.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Team");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ZISK.Data.Entities.AbsenceRequest", b =>
@@ -780,13 +812,13 @@ namespace ZISK.Migrations
             modelBuilder.Entity("ZISK.Data.Entities.CoachTeam", b =>
                 {
                     b.HasOne("ZISK.Data.ApplicationUser", "Coach")
-                        .WithMany()
+                        .WithMany("CoachTeams")
                         .HasForeignKey("CoachId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("ZISK.Data.Entities.Team", "Team")
-                        .WithMany()
+                        .WithMany("Coaches")
                         .HasForeignKey("TeamId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -794,6 +826,16 @@ namespace ZISK.Migrations
                     b.Navigation("Coach");
 
                     b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.Document", b =>
+                {
+                    b.HasOne("ZISK.Data.ApplicationUser", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("UploadedByUser");
                 });
 
             modelBuilder.Entity("ZISK.Data.Entities.TrainingEvent", b =>
@@ -829,6 +871,8 @@ namespace ZISK.Migrations
             modelBuilder.Entity("ZISK.Data.ApplicationUser", b =>
                 {
                     b.Navigation("Children");
+
+                    b.Navigation("CoachTeams");
                 });
 
             modelBuilder.Entity("ZISK.Data.ChildProfile", b =>
@@ -847,6 +891,8 @@ namespace ZISK.Migrations
 
             modelBuilder.Entity("ZISK.Data.Entities.Team", b =>
                 {
+                    b.Navigation("Coaches");
+
                     b.Navigation("Members");
 
                     b.Navigation("TrainingEvents");

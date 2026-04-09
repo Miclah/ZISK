@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ZISK.Data.Entities;
 
@@ -27,6 +27,20 @@ namespace ZISK.Data
         {
             base.OnModelCreating(builder);
 
+            builder.Entity<ApplicationUser>()
+                .HasIndex(u => u.PhoneNumber)
+                .IsUnique()
+                .HasFilter("[PhoneNumber] IS NOT NULL");
+
+            builder.Entity<ApplicationUser>()
+                .HasIndex(u => u.RodneCislo)
+                .IsUnique()
+                .HasFilter("[RodneCislo] IS NOT NULL");
+
+            builder.Entity<ApplicationUser>()
+                .Property(u => u.PhoneNumber)
+                .HasMaxLength(20);
+
             builder.Entity<Team>()
                 .HasIndex(t => t.Name)
                 .IsUnique();
@@ -39,6 +53,20 @@ namespace ZISK.Data
 
             builder.Entity<ChildProfile>()
                 .HasIndex(c => c.TeamId);
+
+            builder.Entity<ChildProfile>()
+                .HasIndex(c => c.Email);
+
+            builder.Entity<ChildProfile>()
+                .HasOne(c => c.User)
+                .WithMany()
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<ChildProfile>()
+                .HasIndex(c => c.UserId)
+                .IsUnique()
+                .HasFilter("[UserId] IS NOT NULL");
 
             builder.Entity<TrainingEvent>()
                 .HasOne(te => te.Team)
@@ -87,6 +115,9 @@ namespace ZISK.Data
                 .IsUnique();
 
             builder.Entity<AbsenceRequest>()
+                .HasIndex(ar => ar.Status);
+
+            builder.Entity<AbsenceRequest>()
                 .HasOne(ar => ar.TrainingEvent)
                 .WithMany(te => te.AbsenceRequests)
                 .HasForeignKey(ar => ar.TrainingEventId)
@@ -131,19 +162,25 @@ namespace ZISK.Data
                 .HasForeignKey(aa => aa.AnnouncementId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.Entity<Document>()
+                .HasOne(d => d.UploadedByUser)
+                .WithMany()
+                .HasForeignKey(d => d.UploadedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             builder.Entity<CoachTeam>()
                 .HasIndex(ct => new { ct.CoachId, ct.TeamId })
                 .IsUnique();
 
             builder.Entity<CoachTeam>()
                 .HasOne(ct => ct.Coach)
-                .WithMany()
+                .WithMany(u => u.CoachTeams)
                 .HasForeignKey(ct => ct.CoachId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<CoachTeam>()
                 .HasOne(ct => ct.Team)
-                .WithMany()
+                .WithMany(t => t.Coaches)
                 .HasForeignKey(ct => ct.TeamId)
                 .OnDelete(DeleteBehavior.Cascade);
         }

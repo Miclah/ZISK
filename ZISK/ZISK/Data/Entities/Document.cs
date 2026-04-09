@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ZISK.Data.Entities
 {
@@ -25,6 +26,11 @@ namespace ZISK.Data.Entities
 
         [MaxLength(450)]
         public string? TargetRoleId { get; set; }
+
+        public string? UploadedByUserId { get; set; }
+
+        [ForeignKey(nameof(UploadedByUserId))]
+        public ApplicationUser? UploadedByUser { get; set; }
 
         public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
     }

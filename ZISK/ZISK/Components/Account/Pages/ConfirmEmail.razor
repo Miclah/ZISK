@@ -1,4 +1,6 @@
 ﻿@page "/Account/ConfirmEmail"
+@attribute [AllowAnonymous]
+@layout ZISK.Components.Layout.LoginLayout
 
 @using System.Text
 @using Microsoft.AspNetCore.Identity
@@ -8,13 +10,54 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Confirm email</PageTitle>
+<PageTitle>Potvrdenie emailu - ZISK</PageTitle>
 
-<h1>Confirm email</h1>
-<StatusMessage Message="@statusMessage" />
+<div class="login-page">
+    <div class="login-card">
+        <div class="login-brand">
+            <h1>ZISK</h1>
+            <p>Overenie emailovej adresy</p>
+        </div>
+
+        @if (_success)
+        {
+            <div style="text-align: center; padding: 1rem 0;">
+                <svg viewBox="0 0 24 24" width="64" height="64" fill="#2e7d32" style="margin-bottom: 1rem;">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                <h2 style="color: #2e7d32; font-size: 1.25rem; margin: 0 0 0.75rem 0;">Email potvrdený!</h2>
+                <p style="color: #64748B; font-size: 0.9rem; line-height: 1.5; margin: 0;">
+                    Váš účet bol úspešne aktivovaný. Teraz sa môžete prihlásiť.
+                </p>
+            </div>
+
+            <a href="/login" class="btn-login" style="text-decoration: none; margin-top: 1.5rem;">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z"/></svg>
+                Prihlásiť sa
+            </a>
+        }
+        else
+        {
+            <div class="login-alert">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <span>@statusMessage</span>
+            </div>
+
+            <div class="login-footer">
+                <a href="/login" class="register-link">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                    Späť na prihlásenie
+                </a>
+            </div>
+        }
+    </div>
+
+    <p class="login-copyright">© 2026 ZISK</p>
+</div>
 
 @code {
     private string? statusMessage;
+    private bool _success;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -36,13 +79,21 @@
         if (user is null)
         {
             HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-            statusMessage = $"Error loading user with ID {UserId}";
+            statusMessage = "Nepodarilo sa nájsť používateľa.";
         }
         else
         {
             var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code));
             var result = await UserManager.ConfirmEmailAsync(user, code);
-            statusMessage = result.Succeeded ? "Thank you for confirming your email." : "Error confirming your email.";
+
+            if (result.Succeeded)
+            {
+                _success = true;
+            }
+            else
+            {
+                statusMessage = "Odkaz na potvrdenie je neplatný alebo expiroval.";
+            }
         }
     }
 }

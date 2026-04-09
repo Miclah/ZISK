@@ -1,0 +1,189 @@
+using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
+using ZISK.Data;
+using ZISK.Data.Entities;
+using ZISK.Services;
+using ZISK.Shared.DTOs.Trainings;
+using AttendanceStatus = ZISK.Shared.Enums.AttendanceStatus;
+using TrainingType = ZISK.Shared.Enums.TrainingType;
+
+namespace ZISK.Services;
+
+public class TrainingService : ITrainingService
+{
+    private readonly ApplicationDbContext _context;
+    private readonly ITeamAccessService _teamAccessService;
+    private readonly IAuditService _auditService;
+
+    public TrainingService(ApplicationDbContext context, ITeamAccessService teamAccessService, IAuditService auditService)
+    {
+        _context = context;
+        _teamAccessService = teamAccessService;
+        _auditService = auditService;
+    }
+
+    public async Task<List<TrainingEventDto>> GetTrainingsAsync(Guid? teamId, DateTime? from, DateTime? to, ClaimsPrincipal user)
+    {
+        var query = _context.TrainingEvents.Include(t => t.Team).AsNoTracking();
+
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
+        if (accessibleTeamIds is not null)
+            query = query.Where(t => accessibleTeamIds.Contains(t.TeamId));
+
+        if (teamId.HasValue) query = query.Where(t => t.TeamId == teamId.Value);
+        if (from.HasValue) query = query.Where(t => t.StartTime >= from.Value);
+        if (to.HasValue) query = query.Where(t => t.StartTime <= to.Value);
+
+        return await query
+            .OrderByDescending(t => t.StartTime)
+            .Select(t => new TrainingEventDto(
+                t.Id, t.TeamId, t.Team.Name, t.Title, t.StartTime, t.EndTime,
+                t.Location, (TrainingType)(int)t.Type, t.CoachNote, t.IsLocked))
+            .ToListAsync();
+    }
+
+    public async Task<TrainingEventDetailDto> GetTrainingAsync(Guid id, ClaimsPrincipal user)
+    {
+        var training = await _context.TrainingEvents
+            .Include(t => t.Team)
+            .Include(t => t.AttendanceRecords).ThenInclude(ar => ar.Child)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == id)
+            ?? throw new KeyNotFoundException();
+
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
+        if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(training.TeamId))
+            throw new UnauthorizedAccessException();
+
+        var teamMembers = await _context.ChildProfiles
+            .Where(c => c.TeamId == training.TeamId && c.IsActive)
+            .ToListAsync();
+
+        var excuses = await _context.AbsenceRequests
+            .Where(ar => ar.TrainingEventId == id && ar.Status == AbsenceRequestStatus.Received)
+            .ToListAsync();
+
+        // Use dictionaries to avoid O(n²) lookup in the loop
+        var attendanceByChild = training.AttendanceRecords.ToDictionary(ar => ar.ChildId);
+        var excuseByChild = excuses.ToDictionary(e => e.ChildId);
+
+        var attendance = teamMembers.Select(member =>
+        {
+            attendanceByChild.TryGetValue(member.Id, out var record);
+            excuseByChild.TryGetValue(member.Id, out var excuse);
+
+            return new TrainingAttendanceDto(
+                member.Id,
+                $"{member.FirstName} {member.LastName}",
+                record != null ? (AttendanceStatus)(int)record.Status : AttendanceStatus.Absent,
+                record?.Note,
+                record?.CoachComment,
+                excuse != null,
+                excuse?.Reason
+            );
+        }).OrderBy(a => a.ChildName).ToList();
+
+        return new TrainingEventDetailDto(
+            training.Id, training.TeamId, training.Team.Name, training.Title,
+            training.StartTime, training.EndTime, training.Location,
+            (TrainingType)(int)training.Type, training.CoachNote, training.IsLocked,
+            training.CreatedAt, attendance
+        );
+    }
+
+    public async Task<TrainingEventDto> CreateTrainingAsync(CreateTrainingEventRequest request, ClaimsPrincipal user)
+    {
+        if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Length < 3 || request.Title.Length > 100)
+            throw new ArgumentException("Názov musí mať 3-100 znakov");
+
+        if (request.EndTime <= request.StartTime)
+            throw new ArgumentException("Čas konca musí byť po čase začiatku");
+
+        if (request.Location != null && request.Location.Length > 200)
+            throw new ArgumentException("Miesto môže mať max 200 znakov");
+
+        var team = await _context.Teams.FindAsync(request.TeamId)
+            ?? throw new ArgumentException("Tím neexistuje");
+
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
+        if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(request.TeamId))
+            throw new UnauthorizedAccessException();
+
+        var training = new TrainingEvent
+        {
+            Id = Guid.NewGuid(),
+            TeamId = request.TeamId,
+            Title = request.Title,
+            StartTime = request.StartTime,
+            EndTime = request.EndTime,
+            Location = request.Location,
+            Type = (Data.Entities.TrainingType)(int)request.Type,
+            CoachNote = request.CoachNote,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.TrainingEvents.Add(training);
+        await _context.SaveChangesAsync();
+        _auditService.Log("Create", "Training", training.Id.ToString(), user, new { training.TeamId, training.Title, training.StartTime });
+
+        return new TrainingEventDto(
+            training.Id, training.TeamId, team.Name, training.Title,
+            training.StartTime, training.EndTime, training.Location,
+            (TrainingType)(int)training.Type, training.CoachNote, training.IsLocked
+        );
+    }
+
+    public async Task UpdateTrainingAsync(Guid id, UpdateTrainingEventRequest request, ClaimsPrincipal user)
+    {
+        if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Length < 3 || request.Title.Length > 100)
+            throw new ArgumentException("Názov musí mať 3-100 znakov");
+
+        if (request.EndTime <= request.StartTime)
+            throw new ArgumentException("Čas konca musí byť po čase začiatku");
+
+        if (request.Location != null && request.Location.Length > 200)
+            throw new ArgumentException("Miesto môže mať max 200 znakov");
+
+        var training = await _context.TrainingEvents.FindAsync(id)
+            ?? throw new KeyNotFoundException();
+
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
+        if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(training.TeamId))
+            throw new UnauthorizedAccessException();
+
+        training.Title = request.Title;
+        training.StartTime = request.StartTime;
+        training.EndTime = request.EndTime;
+        training.Location = request.Location;
+        training.Type = (Data.Entities.TrainingType)(int)request.Type;
+        training.CoachNote = request.CoachNote;
+        training.IsLocked = request.IsLocked;
+
+        await _context.SaveChangesAsync();
+        _auditService.Log("Update", "Training", training.Id.ToString(), user, new { training.Title, training.StartTime, training.IsLocked });
+    }
+
+    public async Task LockTrainingAsync(Guid id, ClaimsPrincipal user)
+    {
+        var training = await _context.TrainingEvents.FindAsync(id) ?? throw new KeyNotFoundException();
+        training.IsLocked = true;
+        await _context.SaveChangesAsync();
+        _auditService.Log("Lock", "Training", training.Id.ToString(), user);
+    }
+
+    public async Task UnlockTrainingAsync(Guid id, ClaimsPrincipal user)
+    {
+        var training = await _context.TrainingEvents.FindAsync(id) ?? throw new KeyNotFoundException();
+        training.IsLocked = false;
+        await _context.SaveChangesAsync();
+        _auditService.Log("Unlock", "Training", training.Id.ToString(), user);
+    }
+
+    public async Task DeleteTrainingAsync(Guid id, ClaimsPrincipal user)
+    {
+        var training = await _context.TrainingEvents.FindAsync(id) ?? throw new KeyNotFoundException();
+        _context.TrainingEvents.Remove(training);
+        await _context.SaveChangesAsync();
+        _auditService.Log("Delete", "Training", training.Id.ToString(), user);
+    }
+}

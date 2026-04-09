@@ -1,0 +1,231 @@
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Excuses
+@using ZISK.Shared.DTOs.Trainings
+@inject IExcusesApi ExcusesApi
+@inject IChildrenApi ChildrenApi
+@inject ITrainingsApi TrainingsApi
+@inject UserContextService UserContextService
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<MudDialog>
+    <DialogContent>
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (_isChild)
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-3">
+                Ako rola <strong>Dieťa</strong> máte len náhľad ospravedlneniek. Vytvorenie ospravedlnenky vykoná rodič alebo športovec.
+            </MudAlert>
+        }
+        else if (!_children.Any())
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-3">
+                @(_isAthlete
+                    ? "Momentálne nemáte prepojený športovec profil. Kontaktujte administrátora alebo trénera, aby vás prepojil na tím."
+                    : "Nemáte priradené žiadne dieťa. Kontaktujte administrátora alebo trénera.")
+            </MudAlert>
+        }
+        else
+        {
+            <MudForm @ref="_form" @bind-IsValid="_formIsValid">
+                <MudStack Spacing="3">
+                    <MudSelect T="Guid?"
+                               @bind-Value="_selectedPersonId"
+                               @bind-Value:after="OnSelectedPersonChanged"
+                               Label="Koho ospravedlňujem?"
+                               Variant="Variant.Outlined"
+                               Required="true"
+                               RequiredError="Vyberte osobu">
+                        @foreach (var child in _children.OrderBy(c => c.LastName).ThenBy(c => c.FirstName))
+                        {
+                            <MudSelectItem Value="@((Guid?)child.Id)">
+                                @(child.IsOwnProfile ? $"Seba ({child.FirstName} {child.LastName})" : $"{child.FirstName} {child.LastName}")
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudSelect T="Guid?"
+                               @bind-Value="_selectedTrainingId"
+                               Label="Na ktorý tréning?"
+                               Variant="Variant.Outlined"
+                               Disabled="@(!_selectedPersonId.HasValue || !_availableTrainings.Any())"
+                               Required="true"
+                               RequiredError="Vyberte tréning">
+                        @foreach (var training in _availableTrainings)
+                        {
+                            <MudSelectItem Value="@((Guid?)training.Id)">
+                                @training.StartTime.ToString("dd.MM.yyyy HH:mm") | @training.Title @(string.IsNullOrWhiteSpace(training.Location) ? string.Empty : $"| {training.Location}")
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    @if (_selectedPersonId.HasValue && !_availableTrainings.Any())
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true">Pre vybranú osobu nie sú dostupné žiadne nadchádzajúce tréningy.</MudAlert>
+                    }
+
+                    <MudTextField @bind-Value="_reason" Label="Dôvod" Variant="Variant.Outlined" Lines="3" Counter="200" MaxLength="200" />
+
+                    @if (_validationErrors.Any())
+                    {
+                        <MudAlert Severity="Severity.Error">
+                            @foreach (var error in _validationErrors)
+                            {
+                                <div>@error</div>
+                            }
+                        </MudAlert>
+                    }
+                </MudStack>
+            </MudForm>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Zrušiť</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_formIsValid || _isSubmitting || _isChild || !_children.Any())">
+            @if (_isSubmitting)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Odoslať
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private MudForm _form = default!;
+    private bool _formIsValid;
+    private bool _isLoading = true;
+    private bool _isSubmitting;
+    private bool _isAthlete;
+    private bool _isChild;
+    private List<string> _validationErrors = new();
+    private List<ChildDto> _children = new();
+    private List<TrainingEventDto> _availableTrainings = new();
+
+    private Guid? _selectedPersonId;
+    private Guid? _selectedTrainingId;
+    private string _reason = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            _isAthlete = authState.User.IsInRole("Athlete");
+            _isChild = authState.User.IsInRole("Child");
+
+            _children = await ChildrenApi.GetMyChildrenAsync();
+
+            if (_children.Count == 1)
+            {
+                _selectedPersonId = _children[0].Id;
+                await OnSelectedPersonChanged();
+            }
+            else
+            {
+                var selected = UserContextService.SelectedOption;
+                if (selected?.ChildId is not null && _children.Any(c => c.Id == selected.ChildId.Value))
+                {
+                    _selectedPersonId = selected.ChildId.Value;
+                    await OnSelectedPersonChanged();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task OnSelectedPersonChanged()
+    {
+        _selectedTrainingId = null;
+        _availableTrainings = [];
+
+        if (!_selectedPersonId.HasValue)
+            return;
+
+        var selected = _children.FirstOrDefault(c => c.Id == _selectedPersonId.Value);
+        if (selected?.TeamId is null)
+            return;
+
+        try
+        {
+            _availableTrainings = (await TrainingsApi.GetTrainingsAsync(selected.TeamId, DateTime.Now, DateTime.Now.AddMonths(2)))
+                .OrderBy(t => t.StartTime)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri načítaní tréningov: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private bool ValidateForm()
+    {
+        _validationErrors.Clear();
+
+        if (!_selectedPersonId.HasValue)
+            _validationErrors.Add("Vyberte osobu");
+
+        if (!_selectedTrainingId.HasValue)
+            _validationErrors.Add("Vyberte tréning");
+
+        if (!string.IsNullOrWhiteSpace(_reason) && _reason.Length < 3)
+            _validationErrors.Add("Dôvod musí mať aspoň 3 znaky");
+
+        return !_validationErrors.Any();
+    }
+
+    private async Task Submit()
+    {
+        if (!_children.Any() || _isChild)
+            return;
+
+        await _form.ValidateAsync();
+        if (!ValidateForm())
+            return;
+
+        _isSubmitting = true;
+
+        try
+        {
+            var request = new CreateExcuseRequest(
+                ChildId: _selectedPersonId!.Value,
+                TrainingEventId: _selectedTrainingId,
+                DateFrom: null,
+                DateTo: null,
+                Reason: string.IsNullOrWhiteSpace(_reason) ? null : _reason.Trim(),
+                Note: null
+            );
+
+            await ExcusesApi.CreateExcuseAsync(request);
+            Snackbar.Add("Ospravedlnenka odoslaná", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}

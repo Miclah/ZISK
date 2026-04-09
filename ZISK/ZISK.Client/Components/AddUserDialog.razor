@@ -1,0 +1,132 @@
+@using ZISK.Shared.DTOs.Users
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="Model.FirstName"
+                              Label="Meno"
+                              Required="true"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="Model.LastName"
+                              Label="Priezvisko"
+                              Required="true"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="Model.PhoneNumber"
+                              Label="Telefón"
+                              Required="true"
+                              RequiredError="Telefón je povinný"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="Model.Email"
+                              Label="Email"
+                              Variant="Variant.Outlined"
+                              InputType="InputType.Email" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudDatePicker Label="Dátum narodenia"
+                               @bind-Date="Model.DateOfBirth"
+                               Variant="Variant.Outlined"
+                               Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="string"
+                           Label="Rola"
+                           @bind-Value="Model.Role"
+                           Variant="Variant.Outlined"
+                           Required="true">
+                    <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
+                    <MudSelectItem Value="@("Coach")">Tréner</MudSelectItem>
+                    <MudSelectItem Value="@("Parent")">Rodič</MudSelectItem>
+                    <MudSelectItem Value="@("Athlete")">Športovec</MudSelectItem>
+                    <MudSelectItem Value="@("Child")">Dieťa</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="Model.RodneCislo"
+                              Label="Rodné číslo"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="Model.Bydlisko"
+                              Label="Bydlisko"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudCheckBox @bind-Value="Model.GeneratePassword"
+                             Label="Vygenerovať náhodné heslo a poslať do SMS/Emailu"
+                             Color="Color.Primary" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Zrušiť</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Vytvoriť účet</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public AddUserDialogModel Model { get; set; } = new();
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private void Submit()
+    {
+        if (string.IsNullOrWhiteSpace(Model.FirstName)
+            || string.IsNullOrWhiteSpace(Model.LastName)
+            || string.IsNullOrWhiteSpace(Model.PhoneNumber)
+            || string.IsNullOrWhiteSpace(Model.Role))
+        {
+            return;
+        }
+
+        MudDialog.Close(DialogResult.Ok(Model));
+    }
+
+    public class AddUserDialogModel
+    {
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string? Email { get; set; }
+        public string PhoneNumber { get; set; } = string.Empty;
+        public DateTime? DateOfBirth { get; set; }
+        public string Role { get; set; } = "Parent";
+        public string? RodneCislo { get; set; }
+        public string? Bydlisko { get; set; }
+        public bool GeneratePassword { get; set; } = true;
+
+        public CreateUserRequest ToRequest(string password, string resolvedEmail)
+        {
+            var dateOfBirth = DateOfBirth.HasValue ? DateOnly.FromDateTime(DateOfBirth.Value) : (DateOnly?)null;
+            return new CreateUserRequest(
+                FirstName,
+                LastName,
+                resolvedEmail,
+                password,
+                Role,
+                string.IsNullOrWhiteSpace(PhoneNumber) ? null : PhoneNumber,
+                string.IsNullOrWhiteSpace(RodneCislo) ? null : RodneCislo,
+                string.IsNullOrWhiteSpace(Bydlisko) ? null : Bydlisko,
+                dateOfBirth,
+                null);
+        }
+    }
+}

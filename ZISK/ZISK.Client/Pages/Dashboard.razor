@@ -1,119 +1,155 @@
-﻿@page "/"
+﻿@page "/domov"
+@implements IDisposable
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Announcements
+@using ZISK.Shared.DTOs.Trainings
 @using ZISK.Shared.Enums
 @inject IAnnouncementsApi AnnouncementsApi
-@inject IExcusesApi ExcusesApi
+@inject IChildrenApi ChildrenApi
+@inject ITrainingsApi TrainingsApi
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
-@attribute [Authorize]
+@inject UserContextService UserContextService
+@attribute [Authorize(Roles = "Parent,Athlete")]
 
-<PageTitle>Dashboard - ZISK</PageTitle>
+<PageTitle>Nástenka</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Vitajte v ZISK</MudText>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Nástenka</MudText>
 
-<MudGrid>
-    <MudItem xs="12" md="8">
-        <MudText Typo="Typo.h6" Class="mb-3">Rýchle akcie</MudText>
-        <MudGrid>
-            <MudItem xs="6" sm="4">
-                <MudPaper Class="pa-3" Elevation="2" Style="cursor: pointer;" @onclick="@(() => NavigateTo("/dochadzka/prehlad"))">
-                    <MudStack AlignItems="AlignItems.Center" Spacing="1">
-                        <MudIcon Icon="@Icons.Material.Filled.EventNote" Size="Size.Large" Color="Color.Primary" />
-                        <MudText Typo="Typo.body2">Moja dochádzka</MudText>
+    @if (_isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudCard Elevation="2" Class="mb-4">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Class="mb-2">Najbližšie udalosti</MudText>
+
+                @if (_nextEvent?.Training is null)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Default">Žiadna nadchádzajúca udalosť.</MudText>
+                }
+                else
+                {
+                    var training = _nextEvent.Training;
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.body1" Style="font-weight:600;">@training.Title</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Default">@training.StartTime.ToString("dd.MM.yyyy HH:mm") - @training.EndTime.ToString("HH:mm")</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Default">Miesto: @(training.Location ?? "Neuvedené")</MudText>
+                        <MudChip T="string" Icon="@Icons.Material.Filled.Person" Size="Size.Small" Color="Color.Info" Class="ml-auto">
+                            Pre: @_nextEvent.ForName
+                        </MudChip>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-2"
+                                   OnClick='() => NavigationManager.NavigateTo("/rozvrh")'>
+                            Zobraziť rozvrh
+                        </MudButton>
                     </MudStack>
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="6" sm="4">
-                <MudPaper Class="pa-3" Elevation="2" Style="cursor: pointer;" @onclick="@(() => NavigateTo("/ospravedlnenky"))">
-                    <MudStack AlignItems="AlignItems.Center" Spacing="1">
-                        <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" Color="Color.Warning" />
-                        <MudText Typo="Typo.body2">Ospravedlnenky</MudText>
-                    </MudStack>
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="6" sm="4">
-                <MudPaper Class="pa-3" Elevation="2" Style="cursor: pointer;" @onclick="@(() => NavigateTo("/rozvrh"))">
-                    <MudStack AlignItems="AlignItems.Center" Spacing="1">
-                        <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Large" Color="Color.Info" />
-                        <MudText Typo="Typo.body2">Rozvrh</MudText>
-                    </MudStack>
-                </MudPaper>
-            </MudItem>
-        </MudGrid>
+                }
+            </MudCardContent>
+        </MudCard>
 
-        <MudText Typo="Typo.h6" Class="mb-3 mt-4">Posledné oznamy</MudText>
-        @if (_isLoading)
-        {
-            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
-        }
-        else if (!_announcements.Any())
+        <MudText Typo="Typo.h6" Class="mb-3">Oznamy</MudText>
+
+        @if (!_announcements.Any())
         {
             <MudPaper Class="pa-4" Elevation="1">
-                <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne nové oznamy</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Default">Žiadne nové oznamy.</MudText>
             </MudPaper>
         }
         else
         {
             <MudStack Spacing="2">
-                @foreach (var announcement in _announcements.Take(3))
+                @foreach (var announcement in _announcements)
                 {
                     <MudPaper Class="pa-3" Elevation="1" Style="@GetAnnouncementStyle(announcement)">
                         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
                             <MudStack Spacing="0">
-                                <MudText Typo="Typo.subtitle1">@announcement.Title</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                    @announcement.PublishDate.ToString("dd.MM.yyyy")
-                                </MudText>
+                                <MudText Typo="Typo.subtitle2">@announcement.Title</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Default">@announcement.ContentPreview</MudText>
+                                <MudText Typo="Typo.caption" Class="text-muted">@announcement.PublishDate.ToString("dd.MM.yyyy HH:mm")</MudText>
                             </MudStack>
-                            <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(announcement.Priority)">
-                                @GetPriorityText(announcement.Priority)
-                            </MudChip>
+                            <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(announcement.Priority)">@GetPriorityText(announcement.Priority)</MudChip>
                         </MudStack>
                     </MudPaper>
                 }
-                <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/oznamy">
-                    Zobraziť všetky oznamy
-                </MudButton>
             </MudStack>
         }
-    </MudItem>
-
-    <MudItem xs="12" md="4">
-        @if (_pendingExcuses > 0)
-        {
-            <MudPaper Class="pa-4 mb-3" Elevation="2" Style="border-left: 4px solid #ff9800;">
-                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                    <MudStack Spacing="0">
-                        <MudText Typo="Typo.body1">Čakajúce ospravedlnenky</MudText>
-                        <MudText Typo="Typo.h5" Color="Color.Warning">@_pendingExcuses</MudText>
-                    </MudStack>
-                    <MudButton Variant="Variant.Text" Color="Color.Warning" Href="/ospravedlnenky">
-                        Zobraziť
-                    </MudButton>
-                </MudStack>
-            </MudPaper>
-        }
-
-    </MudItem>
-</MudGrid>
+    }
+</MudContainer>
 
 @code {
+    private record ContextTraining(TrainingEventDto? Training, string ForName, Guid? TeamId);
+
     private bool _isLoading = true;
+    private bool _disposed;
     private List<AnnouncementListDto> _announcements = new();
-    private int _pendingExcuses = 0;
+    private ContextTraining? _nextEvent;
 
     protected override async Task OnInitializedAsync()
     {
+        UserContextService.Changed += OnContextChanged;
+        await LoadData();
+    }
+
+    private async void OnContextChanged()
+    {
+        if (_disposed)
+            return;
+
         try
         {
-            var announcementsTask = AnnouncementsApi.GetAnnouncementsAsync(null, null);
-            var excusesTask = ExcusesApi.GetPendingCountAsync();
+            await LoadData();
+            if (!_disposed)
+                await InvokeAsync(StateHasChanged);
+        }
+        catch
+        {
+        }
+    }
 
-            await Task.WhenAll(announcementsTask, excusesTask);
+    private async Task LoadData()
+    {
+        try
+        {
+            _isLoading = true;
 
-            _announcements = await announcementsTask;
-            _pendingExcuses = await excusesTask;
+            var people = await ChildrenApi.GetMyChildrenAsync();
+            var selected = UserContextService.SelectedOption;
+
+            var scopedPeople = selected is null || selected.Key == UserContextService.AllKey
+                ? people
+                : people.Where(p => selected.ChildId == p.Id).ToList();
+
+            var trainingTasks = scopedPeople
+                .Where(p => p.TeamId.HasValue)
+                .Select(async p => new ContextTraining(
+                    (await TrainingsApi.GetTrainingsAsync(p.TeamId, DateTime.Now, DateTime.Now.AddMonths(1))).OrderBy(t => t.StartTime).FirstOrDefault(),
+                    p.IsOwnProfile ? "Seba" : $"{p.FirstName} {p.LastName}",
+                    p.TeamId))
+                .ToList();
+
+            var trainingCandidates = new List<ContextTraining>();
+            foreach (var task in trainingTasks)
+            {
+                var item = await task;
+                if (item.Training is not null)
+                    trainingCandidates.Add(item);
+            }
+
+            _nextEvent = trainingCandidates
+                .Where(t => t.Training is not null)
+                .OrderBy(t => t.Training!.StartTime)
+                .FirstOrDefault();
+
+            Guid? announcementTeamId = selected?.TeamId;
+            if (selected?.Key == UserContextService.AllKey)
+                announcementTeamId = null;
+
+            _announcements = (await AnnouncementsApi.GetAnnouncementsAsync(announcementTeamId, null))
+                .OrderByDescending(a => a.PublishDate)
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -123,11 +159,6 @@
         {
             _isLoading = false;
         }
-    }
-
-    private void NavigateTo(string url)
-    {
-        NavigationManager.NavigateTo(url);
     }
 
     private string GetAnnouncementStyle(AnnouncementListDto announcement)
@@ -154,4 +185,10 @@
         AnnouncementPriority.Medium => "Stredná",
         _ => "Info"
     };
+
+    public void Dispose()
+    {
+        _disposed = true;
+        UserContextService.Changed -= OnContextChanged;
+    }
 }

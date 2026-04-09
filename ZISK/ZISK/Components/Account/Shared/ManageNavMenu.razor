@@ -3,29 +3,17 @@
 
 @inject SignInManager<ApplicationUser> SignInManager
 
-<ul class="nav nav-pills flex-column">
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage" Match="NavLinkMatch.All">Profile</NavLink>
-    </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/Email">Email</NavLink>
-    </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/ChangePassword">Password</NavLink>
-    </li>
+<MudNavMenu Bordered="true" Rounded="true" Color="Color.Primary" Class="pa-2 bg-white" Style="border: 1px solid #E2E8F0;">
+    <MudNavLink Href="Account/Manage" Match="NavLinkMatch.All" Icon="@Icons.Material.Rounded.Person">Profil</MudNavLink>
+    <MudNavLink Href="Account/Manage/Email" Icon="@Icons.Material.Rounded.Email">Email</MudNavLink>
+    <MudNavLink Href="Account/Manage/ChangePassword" Icon="@Icons.Material.Rounded.Lock">Heslo</MudNavLink>
     @if (hasExternalLogins)
     {
-        <li class="nav-item">
-            <NavLink class="nav-link" href="Account/Manage/ExternalLogins">External logins</NavLink>
-        </li>
+        <MudNavLink Href="Account/Manage/ExternalLogins" Icon="@Icons.Material.Rounded.Login">Externé prihlásenia</MudNavLink>
     }
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/TwoFactorAuthentication">Two-factor authentication</NavLink>
-    </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/PersonalData">Personal data</NavLink>
-    </li>
-</ul>
+    <MudNavLink Href="Account/Manage/TwoFactorAuthentication" Icon="@Icons.Material.Rounded.Security">Dvojfázové overenie</MudNavLink>
+    <MudNavLink Href="Account/Manage/PersonalData" Icon="@Icons.Material.Rounded.DataUsage">Osobné údaje</MudNavLink>
+</MudNavMenu>
 
 @code {
     private bool hasExternalLogins;

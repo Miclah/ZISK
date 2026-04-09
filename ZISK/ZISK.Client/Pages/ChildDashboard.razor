@@ -1,0 +1,102 @@
+@page "/dieta"
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Trainings
+@using ZISK.Shared.DTOs.Announcements
+@inject IChildrenApi ChildrenApi
+@inject ITrainingsApi TrainingsApi
+@inject IAnnouncementsApi AnnouncementsApi
+@inject ISnackbar Snackbar
+@attribute [Authorize(Roles = "Child")]
+
+<PageTitle>Môj prehľad</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h5" Class="mb-3">Môj prehľad</MudText>
+
+    @if (_isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudCard Elevation="2" Class="mb-4">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Class="mb-2">Môj najbližší tréning</MudText>
+                @if (_nextTraining is null)
+                {
+                    <MudText Typo="Typo.body2" Class="text-muted">Žiadny najbližší tréning.</MudText>
+                }
+                else
+                {
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.body1">@_nextTraining.Title</MudText>
+                        <MudText Typo="Typo.body2" Class="text-muted">@_nextTraining.StartTime.ToString("dd.MM.yyyy HH:mm") - @_nextTraining.EndTime.ToString("HH:mm")</MudText>
+                        <MudText Typo="Typo.body2" Class="text-muted">Miesto: @(_nextTraining.Location ?? "Neuvedené")</MudText>
+                    </MudStack>
+                }
+            </MudCardContent>
+        </MudCard>
+
+        <MudText Typo="Typo.h6" Class="mb-3">Najnovšie oznamy</MudText>
+
+        @if (!_announcements.Any())
+        {
+            <MudPaper Elevation="1" Class="pa-3 mb-2">
+                <MudText Typo="Typo.body2" Class="text-muted">Zatiaľ žiadne oznamy tímu.</MudText>
+            </MudPaper>
+        }
+        else
+        {
+            <MudStack Spacing="2">
+                @foreach (var announcement in _announcements.Take(3))
+                {
+                    <MudPaper Elevation="1" Class="pa-3 mb-2">
+                        <MudText Typo="Typo.subtitle2">@announcement.Title</MudText>
+                        <MudText Typo="Typo.body2">@announcement.ContentPreview</MudText>
+                        <MudText Typo="Typo.caption" Class="text-muted">@announcement.PublishDate.ToString("dd.MM.yyyy HH:mm")</MudText>
+                    </MudPaper>
+                }
+            </MudStack>
+        }
+    }
+</MudContainer>
+
+@code {
+    private bool _isLoading = true;
+    private Guid? _teamId;
+    private TrainingEventDto? _nextTraining;
+    private List<TrainingEventDto> _upcomingTrainings = [];
+    private List<AnnouncementListDto> _announcements = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            var profiles = await ChildrenApi.GetMyChildrenAsync();
+            var profile = profiles.FirstOrDefault();
+            if (profile?.TeamId is null)
+                return;
+
+            _teamId = profile.TeamId;
+
+            var trainingsTask = TrainingsApi.GetTrainingsAsync(_teamId, DateTime.Now, DateTime.Now.AddMonths(1));
+            var announcementsTask = AnnouncementsApi.GetAnnouncementsAsync(_teamId, null);
+            await Task.WhenAll(trainingsTask, announcementsTask);
+
+            _upcomingTrainings = (await trainingsTask).OrderBy(t => t.StartTime).ToList();
+            _nextTraining = _upcomingTrainings.FirstOrDefault();
+            _announcements = (await announcementsTask)
+                .OrderByDescending(a => a.PublishDate)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri načítaní prehľadu: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

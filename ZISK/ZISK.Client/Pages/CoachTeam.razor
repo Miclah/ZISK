@@ -1,0 +1,181 @@
+@page "/coach/tim"
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Teams
+@using ZISK.Shared.DTOs.Excuses
+@inject ITeamsApi TeamsApi
+@inject IExcusesApi ExcusesApi
+@inject ISnackbar Snackbar
+@attribute [Authorize(Roles = "Coach")]
+
+<PageTitle>Môj tím</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-3">Môj tím a ospravedlnenky</MudText>
+
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+    <MudTabPanel Text="Súpiska">
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (!_members.Any())
+        {
+            <MudAlert Severity="Severity.Info">Tím je zatiaľ bez členov.</MudAlert>
+        }
+        else
+        {
+            <MudList T="TeamMemberDto" Dense="true" Clickable="true">
+                @foreach (var member in _members.OrderBy(m => m.LastName).ThenBy(m => m.FirstName))
+                {
+                    <MudListItem T="TeamMemberDto" OnClick="() => OpenMemberDetail(member)">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width:100%">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudAvatar Color="Color.Primary" Variant="Variant.Filled">
+                                    @GetInitials(member.FirstName, member.LastName)
+                                </MudAvatar>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body1">@member.FirstName @member.LastName</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@member.DateOfBirth.ToString("dd.MM.yyyy")</MudText>
+                                </MudStack>
+                            </MudStack>
+                        </MudStack>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="Ospravedlnenky">
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (!_excuses.Any())
+        {
+            <MudAlert Severity="Severity.Info">Zatiaľ žiadne ospravedlnenky.</MudAlert>
+        }
+        else
+        {
+            <MudList T="ExcuseListDto" Dense="true" Clickable="true">
+                @foreach (var excuse in _excuses.OrderByDescending(e => e.CreatedAt))
+                {
+                    <MudListItem T="ExcuseListDto" AvatarIcon="@Icons.Material.Filled.EventBusy" AvatarColor="Color.Warning"
+                                 OnClick="() => OpenExcuseDetail(excuse)">
+                        <MudStack Spacing="0" Style="width:100%">
+                            <MudText Typo="Typo.subtitle2">@excuse.ChildName</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@((excuse.DateFrom ?? excuse.CreatedAt).ToString("dd.MM.yyyy")) • @excuse.Reason</MudText>
+                        </MudStack>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+    </MudTabPanel>
+</MudTabs>
+
+<MudDialog @bind-Visible="_memberDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true })">
+    <TitleContent><MudText Typo="Typo.h6">Profil hráča</MudText></TitleContent>
+    <DialogContent>
+        @if (_selectedMember is not null)
+        {
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.body1">@_selectedMember.FirstName @_selectedMember.LastName</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Email: @(_selectedMember.Email ?? "neuvedený")</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Dátum narodenia: @_selectedMember.DateOfBirth.ToString("dd.MM.yyyy")</MudText>
+                <MudText Typo="Typo.body2" Style="font-weight:600;" Class="mt-2">Kontakty rodičov</MudText>
+                @if (_selectedMember.ParentContacts.Any())
+                {
+                    @foreach (var contact in _selectedMember.ParentContacts)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@contact</MudText>
+                    }
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Kontaktné údaje rodiča nie sú dostupné.</MudText>
+                }
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _memberDialogVisible = false">Zavrieť</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudDialog @bind-Visible="_excuseDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent><MudText Typo="Typo.h6">Detail ospravedlnenky</MudText></TitleContent>
+    <DialogContent>
+        @if (_selectedExcuse is not null)
+        {
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.body1">@_selectedExcuse.ChildName</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@_selectedExcuse.TeamName</MudText>
+                <MudText Typo="Typo.body2">@_selectedExcuse.Reason</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Od: @_selectedExcuse.DateFrom?.ToString("dd.MM.yyyy") Do: @_selectedExcuse.DateTo?.ToString("dd.MM.yyyy")</MudText>
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _excuseDialogVisible = false">Zavrieť</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool _isLoading = true;
+    private List<TeamMemberDto> _members = [];
+    private List<ExcuseListDto> _excuses = [];
+
+    private TeamMemberDto? _selectedMember;
+    private bool _memberDialogVisible;
+
+    private ExcuseListDto? _selectedExcuse;
+    private bool _excuseDialogVisible;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            _isLoading = true;
+            var team = (await TeamsApi.GetTeamsAsync(true)).FirstOrDefault();
+            if (team is null)
+                return;
+
+            var teamDetailTask = TeamsApi.GetTeamAsync(team.Id);
+            var excusesTask = ExcusesApi.GetExcusesAsync(null);
+            await Task.WhenAll(teamDetailTask, excusesTask);
+
+            _members = (await teamDetailTask).Members;
+            _excuses = await excusesTask;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri načítaní tímu: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void OpenMemberDetail(TeamMemberDto member)
+    {
+        _selectedMember = member;
+        _memberDialogVisible = true;
+    }
+
+    private void OpenExcuseDetail(ExcuseListDto excuse)
+    {
+        _selectedExcuse = excuse;
+        _excuseDialogVisible = true;
+    }
+
+    private static string GetInitials(string firstName, string lastName)
+    {
+        var first = string.IsNullOrWhiteSpace(firstName) ? "?" : firstName.Trim()[0].ToString().ToUpperInvariant();
+        var last = string.IsNullOrWhiteSpace(lastName) ? string.Empty : lastName.Trim()[0].ToString().ToUpperInvariant();
+        return $"{first}{last}";
+    }
+}

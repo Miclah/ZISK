@@ -1,0 +1,183 @@
+@page "/coach/treningy/{Id:guid}"
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Trainings
+@using ZISK.Shared.DTOs.Attendance
+@using ZISK.Shared.Enums
+@inject ITrainingsApi TrainingsApi
+@inject IAttendanceApi AttendanceApi
+@inject ISnackbar Snackbar
+@attribute [Authorize(Roles = "Coach")]
+
+<PageTitle>Detail tréningu</PageTitle>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_training is null)
+{
+    <MudAlert Severity="Severity.Error">Tréning sa nepodarilo načítať.</MudAlert>
+}
+else
+{
+    <MudPaper Class="pa-4 mb-3" Elevation="2">
+        <MudText Typo="Typo.h6">@_training.Title</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@_training.StartTime.ToString("dd.MM.yyyy HH:mm") - @_training.EndTime.ToString("HH:mm")</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Miesto: @(_training.Location ?? "Neuvedené")</MudText>
+    </MudPaper>
+
+    <MudList T="TrainingAttendanceDto" Dense="true">
+        @foreach (var player in _training.Attendance.OrderBy(a => a.ChildName))
+        {
+            <MudListItem T="TrainingAttendanceDto">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width:100%">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudAvatar Size="Size.Small">@GetInitials(player.ChildName)</MudAvatar>
+                        <MudText Typo="Typo.body2">@player.ChildName</MudText>
+                    </MudStack>
+
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(player)">@GetStatusText(player)</MudChip>
+
+                        @if (player.HasExcuse && !string.IsNullOrWhiteSpace(player.ExcuseReason))
+                        {
+                            <MudIconButton Icon="@Icons.Material.Rounded.Info"
+                                           Color="Color.Warning"
+                                           Size="Size.Small"
+                                           OnClick="() => ShowExcuseReason(player.ExcuseReason!)" />
+                        }
+
+                        @if (!player.HasExcuse)
+                        {
+                            <MudHidden Breakpoint="Breakpoint.SmAndDown">
+                                <MudButton Variant="Variant.Outlined"
+                                           Size="Size.Small"
+                                           Color="Color.Error"
+                                           StartIcon="@Icons.Material.Rounded.DoNotDisturb"
+                                           OnClick="() => MarkUnexcused(player.ChildId)">
+                                    Neospravedlnený
+                                </MudButton>
+                            </MudHidden>
+
+                            <MudHidden Breakpoint="Breakpoint.MdAndUp">
+                                <MudIconButton Icon="@Icons.Material.Rounded.DoNotDisturb"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               OnClick="() => MarkUnexcused(player.ChildId)" />
+                            </MudHidden>
+                        }
+                    </MudStack>
+                </MudStack>
+            </MudListItem>
+        }
+    </MudList>
+}
+
+<MudDialog @bind-Visible="_excuseDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true })">
+    <TitleContent><MudText Typo="Typo.h6">Dôvod ospravedlnenia</MudText></TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2">@_selectedExcuseReason</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _excuseDialogVisible = false">Zavrieť</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private bool _isLoading = true;
+    private TrainingEventDetailDto? _training;
+    private List<AttendanceRecordDto> _records = [];
+    private bool _excuseDialogVisible;
+    private string _selectedExcuseReason = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            _isLoading = true;
+            var trainingTask = TrainingsApi.GetTrainingAsync(Id);
+            var attendanceTask = AttendanceApi.GetTrainingAttendanceAsync(Id);
+            await Task.WhenAll(trainingTask, attendanceTask);
+
+            _training = await trainingTask;
+            _records = await attendanceTask;
+
+            if (_training is not null)
+            {
+                _training = _training with
+                {
+                    Attendance = _training.Attendance.Select(a =>
+                    {
+                        var manual = _records.FirstOrDefault(r => r.ChildId == a.ChildId && r.Status == AttendanceStatus.Absent);
+                        var status = manual is not null ? AttendanceStatus.Absent : a.Status;
+                        return a with { Status = status };
+                    }).ToList()
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri načítaní detailu tréningu: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task MarkUnexcused(Guid childId)
+    {
+        try
+        {
+            await AttendanceApi.MarkAttendanceAsync(new MarkAttendanceRequest(Id, childId, AttendanceStatus.Absent, null, "Manuálne označené trénerom"));
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri označení dochádzky: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private Color GetStatusColor(TrainingAttendanceDto player)
+    {
+        if (player.HasExcuse)
+            return Color.Warning;
+
+        if (player.Status == AttendanceStatus.Absent)
+            return Color.Error;
+
+        return DateTime.Now >= (_training?.StartTime ?? DateTime.MaxValue).AddMinutes(10) ? Color.Success : Color.Info;
+    }
+
+    private string GetStatusText(TrainingAttendanceDto player)
+    {
+        if (player.HasExcuse)
+            return "Ospravedlnený";
+
+        var startedPlusTen = DateTime.Now >= (_training?.StartTime ?? DateTime.MaxValue).AddMinutes(10);
+
+        if (player.Status == AttendanceStatus.Absent)
+            return "Neospravedlnený";
+
+        return startedPlusTen ? "Prítomný" : "Čaká sa";
+    }
+
+    private static string GetInitials(string name)
+    {
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length == 0 ? "?" : string.Concat(parts.Take(2).Select(p => p[0])).ToUpperInvariant();
+    }
+
+    private void ShowExcuseReason(string reason)
+    {
+        _selectedExcuseReason = reason;
+        _excuseDialogVisible = true;
+    }
+}

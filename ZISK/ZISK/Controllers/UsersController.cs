@@ -1,228 +1,126 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using ZISK.Data;
-using ZISK.Data.Entities;
+using ZISK.Services;
 using ZISK.Shared.DTOs.Users;
 
-namespace ZISK.Controllers
+namespace ZISK.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize(Roles = "Admin")]
+public class UsersController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")]
-    public class UsersController : ControllerBase
+    private readonly IUserService _userService;
+
+    public UsersController(IUserService userService)
     {
-        private readonly ApplicationDbContext _context;
-        private readonly UserManager<ApplicationUser> _userManager;
+        _userService = userService;
+    }
 
-        public UsersController(
-            ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager)
+    [HttpGet]
+    public async Task<ActionResult<List<UserListDto>>> GetUsers([FromQuery] string? role = null)
+    {
+        var result = await _userService.GetUsersAsync(role);
+        return Ok(result);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<UserDto>> GetUser(string id)
+    {
+        try
         {
-            _context = context;
-            _userManager = userManager;
-        }
-
-        [HttpGet]
-        public async Task<ActionResult<List<UserListDto>>> GetUsers([FromQuery] string? role = null)
-        {
-            var users = await _userManager.Users.ToListAsync();
-            var result = new List<UserListDto>();
-
-            foreach (var user in users)
-            {
-                var roles = await _userManager.GetRolesAsync(user);
-                var userRole = roles.FirstOrDefault() ?? "Parent";
-
-                if (role != null && userRole != role)
-                    continue;
-
-                result.Add(new UserListDto(
-                    user.Id,
-                    user.FirstName,
-                    user.LastName,
-                    user.Email ?? "",
-                    userRole,
-                    user.IsActive
-                ));
-            }
-
+            var result = await _userService.GetUserAsync(id);
             return Ok(result);
         }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<UserDto>> GetUser(string id)
+    [HttpGet("parents")]
+    [Authorize(Roles = "Admin,Coach")]
+    public async Task<ActionResult<List<ParentOptionDto>>> GetParents()
+    {
+        var result = await _userService.GetParentsAsync();
+        return Ok(result);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<UserDto>> CreateUser(CreateUserRequest request)
+    {
+        try
         {
-            var user = await _userManager.FindByIdAsync(id);
-            if (user == null)
-                return NotFound();
-
-            var roles = await _userManager.GetRolesAsync(user);
-            var teams = await _context.CoachTeams
-                .Where(ct => ct.CoachId == id)
-                .Include(ct => ct.Team)
-                .Select(ct => new UserTeamDto(ct.TeamId, ct.Team.Name, ct.IsPrimary))
-                .ToListAsync();
-
-            return Ok(new UserDto(
-                user.Id,
-                user.FirstName,
-                user.LastName,
-                user.Email ?? "",
-                roles.FirstOrDefault() ?? "Parent",
-                user.IsActive,
-                user.CreatedAt,
-                teams
-            ));
+            var result = await _userService.CreateUserAsync(request, User);
+            return Ok(result);
         }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+    }
 
-        [HttpPost]
-        public async Task<ActionResult<UserDto>> CreateUser(CreateUserRequest request)
+    [HttpPut("{id}")]
+    public async Task<ActionResult<UserDto>> UpdateUser(string id, UpdateUserRequest request)
+    {
+        try
         {
-            if (string.IsNullOrWhiteSpace(request.FirstName) || request.FirstName.Length < 2 || request.FirstName.Length > 100)
-                return BadRequest("Meno musí mať 2-100 znakov");
-
-            if (string.IsNullOrWhiteSpace(request.LastName) || request.LastName.Length < 2 || request.LastName.Length > 100)
-                return BadRequest("Priezvisko musí mať 2-100 znakov");
-
-            if (string.IsNullOrWhiteSpace(request.Email) || !request.Email.Contains("@"))
-                return BadRequest("Neplatný email");
-
-            if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 4)
-                return BadRequest("Heslo musí mať minimálne 4 znaky");
-
-            var validRoles = new[] { "Admin", "Coach", "Parent" };
-            if (!validRoles.Contains(request.Role))
-                return BadRequest("Neplatná rola");
-
-            var user = new ApplicationUser
-            {
-                UserName = request.Email,
-                Email = request.Email,
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                EmailConfirmed = true,
-                IsActive = true
-            };
-
-            var result = await _userManager.CreateAsync(user, request.Password);
-            if (!result.Succeeded)
-                return BadRequest(result.Errors.First().Description);
-
-            await _userManager.AddToRoleAsync(user, request.Role);
-
-            return await GetUser(user.Id);
+            var result = await _userService.UpdateUserAsync(id, request, User);
+            return Ok(result);
         }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return StatusCode(500, ex.Message); }
+    }
 
-        [HttpPut("{id}")]
-        public async Task<ActionResult<UserDto>> UpdateUser(string id, UpdateUserRequest request)
+    [HttpPost("{id}/toggle-status")]
+    public async Task<IActionResult> ToggleStatus(string id)
+    {
+        try
         {
-            var user = await _userManager.FindByIdAsync(id);
-            if (user == null)
-                return NotFound();
-
-            if (request.FirstName != null)
-                user.FirstName = request.FirstName;
-            if (request.LastName != null)
-                user.LastName = request.LastName;
-            if (request.IsActive.HasValue)
-                user.IsActive = request.IsActive.Value;
-
-            await _userManager.UpdateAsync(user);
-
-            if (request.Role != null)
-            {
-                var currentRoles = await _userManager.GetRolesAsync(user);
-                await _userManager.RemoveFromRolesAsync(user, currentRoles);
-                await _userManager.AddToRoleAsync(user, request.Role);
-            }
-
-            if (request.TeamIds != null)
-            {
-                var existingTeams = await _context.CoachTeams.Where(ct => ct.CoachId == id).ToListAsync();
-                _context.CoachTeams.RemoveRange(existingTeams);
-
-                for (int i = 0; i < request.TeamIds.Count; i++)
-                {
-                    _context.CoachTeams.Add(new CoachTeam
-                    {
-                        CoachId = id,
-                        TeamId = request.TeamIds[i],
-                        IsPrimary = i == 0
-                    });
-                }
-                await _context.SaveChangesAsync();
-            }
-
-            return await GetUser(id);
-        }
-
-        [HttpPost("{id}/toggle-status")]
-        public async Task<IActionResult> ToggleStatus(string id)
-        {
-            var user = await _userManager.FindByIdAsync(id);
-            if (user == null)
-                return NotFound();
-
-            user.IsActive = !user.IsActive;
-            await _userManager.UpdateAsync(user);
-
+            await _userService.ToggleStatusAsync(id, User);
             return Ok();
         }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
 
-        [HttpGet("coaches")]
-        [Authorize(Roles = "Admin,Coach")]
-        public async Task<ActionResult<List<UserListDto>>> GetCoaches()
+    [HttpGet("coaches")]
+    [Authorize(Roles = "Admin,Coach")]
+    public async Task<ActionResult<List<UserListDto>>> GetCoaches()
+    {
+        var result = await _userService.GetCoachesAsync();
+        return Ok(result);
+    }
+
+    [HttpPost("{userId}/teams/{teamId}")]
+    public async Task<IActionResult> AssignTeam(string userId, Guid teamId, [FromQuery] bool isPrimary = false)
+    {
+        try
         {
-            var coaches = await _userManager.GetUsersInRoleAsync("Coach");
-            return Ok(coaches.Select(u => new UserListDto(
-                u.Id, u.FirstName, u.LastName, u.Email ?? "", "Coach", u.IsActive
-            )).ToList());
-        }
-
-        [HttpPost("{userId}/teams/{teamId}")]
-        public async Task<IActionResult> AssignTeam(string userId, Guid teamId, [FromQuery] bool isPrimary = false)
-        {
-            var exists = await _context.CoachTeams
-                .AnyAsync(ct => ct.CoachId == userId && ct.TeamId == teamId);
-
-            if (exists)
-                return BadRequest("Tím je už priradený");
-
-            if (isPrimary)
-            {
-                var existing = await _context.CoachTeams
-                    .Where(ct => ct.CoachId == userId && ct.IsPrimary)
-                    .ToListAsync();
-                foreach (var ct in existing)
-                    ct.IsPrimary = false;
-            }
-
-            _context.CoachTeams.Add(new CoachTeam
-            {
-                CoachId = userId,
-                TeamId = teamId,
-                IsPrimary = isPrimary
-            });
-
-            await _context.SaveChangesAsync();
+            await _userService.AssignTeamAsync(userId, teamId, isPrimary);
             return Ok();
         }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Databáza")) { return StatusCode(500, ex.Message); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+    }
 
-        [HttpDelete("{userId}/teams/{teamId}")]
-        public async Task<IActionResult> RemoveTeam(string userId, Guid teamId)
+    [HttpDelete("{userId}/teams/{teamId}")]
+    public async Task<IActionResult> RemoveTeam(string userId, Guid teamId)
+    {
+        try
         {
-            var coachTeam = await _context.CoachTeams
-                .FirstOrDefaultAsync(ct => ct.CoachId == userId && ct.TeamId == teamId);
-
-            if (coachTeam == null)
-                return NotFound();
-
-            _context.CoachTeams.Remove(coachTeam);
-            await _context.SaveChangesAsync();
-
+            await _userService.RemoveTeamAsync(userId, teamId);
             return Ok();
         }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (InvalidOperationException ex) { return StatusCode(500, ex.Message); }
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeleteUser(string id)
+    {
+        try
+        {
+            await _userService.DeleteUserAsync(id, User);
+            return Ok();
+        }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
 }

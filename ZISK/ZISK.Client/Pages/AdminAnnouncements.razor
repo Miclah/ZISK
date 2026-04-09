@@ -1,0 +1,252 @@
+@page "/admin/systemove-oznamy"
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Announcements
+@using ZISK.Shared.DTOs.Teams
+@using ZISK.Shared.Enums
+@inject IAnnouncementsApi AnnouncementsApi
+@inject ITeamsApi TeamsApi
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Systémové oznamy</PageTitle>
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 px-0" />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Filled.Campaign" Size="Size.Large" Color="Color.Primary" />
+        <MudText Typo="Typo.h4">Systémové oznamy</MudText>
+    </MudStack>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
+        Vytvoriť oznam
+    </MudButton>
+</MudStack>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (!_announcements.Any())
+{
+    <MudAlert Severity="Severity.Info">Zatiaľ neexistujú žiadne systémové oznamy.</MudAlert>
+}
+else
+{
+    <div class="d-none d-lg-block">
+        <MudTable Items="_announcements" Hover="true" Dense="true" Elevation="2">
+            <HeaderContent>
+                <MudTh>Názov</MudTh>
+                <MudTh>Dátum</MudTh>
+                <MudTh>Autor</MudTh>
+                <MudTh>Cieľ</MudTh>
+                <MudTh Style="text-align:right">Akcie</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.body1">@context.Title</MudText>
+                        <MudText Typo="Typo.caption" Class="text-muted">@context.ContentPreview</MudText>
+                    </MudStack>
+                </MudTd>
+                <MudTd>@context.PublishDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+                <MudTd>@context.AuthorName</MudTd>
+                <MudTd>@(string.IsNullOrWhiteSpace(context.TargetTeamName) ? "Celý klub" : context.TargetTeamName)</MudTd>
+                <MudTd Style="text-align:right">
+                    <button type="button" class="btn btn-sm btn-outline-danger ms-2" @onclick="() => ConfirmDelete(context)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </div>
+
+    <div class="d-block d-lg-none">
+        @foreach (var announcement in _announcements)
+        {
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h6 class="card-title mb-1">@announcement.Title</h6>
+                    <p class="card-text text-muted mb-2">@announcement.ContentPreview</p>
+                    <div class="small text-muted mb-3">
+                        <div>@announcement.PublishDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
+                        <div>@announcement.AuthorName</div>
+                        <div>@(string.IsNullOrWhiteSpace(announcement.TargetTeamName) ? "Celý klub" : announcement.TargetTeamName)</div>
+                    </div>
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-sm btn-outline-danger ms-2" @onclick="() => ConfirmDelete(announcement)">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<MudDialog @bind-Visible="_createDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Nový systémový oznam</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3" Class="py-2">
+            <MudTextField @bind-Value="_title" Label="Názov" Variant="Variant.Outlined" Required="true" />
+            <MudTextField @bind-Value="_content" Label="Obsah" Variant="Variant.Outlined" Lines="5" Required="true" />
+            <MudSelect T="string" @bind-Value="_targetMode" Label="Cieľ oznamu" Variant="Variant.Outlined">
+                <MudSelectItem Value="@("All")">Celý klub</MudSelectItem>
+                <MudSelectItem Value="@("Team")">Konkrétny tím</MudSelectItem>
+            </MudSelect>
+            @if (_targetMode == "Team")
+            {
+                <MudSelect T="Guid?" @bind-Value="_targetTeamId" Label="Vyberte tím" Variant="Variant.Outlined" Required="true">
+                    @foreach (var team in _teams)
+                    {
+                        <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseCreateDialog">Zrušiť</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CreateAnnouncement" Disabled="_isSaving">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Uložiť
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool _isLoading = true;
+    private bool _isSaving;
+
+    private List<AnnouncementListDto> _announcements = new();
+    private List<TeamDto> _teams = new();
+
+    private bool _createDialogVisible;
+    private string _title = string.Empty;
+    private string _content = string.Empty;
+    private string _targetMode = "All";
+    private Guid? _targetTeamId;
+
+    private readonly List<BreadcrumbItem> _breadcrumbs =
+    [
+        new BreadcrumbItem("Domov", href: "/"),
+        new BreadcrumbItem("Administrácia", href: "/admin"),
+        new BreadcrumbItem("Systémové oznamy", href: null, disabled: true)
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            _isLoading = true;
+
+            var announcementsTask = AnnouncementsApi.GetAnnouncementsAsync(null, null);
+            var teamsTask = TeamsApi.GetTeamsAsync(true);
+
+            await Task.WhenAll(announcementsTask, teamsTask);
+
+            _announcements = (await announcementsTask)
+                .OrderByDescending(a => a.PublishDate)
+                .ToList();
+
+            _teams = await teamsTask;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Nepodarilo sa načítať oznamy: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void OpenCreateDialog()
+    {
+        _title = string.Empty;
+        _content = string.Empty;
+        _targetMode = "All";
+        _targetTeamId = null;
+        _createDialogVisible = true;
+    }
+
+    private void CloseCreateDialog()
+    {
+        _createDialogVisible = false;
+    }
+
+    private async Task CreateAnnouncement()
+    {
+        if (string.IsNullOrWhiteSpace(_title) || string.IsNullOrWhiteSpace(_content))
+        {
+            Snackbar.Add("Názov aj obsah sú povinné.", Severity.Warning);
+            return;
+        }
+
+        if (_targetMode == "Team" && !_targetTeamId.HasValue)
+        {
+            Snackbar.Add("Vyberte tím pre cielený oznam.", Severity.Warning);
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            var request = new CreateAnnouncementRequest(
+                _title,
+                _content,
+                _targetMode == "Team" ? _targetTeamId : null,
+                TargetAudience.All,
+                AnnouncementPriority.Medium,
+                false,
+                null);
+
+            await AnnouncementsApi.CreateAnnouncementAsync(request);
+            Snackbar.Add("Oznam bol vytvorený.", Severity.Success);
+            _createDialogVisible = false;
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri ukladaní oznamu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task ConfirmDelete(AnnouncementListDto announcement)
+    {
+        bool? result = await DialogService.ShowMessageBoxAsync(
+            "Potvrdenie zmazania",
+            $"Naozaj chcete zmazať oznam '{announcement.Title}'?",
+            yesText: "Zmazať",
+            cancelText: "Zrušiť",
+            options: new DialogOptions { MaxWidth = MaxWidth.Small });
+
+        if (result != true)
+            return;
+
+        try
+        {
+            await AnnouncementsApi.DeleteAnnouncementAsync(announcement.Id);
+            Snackbar.Add("Oznam bol zmazaný.", Severity.Success);
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri mazaní oznamu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+    }
+}

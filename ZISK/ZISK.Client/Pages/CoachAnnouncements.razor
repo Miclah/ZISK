@@ -1,0 +1,123 @@
+@page "/coach/oznamy"
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Announcements
+@using ZISK.Shared.DTOs.Teams
+@using ZISK.Shared.Enums
+@inject ITeamsApi TeamsApi
+@inject IAnnouncementsApi AnnouncementsApi
+@inject ISnackbar Snackbar
+@attribute [Authorize(Roles = "Coach")]
+
+<PageTitle>Oznamy tímu</PageTitle>
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+    <MudText Typo="Typo.h5">Oznamy pre tím</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Rounded.Add" OnClick="OpenCreateDialog">Pridať oznam</MudButton>
+</MudStack>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (!_announcements.Any())
+{
+    <MudAlert Severity="Severity.Info">Zatiaľ nebol vytvorený žiadny oznam.</MudAlert>
+}
+else
+{
+    <MudStack Spacing="2">
+        @foreach (var ann in _announcements)
+        {
+            <MudPaper Elevation="1" Class="pa-4 mb-3">
+                <MudText Typo="Typo.caption" Class="text-muted mb-2">@ann.PublishDate.ToString("dd.MM.yyyy HH:mm")</MudText>
+                <MudText Typo="Typo.h6">@ann.Title</MudText>
+                <MudText Typo="Typo.body1">@ann.ContentPreview</MudText>
+            </MudPaper>
+        }
+    </MudStack>
+}
+
+<MudDialog @bind-Visible="_createDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent><MudText Typo="Typo.h6">Nový oznam</MudText></TitleContent>
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudTextField @bind-Value="_title" Label="Nadpis" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_content" Label="Text oznamu" Variant="Variant.Outlined" Lines="5" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _createDialogVisible = false">Zrušiť</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CreateAnnouncement">Uložiť</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool _isLoading = true;
+    private Guid? _teamId;
+    private List<AnnouncementListDto> _announcements = [];
+
+    private bool _createDialogVisible;
+    private string _title = string.Empty;
+    private string _content = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            _isLoading = true;
+            var team = (await TeamsApi.GetTeamsAsync(true)).FirstOrDefault();
+            if (team is null)
+                return;
+
+            _teamId = team.Id;
+            _announcements = (await AnnouncementsApi.GetAnnouncementsAsync(_teamId, null))
+                .OrderByDescending(a => a.PublishDate)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri načítaní oznamov: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void OpenCreateDialog()
+    {
+        _title = string.Empty;
+        _content = string.Empty;
+        _createDialogVisible = true;
+    }
+
+    private async Task CreateAnnouncement()
+    {
+        if (_teamId is null || string.IsNullOrWhiteSpace(_title) || string.IsNullOrWhiteSpace(_content))
+            return;
+
+        try
+        {
+            await AnnouncementsApi.CreateAnnouncementAsync(new CreateAnnouncementRequest(
+                _title,
+                _content,
+                _teamId,
+                TargetAudience.All,
+                AnnouncementPriority.Medium,
+                false,
+                null));
+
+            _createDialogVisible = false;
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri ukladaní oznamu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+    }
+}

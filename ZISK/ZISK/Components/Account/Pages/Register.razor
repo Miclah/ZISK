@@ -145,15 +145,20 @@
 @code {
     private IEnumerable<IdentityError>? identityErrors;
 
+    private InputModel? _input;
+
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel Input
+    {
+        get => _input ??= new();
+        set => _input = value;
+    }
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
     protected override void OnInitialized()
     {
-        Input ??= new();
     }
 
     private string? Message => identityErrors is null
@@ -162,6 +167,13 @@
 
     public async Task RegisterUser(EditContext editContext)
     {
+        var existingUser = await UserManager.FindByEmailAsync(Input.Email);
+        if (existingUser != null)
+        {
+            identityErrors = [new IdentityError { Description = "Používateľ s týmto emailom už existuje." }];
+            return;
+        }
+
         var user = new ApplicationUser
         {
             UserName = Input.Email,
@@ -185,8 +197,8 @@
         }
 
         Logger.LogInformation("User {Email} created a new account.", Input.Email);
-
         await UserManager.AddToRoleAsync(user, "Parent");
+
         await SignInManager.SignInAsync(user, isPersistent: false);
         RedirectManager.RedirectTo(ReturnUrl);
     }

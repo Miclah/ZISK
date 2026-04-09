@@ -1,64 +1,66 @@
 @page "/profil"
 @using System.Security.Claims
+@using System.Globalization
 @attribute [Authorize]
 
 <PageTitle>Môj profil - ZISK</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-6">Môj profil</MudText>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudPaper Elevation="1" Class="pa-4 mb-4 d-flex align-center">
+        <MudAvatar Color="Color.Primary" Style="height:60px; width:60px;" Class="mr-4">
+            @(_firstName?.Length > 0 ? _firstName[0].ToString().ToUpper() : "?")
+        </MudAvatar>
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@_firstName @_lastName</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@_email</MudText>
+        </MudStack>
+    </MudPaper>
 
-<MudGrid>
-    <MudItem xs="12" sm="8" md="6">
-        <MudPaper Elevation="2" Class="pa-6">
-            <MudStack Spacing="4">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
-                    <MudAvatar Size="Size.Large" Color="Color.Primary">
-                        @(_firstName?.Length > 0 ? _firstName[0].ToString().ToUpper() : "?")
-                    </MudAvatar>
-                    <MudStack Spacing="0">
-                        <MudText Typo="Typo.h6">@_firstName @_lastName</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">@_role</MudText>
+    <MudGrid Spacing="3">
+        <MudItem xs="12" sm="6">
+            <MudCard Elevation="1">
+                <MudCardContent>
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Osobné údaje</MudText>
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Meno</MudText>
+                        <MudText Typo="Typo.body2">@_firstName</MudText>
+                        <MudDivider />
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Priezvisko</MudText>
+                        <MudText Typo="Typo.body2">@_lastName</MudText>
                     </MudStack>
-                </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
 
-                <MudDivider />
+        <MudItem xs="12" sm="6">
+            <MudCard Elevation="1">
+                <MudCardContent>
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Kontakt</MudText>
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Email</MudText>
+                        <MudText Typo="Typo.body2">@_email</MudText>
+                        <MudDivider />
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Rola v systéme</MudText>
+                        <MudText Typo="Typo.body2">@_role</MudText>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
 
-                <MudTextField Value="@_firstName"
-                              Label="Meno"
-                              Variant="Variant.Outlined"
-                              ReadOnly="true"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Rounded.Person" />
-
-                <MudTextField Value="@_lastName"
-                              Label="Priezvisko"
-                              Variant="Variant.Outlined"
-                              ReadOnly="true"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Rounded.Person" />
-
-                <MudTextField Value="@_email"
-                              Label="Email"
-                              Variant="Variant.Outlined"
-                              ReadOnly="true"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Rounded.Email" />
-
-                <MudTextField Value="@_role"
-                              Label="Rola"
-                              Variant="Variant.Outlined"
-                              ReadOnly="true"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Rounded.Badge" />
-            </MudStack>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
+    <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Rounded.Lock" Href="/Account/Manage/ChangePassword">
+            Zmeniť heslo
+        </MudButton>
+    </MudStack>
+</MudContainer>
 
 @code {
     private string _firstName = string.Empty;
     private string _lastName = string.Empty;
     private string _email = string.Empty;
     private string _role = string.Empty;
+    private string _joinedDateLabel = DateTime.Now.ToString("dd.MM.yyyy", CultureInfo.GetCultureInfo("sk-SK"));
 
     [CascadingParameter]
     private Task<AuthenticationState> AuthState { get; set; } = default!;
@@ -72,5 +74,11 @@
         _lastName = user.FindFirst(ClaimTypes.Surname)?.Value ?? string.Empty;
         _email = user.FindFirst(ClaimTypes.Email)?.Value ?? user.Identity?.Name ?? string.Empty;
         _role = user.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
+
+        var joinedDate = user.FindFirst("created_at")?.Value;
+        if (!string.IsNullOrWhiteSpace(joinedDate) && DateTime.TryParse(joinedDate, out var parsed))
+        {
+            _joinedDateLabel = parsed.ToString("dd.MM.yyyy", CultureInfo.GetCultureInfo("sk-SK"));
+        }
     }
 }

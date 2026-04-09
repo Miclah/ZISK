@@ -24,7 +24,8 @@ public record TeamMemberDto(
     string FirstName,
     string LastName,
     string? Email,
-    DateOnly DateOfBirth
+    DateOnly DateOfBirth,
+    List<string> ParentContacts
 );
 
 public record CreateTeamRequest(

@@ -8,6 +8,7 @@
 @using ZISK.Data
 
 @inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 
@@ -25,6 +26,18 @@
             <div class="login-alert">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
                 <span>@errorMessage</span>
+            </div>
+        }
+
+        @if (_showResendLink)
+        {
+            <div class="login-alert login-alert-info">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                <span>
+                    Neprišiel vám email?
+                    <a href="@($"/overenie/znovu?Email={Uri.EscapeDataString(_unconfirmedEmail ?? "")}")"
+                       style="color: #1565c0; font-weight: 600;">Odoslať znovu</a>
+                </span>
             </div>
         }
 
@@ -80,20 +93,26 @@
 
 @code {
     private string? errorMessage;
+    private bool _showResendLink;
+    private string? _unconfirmedEmail;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
+    private InputModel? _input;
+
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel Input
+    {
+        get => _input ??= new();
+        set => _input = value;
+    }
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        Input ??= new();
-
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
             if (HttpContext.User.Identity?.IsAuthenticated == true)
@@ -107,18 +126,29 @@
 
     public async Task LoginUser()
     {
+        _showResendLink = false;
+        _unconfirmedEmail = null;
+
+        var user = await UserManager.FindByEmailAsync(Input.Email);
+        if (user == null)
+        {
+            errorMessage = "Neplatný email alebo heslo.";
+            return;
+        }
+
+        if (!user.IsActive)
+        {
+            Logger.LogWarning("Inactive user {Email} attempted to log in.", Input.Email);
+            errorMessage = "Váš účet bol deaktivovaný. Kontaktujte administrátora.";
+            return;
+        }
+
         var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
 
         if (result.Succeeded)
         {
             Logger.LogInformation("User {Email} logged in successfully.", Input.Email);
             NavigationManager.NavigateTo(GetSafeRedirectUrl(), forceLoad: true);
-            return;
-        }
-
-        if (result.RequiresTwoFactor)
-        {
-            errorMessage = "Vyžaduje sa dvojfaktorové overenie.";
             return;
         }
 
@@ -143,12 +173,10 @@
                 var uri = new Uri(decodedUrl);
                 var currentUri = new Uri(NavigationManager.BaseUri);
                 if (uri.Host != currentUri.Host) return "/";
-                return uri.PathAndQuery;
             }
             catch { return "/"; }
         }
-        if (decodedUrl.StartsWith("/")) return decodedUrl;
-        return "/" + decodedUrl;
+        return decodedUrl;
     }
 
     private sealed class InputModel
@@ -161,7 +189,6 @@
         [DataType(DataType.Password)]
         public string Password { get; set; } = "";
 
-        [Display(Name = "Zapamätať si ma?")]
         public bool RememberMe { get; set; }
     }
 }

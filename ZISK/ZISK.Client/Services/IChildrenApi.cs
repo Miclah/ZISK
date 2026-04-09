@@ -11,4 +11,4 @@ public interface IChildrenApi
     Task<List<ChildDto>> GetAllChildrenAsync();
 }
 
-public record ChildDto(Guid Id, string FirstName, string LastName, string? TeamName);
+public record ChildDto(Guid Id, string FirstName, string LastName, Guid? TeamId, string? TeamName, bool IsOwnProfile);
