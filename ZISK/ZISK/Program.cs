@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using ZISK.Components;
 using ZISK.Components.Account;
+using ZISK.Client.Services;
 using ZISK.Data;
 using ZISK.Extensions;
 using ZISK.Services;
@@ -83,6 +84,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<ForwardAuthHeaderHandler>();
 
 builder.Services.AddMudServices();
+builder.Services.AddScoped<UserContextService>();
 builder.Services.AddApplicationServices();
 builder.Services.AddRefitClients(builder.Configuration);
 

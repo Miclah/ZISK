@@ -58,11 +58,11 @@ else
                     </MudCardHeader>
                     <MudCardContent>
                         <div class="d-flex align-center mb-1">
-                            <MudIcon Icon="@Icons.Material.Filled.Sports" Size="Size.Small" Class="mr-2 text-muted" />
+                            <MudIcon Icon="@Icons.Material.Filled.Sports" Size="Size.Small" Class="mr-2" Color="Color.Secondary" />
                             <MudText Typo="Typo.body2">Tréneri: @(GetCoachNamesForTeam(team.Id))</MudText>
                         </div>
                         <div class="d-flex align-center mb-1">
-                            <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" Class="mr-2 text-muted" />
+                            <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" Class="mr-2" Color="Color.Secondary" />
                             <MudText Typo="Typo.body2">Členovia: @team.MemberCount</MudText>
                         </div>
                         @if (!string.IsNullOrWhiteSpace(team.Description))

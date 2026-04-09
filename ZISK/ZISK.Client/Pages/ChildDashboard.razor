@@ -24,14 +24,14 @@
                 <MudText Typo="Typo.h6" Class="mb-2">Môj najbližší tréning</MudText>
                 @if (_nextTraining is null)
                 {
-                    <MudText Typo="Typo.body2" Class="text-muted">Žiadny najbližší tréning.</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadny najbližší tréning.</MudText>
                 }
                 else
                 {
                     <MudStack Spacing="0">
                         <MudText Typo="Typo.body1">@_nextTraining.Title</MudText>
-                        <MudText Typo="Typo.body2" Class="text-muted">@_nextTraining.StartTime.ToString("dd.MM.yyyy HH:mm") - @_nextTraining.EndTime.ToString("HH:mm")</MudText>
-                        <MudText Typo="Typo.body2" Class="text-muted">Miesto: @(_nextTraining.Location ?? "Neuvedené")</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@_nextTraining.StartTime.ToString("dd.MM.yyyy HH:mm") - @_nextTraining.EndTime.ToString("HH:mm")</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Miesto: @(_nextTraining.Location ?? "Neuvedené")</MudText>
                     </MudStack>
                 }
             </MudCardContent>
@@ -42,7 +42,7 @@
         @if (!_announcements.Any())
         {
             <MudPaper Elevation="1" Class="pa-3 mb-2">
-                <MudText Typo="Typo.body2" Class="text-muted">Zatiaľ žiadne oznamy tímu.</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Zatiaľ žiadne oznamy tímu.</MudText>
             </MudPaper>
         }
         else
@@ -53,7 +53,7 @@
                     <MudPaper Elevation="1" Class="pa-3 mb-2">
                         <MudText Typo="Typo.subtitle2">@announcement.Title</MudText>
                         <MudText Typo="Typo.body2">@announcement.ContentPreview</MudText>
-                        <MudText Typo="Typo.caption" Class="text-muted">@announcement.PublishDate.ToString("dd.MM.yyyy HH:mm")</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@announcement.PublishDate.ToString("dd.MM.yyyy HH:mm")</MudText>
                     </MudPaper>
                 }
             </MudStack>
