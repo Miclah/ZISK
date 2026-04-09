@@ -1,10 +1,7 @@
-﻿@page "/admin/pouzivatelia"
+@page "/admin/pouzivatelia"
 @using ZISK.Client.Components
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Users
-@inject IUsersApi UsersApi
-@inject ISnackbar Snackbar
-@inject IDialogService DialogService
 @attribute [Authorize(Roles = "Admin")]
 
 <PageTitle>Správa používateľov</PageTitle>
@@ -53,7 +50,7 @@ else if (_error != null)
 }
 else
 {
-    <div class="d-none d-lg-block">
+    <MudHidden Breakpoint="Breakpoint.MdAndDown">
         <MudTable Items="FilteredUsers" Hover="true" Striped="true" Elevation="2" Dense="true">
             <HeaderContent>
                 <MudTh>Meno</MudTh>
@@ -72,561 +69,136 @@ else
                 <MudTd>@(string.IsNullOrWhiteSpace(context.PhoneNumber) ? "-" : context.PhoneNumber)</MudTd>
                 <MudTd>@(string.IsNullOrWhiteSpace(context.TeamName) ? "Nepriradený" : context.TeamName)</MudTd>
                 <MudTd Style="text-align:right">
-                    <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => OpenEditDialog(context)">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-danger ms-2" @onclick="() => ConfirmDeleteUser(context)">
-                        <i class="bi bi-trash"></i>
-                    </button>
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Color="Color.Primary"
+                                   Size="Size.Small"
+                                   OnClick="() => OpenEditDialog(context)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Color="Color.Error"
+                                   Size="Size.Small"
+                                   OnClick="() => ConfirmDeleteUser(context)" />
                 </MudTd>
             </RowTemplate>
             <NoRecordsContent>
                 <MudText>Žiadni používatelia</MudText>
             </NoRecordsContent>
         </MudTable>
-    </div>
+    </MudHidden>
 
-    <div class="d-block d-lg-none">
+    <MudHidden Breakpoint="Breakpoint.LgAndUp">
         @if (FilteredUsers.Any())
         {
-            @foreach (var user in FilteredUsers)
-            {
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-2">
-                            <MudAvatar Size="Size.Medium" Color="@GetRoleColor(user.Role)" Class="me-2">
-                                @GetUserInitials(user)
-                            </MudAvatar>
-                            <div>
-                                <h6 class="mb-0">@user.FirstName @user.LastName</h6>
-                                <small class="text-muted">@(string.IsNullOrWhiteSpace(user.TeamName) ? "Nepriradený" : user.TeamName)</small>
-                            </div>
-                        </div>
-                        <div class="mb-2">
-                            <span class="badge @GetRoleBadgeClass(user.Role)">@GetRoleText(user.Role)</span>
-                        </div>
-                        <div class="text-muted small mb-3">Telefón: @(string.IsNullOrWhiteSpace(user.PhoneNumber) ? "-" : user.PhoneNumber)</div>
-                        <div class="d-flex justify-content-end">
-                            <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => OpenEditDialog(user)">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger ms-2" @onclick="() => ConfirmDeleteUser(user)">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            }
+            <MudStack Spacing="2">
+                @foreach (var user in FilteredUsers)
+                {
+                    <MudPaper Class="pa-3" Elevation="1">
+                        <MudStack Spacing="1">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudAvatar Size="Size.Medium" Color="@GetRoleColor(user.Role)">
+                                    @GetUserInitials(user)
+                                </MudAvatar>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.subtitle2">@user.FirstName @user.LastName</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @(string.IsNullOrWhiteSpace(user.TeamName) ? "Nepriradený" : user.TeamName)
+                                    </MudText>
+                                </MudStack>
+                            </MudStack>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudChip T="string" Size="Size.Small" Color="@GetRoleColor(user.Role)">@GetRoleText(user.Role)</MudChip>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    Telefón: @(string.IsNullOrWhiteSpace(user.PhoneNumber) ? "-" : user.PhoneNumber)
+                                </MudText>
+                            </MudStack>
+                            <MudStack Row="true" Justify="Justify.FlexEnd">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               Color="Color.Primary"
+                                               Size="Size.Small"
+                                               OnClick="() => OpenEditDialog(user)" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               OnClick="() => ConfirmDeleteUser(user)" />
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                }
+            </MudStack>
         }
         else
         {
             <MudText>Žiadni používatelia</MudText>
         }
-    </div>
+    </MudHidden>
 }
 
 <MudDialog @bind-Visible="_editDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
     <TitleContent>
-        <MudText Typo="Typo.h6">@(_isCreating ? "Pridať používateľa" : "Upraviť používateľa")</MudText>
+        <MudText Typo="Typo.h6">Upraviť používateľa</MudText>
     </TitleContent>
     <DialogContent>
-        @if (_isCreating)
-        {
-            <h6 class="text-muted mb-3">Osobné údaje</h6>
-            <MudGrid>
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_editFirstName" Label="Meno" Variant="Variant.Filled" Required="true" Class="bg-light rounded" />
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_editLastName" Label="Priezvisko" Variant="Variant.Filled" Required="true" Class="bg-light rounded" />
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudDatePicker @bind-Date="_editDateOfBirthDate" Label="Dátum narodenia" Variant="Variant.Filled" Clearable="true" Class="bg-light rounded" />
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_editRodneCislo" Label="Rodné číslo" Variant="Variant.Filled" Class="bg-light rounded" />
-                </MudItem>
-                <MudItem xs="12">
-                    <MudTextField @bind-Value="_editBydlisko" Label="Bydlisko" Variant="Variant.Filled" Lines="2" Class="bg-light rounded" />
-                </MudItem>
-            </MudGrid>
+        <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mb-3">Osobné údaje</MudText>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_editFirstName" Label="Meno" Variant="Variant.Outlined" Required="true" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_editLastName" Label="Priezvisko" Variant="Variant.Outlined" Required="true" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_editPhone" Label="Telefón" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_editRodneCislo" Label="Rodné číslo" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudDatePicker @bind-Date="_editDateOfBirthDate" Label="Dátum narodenia" Variant="Variant.Outlined" Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="string" @bind-Value="_editRole" Label="Rola" Variant="Variant.Outlined" Required="true">
+                    <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
+                    <MudSelectItem Value="@("Coach")">Tréner</MudSelectItem>
+                    <MudSelectItem Value="@("Parent")">Rodič</MudSelectItem>
+                    <MudSelectItem Value="@("Athlete")">Športovec</MudSelectItem>
+                    <MudSelectItem Value="@("Child")">Dieťa</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_editBydlisko" Label="Bydlisko" Variant="Variant.Outlined" Lines="2" />
+            </MudItem>
 
-            <h6 class="text-muted mb-3 mt-4">Kontakt a rola</h6>
-            <MudGrid>
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_editPhone" Label="Telefón *" Variant="Variant.Filled" Required="true" Class="bg-light rounded" />
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_editEmail" Label="Email" Variant="Variant.Filled" InputType="InputType.Email" Class="bg-light rounded" />
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudSelect T="string" @bind-Value="_editRole" Label="Rola" Variant="Variant.Filled" Required="true" Class="bg-light rounded">
-                        <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
-                        <MudSelectItem Value="@("Coach")">Tréner</MudSelectItem>
-                        <MudSelectItem Value="@("Parent")">Rodič</MudSelectItem>
-                        <MudSelectItem Value="@("Athlete")">Športovec</MudSelectItem>
-                        <MudSelectItem Value="@("Child")">Dieťa</MudSelectItem>
+            @if (_editRole == "Child")
+            {
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+                        Pri role Dieťa prepojte profil s minimálne jedným rodičom.
+                    </MudAlert>
+                    <MudTextField @bind-Value="_parentSearch" Label="Hľadať rodiča" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-2" />
+                    <MudSelect T="string"
+                               SelectedValues="_selectedParentIds"
+                               SelectedValuesChanged="OnSelectedParentsChanged"
+                               Label="Prepojení rodičia"
+                               Variant="Variant.Outlined"
+                               MultiSelection="true"
+                               SelectAll="true"
+                               SelectAllText="Vybrať všetkých">
+                        @foreach (var parent in FilteredParents)
+                        {
+                            <MudSelectItem Value="@parent.Id">@parent.FullName</MudSelectItem>
+                        }
                     </MudSelect>
                 </MudItem>
-
-                @if (_editRole == "Child")
-                {
-                    <MudItem xs="12">
-                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
-                            Pri role Dieťa prepojte profil s minimálne jedným rodičom.
-                        </MudAlert>
-                        <MudTextField @bind-Value="_parentSearch" Label="Hľadať rodiča" Variant="Variant.Filled" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-2 bg-light rounded" />
-                        <MudSelect T="string"
-                                   SelectedValues="_selectedParentIds"
-                                   SelectedValuesChanged="OnSelectedParentsChanged"
-                                   Label="Prepojení rodičia"
-                                   Variant="Variant.Filled"
-                                   MultiSelection="true"
-                                   SelectAll="true"
-                                   SelectAllText="Vybrať všetkých"
-                                   Class="bg-light rounded">
-                            @foreach (var parent in FilteredParents)
-                            {
-                                <MudSelectItem Value="@parent.Id">@parent.FullName</MudSelectItem>
-                            }
-                        </MudSelect>
-                    </MudItem>
-                }
-            </MudGrid>
-
-            <MudCheckBox @bind-Value="_generateRandomPassword" Color="Color.Primary" Label="Vygenerovať náhodné heslo a poslať ho používateľovi do SMS/Emailu" Class="mt-3" />
-            <MudText Typo="Typo.caption" Class="text-muted">Ak odoslanie nebude dostupné, systém vytvorí predvolené heslo z dátumu narodenia a telefónu.</MudText>
-        }
-        else
-        {
-            <MudGrid>
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_editFirstName" Label="Meno" Variant="Variant.Outlined" Required="true" />
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_editLastName" Label="Priezvisko" Variant="Variant.Outlined" Required="true" />
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_editPhone" Label="Telefón" Variant="Variant.Outlined" />
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_editRodneCislo" Label="Rodné číslo" Variant="Variant.Outlined" />
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudDatePicker @bind-Date="_editDateOfBirthDate" Label="Dátum narodenia" Variant="Variant.Outlined" Clearable="true" />
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudSelect T="string" @bind-Value="_editRole" Label="Rola" Variant="Variant.Outlined" Required="true">
-                        <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
-                        <MudSelectItem Value="@("Coach")">Tréner</MudSelectItem>
-                        <MudSelectItem Value="@("Parent")">Rodič</MudSelectItem>
-                        <MudSelectItem Value="@("Athlete")">Športovec</MudSelectItem>
-                        <MudSelectItem Value="@("Child")">Dieťa</MudSelectItem>
-                    </MudSelect>
-                </MudItem>
-                <MudItem xs="12">
-                    <MudTextField @bind-Value="_editBydlisko" Label="Bydlisko" Variant="Variant.Outlined" Lines="2" />
-                </MudItem>
-
-                @if (_editRole == "Child")
-                {
-                    <MudItem xs="12">
-                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
-                            Pri role Dieťa prepojte profil s minimálne jedným rodičom.
-                        </MudAlert>
-                        <MudTextField @bind-Value="_parentSearch" Label="Hľadať rodiča" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-2" />
-                        <MudSelect T="string"
-                                   SelectedValues="_selectedParentIds"
-                                   SelectedValuesChanged="OnSelectedParentsChanged"
-                                   Label="Prepojení rodičia"
-                                   Variant="Variant.Outlined"
-                                   MultiSelection="true"
-                                   SelectAll="true"
-                                   SelectAllText="Vybrať všetkých">
-                            @foreach (var parent in FilteredParents)
-                            {
-                                <MudSelectItem Value="@parent.Id">@parent.FullName</MudSelectItem>
-                            }
-                        </MudSelect>
-                    </MudItem>
-                }
-            </MudGrid>
-        }
+            }
+        </MudGrid>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="CloseEditDialog">Zrušiť</MudButton>
-        @if (_isCreating)
-        {
-            <button type="button" class="btn btn-primary px-4 py-2" @onclick="SaveUser" disabled="@_isSaving">
-                @if (_isSaving)
-                {
-                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                }
-                else
-                {
-                    <i class="bi bi-check-circle me-2"></i>
-                }
-                Vytvoriť účet
-            </button>
-        }
-        else
-        {
-            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveUser" Disabled="_isSaving">
-                @if (_isSaving)
-                {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                }
-                Uložiť
-            </MudButton>
-        }
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveUser" Disabled="_isSaving">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Uložiť
+        </MudButton>
     </DialogActions>
 </MudDialog>
-
-@code {
-    private bool _isLoading = true;
-    private bool _isSaving;
-    private string? _error;
-
-    private List<UserListDto> _users = new();
-    private List<ParentOptionDto> _parents = new();
-
-    private string _searchText = string.Empty;
-    private string? _selectedRole;
-
-    private bool _editDialogVisible;
-    private bool _isCreating;
-    private UserListDto? _selectedUser;
-
-    private string _editFirstName = string.Empty;
-    private string _editLastName = string.Empty;
-    private string _editEmail = string.Empty;
-    private string _editRole = "Parent";
-    private string _editPhone = string.Empty;
-    private string _editRodneCislo = string.Empty;
-    private string _editBydlisko = string.Empty;
-    private DateTime? _editDateOfBirthDate;
-    private bool _generateRandomPassword = true;
-
-    private HashSet<string> _selectedParentIds = new();
-    private string _parentSearch = string.Empty;
-
-    private readonly List<BreadcrumbItem> _breadcrumbs =
-    [
-        new BreadcrumbItem("Domov", href: "/"),
-        new BreadcrumbItem("Administrácia", href: "/admin"),
-        new BreadcrumbItem("Používatelia", href: null, disabled: true)
-    ];
-
-    private IEnumerable<UserListDto> FilteredUsers => _users
-        .Where(u => string.IsNullOrWhiteSpace(_searchText)
-            || ($"{u.FirstName} {u.LastName}").Contains(_searchText, StringComparison.OrdinalIgnoreCase)
-            || (!string.IsNullOrWhiteSpace(u.PhoneNumber) && u.PhoneNumber.Contains(_searchText, StringComparison.OrdinalIgnoreCase)))
-        .Where(u => string.IsNullOrWhiteSpace(_selectedRole) || u.Role == _selectedRole)
-        .OrderBy(u => u.LastName)
-        .ThenBy(u => u.FirstName);
-
-    private IEnumerable<ParentOptionDto> FilteredParents => _parents
-        .Where(p => string.IsNullOrWhiteSpace(_parentSearch) || p.FullName.Contains(_parentSearch, StringComparison.OrdinalIgnoreCase));
-
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadData();
-    }
-
-    private async Task LoadData()
-    {
-        try
-        {
-            _isLoading = true;
-            _error = null;
-
-            var usersTask = UsersApi.GetUsersAsync();
-            var parentsTask = UsersApi.GetParentsAsync();
-
-            await Task.WhenAll(usersTask, parentsTask);
-            _users = await usersTask;
-            _parents = await parentsTask;
-        }
-        catch (Exception ex)
-        {
-            _error = $"Nepodarilo sa načítať používateľov: {ex.Message}";
-        }
-        finally
-        {
-            _isLoading = false;
-        }
-    }
-
-    private async Task OpenCreateDialog()
-    {
-        var parameters = new DialogParameters
-        {
-            [nameof(AddUserDialog.Model)] = new AddUserDialog.AddUserDialogModel()
-            {
-                Role = "Parent",
-                GeneratePassword = true
-            }
-        };
-
-        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<AddUserDialog>("Pridať používateľa", parameters, options);
-        var result = await dialog.Result;
-
-        if (result.Canceled || result.Data is not AddUserDialog.AddUserDialogModel model)
-            return;
-
-        _isSaving = true;
-        try
-        {
-            var createEmail = BuildCreateEmail(model);
-            var initialPassword = GenerateInitialPassword(model);
-            var request = model.ToRequest(initialPassword, createEmail);
-
-            await UsersApi.CreateUserAsync(request);
-            Snackbar.Add("Používateľ bol vytvorený.", Severity.Success);
-            await LoadData();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Chyba pri ukladaní: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
-        }
-        finally
-        {
-            _isSaving = false;
-        }
-    }
-
-    private async Task OpenEditDialog(UserListDto user)
-    {
-        _isCreating = false;
-        _selectedUser = user;
-        _editFirstName = user.FirstName;
-        _editLastName = user.LastName;
-        _editRole = user.Role;
-        _editPhone = user.PhoneNumber ?? string.Empty;
-        _editRodneCislo = string.Empty;
-        _editBydlisko = string.Empty;
-        _editDateOfBirthDate = null;
-        _selectedParentIds = new HashSet<string>();
-        _parentSearch = string.Empty;
-
-        try
-        {
-            var detail = await UsersApi.GetUserAsync(user.Id);
-            _editPhone = detail.PhoneNumber ?? string.Empty;
-            _editRodneCislo = detail.RodneCislo ?? string.Empty;
-            _editBydlisko = detail.Bydlisko ?? string.Empty;
-            _editDateOfBirthDate = detail.DateOfBirth?.ToDateTime(TimeOnly.MinValue);
-            _selectedParentIds = detail.Parents.Select(p => p.Id).ToHashSet();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Nepodarilo sa načítať detail používateľa: {ex.Message}", Severity.Warning);
-        }
-
-        _editDialogVisible = true;
-    }
-
-    private void CloseEditDialog()
-    {
-        _editDialogVisible = false;
-    }
-
-    private async Task SaveUser()
-    {
-        if (string.IsNullOrWhiteSpace(_editFirstName) || string.IsNullOrWhiteSpace(_editLastName))
-        {
-            Snackbar.Add("Meno a priezvisko sú povinné.", Severity.Warning);
-            return;
-        }
-
-        if (_isCreating && string.IsNullOrWhiteSpace(_editPhone))
-        {
-            Snackbar.Add("Pri vytváraní je telefón povinný.", Severity.Warning);
-            return;
-        }
-
-        if (_editRole == "Child" && _selectedParentIds.Count == 0)
-        {
-            Snackbar.Add("Pre dieťa je potrebné vybrať aspoň jedného rodiča.", Severity.Warning);
-            return;
-        }
-
-        var dateOfBirth = _editDateOfBirthDate.HasValue
-            ? DateOnly.FromDateTime(_editDateOfBirthDate.Value)
-            : (DateOnly?)null;
-
-        _isSaving = true;
-        try
-        {
-            if (_isCreating)
-            {
-                var createEmail = BuildCreateEmail();
-                var initialPassword = GenerateInitialPassword();
-
-                var createRequest = new CreateUserRequest(
-                    _editFirstName,
-                    _editLastName,
-                    createEmail,
-                    initialPassword,
-                    _editRole,
-                    string.IsNullOrWhiteSpace(_editPhone) ? null : _editPhone,
-                    string.IsNullOrWhiteSpace(_editRodneCislo) ? null : _editRodneCislo,
-                    string.IsNullOrWhiteSpace(_editBydlisko) ? null : _editBydlisko,
-                    dateOfBirth,
-                    _selectedParentIds.ToList());
-
-                await UsersApi.CreateUserAsync(createRequest);
-                Snackbar.Add("Používateľ bol vytvorený.", Severity.Success);
-            }
-            else if (_selectedUser != null)
-            {
-                var updateRequest = new UpdateUserRequest(
-                    _editFirstName,
-                    _editLastName,
-                    _editRole,
-                    null,
-                    null,
-                    string.IsNullOrWhiteSpace(_editPhone) ? null : _editPhone,
-                    string.IsNullOrWhiteSpace(_editRodneCislo) ? null : _editRodneCislo,
-                    string.IsNullOrWhiteSpace(_editBydlisko) ? null : _editBydlisko,
-                    dateOfBirth,
-                    _selectedParentIds.ToList());
-
-                await UsersApi.UpdateUserAsync(_selectedUser.Id, updateRequest);
-                Snackbar.Add("Používateľ bol upravený.", Severity.Success);
-            }
-
-            _editDialogVisible = false;
-            await LoadData();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Chyba pri ukladaní: {ex.Message}", Severity.Error);
-        }
-        finally
-        {
-            _isSaving = false;
-        }
-    }
-
-    private async Task ConfirmDeleteUser(UserListDto user)
-    {
-        bool? result = await DialogService.ShowMessageBoxAsync(
-            "Upozornenie: trvalé zmazanie",
-            $"Naozaj chcete natrvalo vymazať používateľa '{user.FirstName} {user.LastName}'? Táto akcia je nevratná.",
-            yesText: "Áno, vymazať",
-            cancelText: "Zrušiť",
-            options: new DialogOptions { MaxWidth = MaxWidth.Small });
-
-        if (result != true)
-            return;
-
-        try
-        {
-            await UsersApi.DeleteUserAsync(user.Id);
-            Snackbar.Add("Používateľ bol odstránený.", Severity.Success);
-            await LoadData();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Chyba pri mazaní: {ex.Message}", Severity.Error);
-        }
-    }
-
-    private static string GetRoleText(string role) => role switch
-    {
-        "Admin" => "Admin",
-        "Coach" => "Tréner",
-        "Parent" => "Rodič",
-        "Athlete" => "Športovec",
-        "Child" => "Dieťa",
-        _ => role
-    };
-
-    private static Color GetRoleColor(string role) => role switch
-    {
-        "Admin" => Color.Error,
-        "Coach" => Color.Primary,
-        "Parent" => Color.Secondary,
-        "Athlete" => Color.Info,
-        "Child" => Color.Success,
-        _ => Color.Default
-    };
-
-    private static string GetRoleBadgeClass(string role) => role switch
-    {
-        "Admin" => "text-bg-danger",
-        "Coach" => "text-bg-primary",
-        "Parent" => "text-bg-secondary",
-        "Athlete" => "text-bg-info",
-        "Child" => "text-bg-success",
-        _ => "text-bg-light"
-    };
-
-    private static string GetUserInitials(UserListDto user)
-    {
-        var first = string.IsNullOrWhiteSpace(user.FirstName) ? "?" : user.FirstName.Trim()[0].ToString().ToUpperInvariant();
-        var last = string.IsNullOrWhiteSpace(user.LastName) ? string.Empty : user.LastName.Trim()[0].ToString().ToUpperInvariant();
-        return $"{first}{last}";
-    }
-
-    private string BuildCreateEmail()
-    {
-        if (!string.IsNullOrWhiteSpace(_editEmail))
-            return _editEmail.Trim();
-
-        var phoneDigits = new string((_editPhone ?? string.Empty).Where(char.IsDigit).ToArray());
-        var suffix = string.IsNullOrWhiteSpace(phoneDigits) ? Guid.NewGuid().ToString("N")[..8] : phoneDigits;
-        return $"{suffix}@zisk.local";
-    }
-
-    private static string BuildCreateEmail(AddUserDialog.AddUserDialogModel model)
-    {
-        if (!string.IsNullOrWhiteSpace(model.Email))
-            return model.Email.Trim();
-
-        var phoneDigits = new string((model.PhoneNumber ?? string.Empty).Where(char.IsDigit).ToArray());
-        var suffix = string.IsNullOrWhiteSpace(phoneDigits) ? Guid.NewGuid().ToString("N")[..8] : phoneDigits;
-        return $"{suffix}@zisk.local";
-    }
-
-    private string GenerateInitialPassword()
-    {
-        var phoneDigits = new string((_editPhone ?? string.Empty).Where(char.IsDigit).ToArray());
-
-        if (_generateRandomPassword)
-        {
-            return $"Zisk!{Random.Shared.Next(1000, 9999)}";
-        }
-
-        var datePart = _editDateOfBirthDate?.ToString("ddMMyyyy") ?? "01011990";
-        var phonePart = phoneDigits.Length >= 4
-            ? phoneDigits[^4..]
-            : phoneDigits.PadLeft(4, '0');
-
-        return $"{datePart}{phonePart}";
-    }
-
-    private static string GenerateInitialPassword(AddUserDialog.AddUserDialogModel model)
-    {
-        var phoneDigits = new string((model.PhoneNumber ?? string.Empty).Where(char.IsDigit).ToArray());
-
-        if (model.GeneratePassword)
-        {
-            return $"Zisk!{Random.Shared.Next(1000, 9999)}";
-        }
-
-        var datePart = model.DateOfBirth?.ToString("ddMMyyyy") ?? "01011990";
-        var phonePart = phoneDigits.Length >= 4
-            ? phoneDigits[^4..]
-            : phoneDigits.PadLeft(4, '0');
-
-        return $"{datePart}{phonePart}";
-    }
-
-    private void OnSelectedParentsChanged(IEnumerable<string> parentIds)
-    {
-        _selectedParentIds = parentIds.ToHashSet();
-    }
-}

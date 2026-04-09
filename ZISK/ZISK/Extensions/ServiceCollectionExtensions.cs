@@ -1,0 +1,58 @@
+using Refit;
+using ZISK.Client.Services;
+using ZISK.Services;
+
+namespace ZISK.Extensions;
+
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+    {
+        services.AddScoped<IAttendanceService, AttendanceService>();
+        services.AddScoped<IStatsService, StatsService>();
+        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IExcuseService, ExcuseService>();
+        services.AddScoped<ITrainingService, TrainingService>();
+        services.AddScoped<IAnnouncementService, AnnouncementService>();
+        services.AddScoped<IDocumentService, DocumentService>();
+        services.AddScoped<ITeamService, TeamService>();
+        services.AddScoped<IFileService, FileService>();
+        return services;
+    }
+
+    public static IServiceCollection AddRefitClients(this IServiceCollection services, IConfiguration configuration)
+    {
+        var baseAddressString = configuration["ApiBaseAddress"] ?? "http://localhost:5224";
+        var baseAddress = new Uri(baseAddressString);
+
+        services.AddRefitClient<IExcusesApi>()
+            .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
+            .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
+        services.AddRefitClient<IAttendanceApi>()
+            .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
+            .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
+        services.AddRefitClient<ITrainingsApi>()
+            .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
+            .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
+        services.AddRefitClient<ITeamsApi>()
+            .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
+            .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
+        services.AddRefitClient<IAnnouncementsApi>()
+            .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
+            .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
+        services.AddRefitClient<IDocumentsApi>()
+            .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
+            .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
+        services.AddRefitClient<IChildrenApi>()
+            .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
+            .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
+        services.AddRefitClient<IUsersApi>()
+            .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
+            .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
+        services.AddRefitClient<IStatsApi>()
+            .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
+            .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
+
+        return services;
+    }
+}

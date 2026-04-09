@@ -43,8 +43,8 @@
     {
         <MudPaper Class="pa-6" Elevation="1">
             <MudStack AlignItems="AlignItems.Center" Spacing="2">
-            <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Size="Size.Large" Color="Color.Default" Class="text-muted mb-2" />
-            <MudText Typo="Typo.body1" Class="text-muted">Zatiaľ nemáte žiadne ospravedlnenky.</MudText>
+            <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+            <MudText Typo="Typo.body1" Color="Color.Secondary">Zatiaľ nemáte žiadne ospravedlnenky.</MudText>
                 @if (_canCreateExcuse)
                 {
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="OpenCreateDialog">
@@ -77,6 +77,8 @@
                     <MudTd DataLabel="Akcie">
                         @if (_canCreateExcuse)
                         {
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                                           OnClick="@(() => OpenEditDialog(context))" />
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
                                            OnClick="@(() => DeleteExcuse(context.Id))" />
                         }
@@ -109,6 +111,10 @@
                             @if (_canCreateExcuse)
                             {
                                 <MudStack Row="true" Justify="Justify.FlexEnd">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                   Color="Color.Primary"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => OpenEditDialog(excuse))" />
                                     <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                                    Color="Color.Error"
                                                    Size="Size.Small"
@@ -224,6 +230,30 @@
     {
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
         var dialog = await DialogService.ShowAsync<AddExcuseDialog>("Nová ospravedlnenka", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadExcuses();
+        }
+    }
+
+    private async Task OpenEditDialog(ExcuseListDto excuse)
+    {
+        ExcuseDto detail;
+        try
+        {
+            detail = await ExcusesApi.GetExcuseAsync(excuse.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri načítaní ospravedlnenky: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            return;
+        }
+
+        var parameters = new DialogParameters { [nameof(EditExcuseDialog.Excuse)] = detail };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<EditExcuseDialog>("Upraviť ospravedlnenku", parameters, options);
         var result = await dialog.Result;
 
         if (!result.Canceled)
