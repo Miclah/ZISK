@@ -1,78 +1,90 @@
+@using System.ComponentModel.DataAnnotations
 @using ZISK.Shared.DTOs.Users
 @using MudBlazor
 
 <MudDialog>
     <DialogContent>
-        <MudGrid>
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="Model.FirstName"
-                              Label="Meno"
-                              Required="true"
-                              Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="Model.LastName"
-                              Label="Priezvisko"
-                              Required="true"
-                              Variant="Variant.Outlined" />
-            </MudItem>
+        <EditForm Model="@Model" OnValidSubmit="Submit">
+            <DataAnnotationsValidator />
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.FirstName"
+                                  Label="Meno"
+                                  For="@(() => Model.FirstName)"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.LastName"
+                                  Label="Priezvisko"
+                                  For="@(() => Model.LastName)"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
 
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="Model.PhoneNumber"
-                              Label="Telefón"
-                              Required="true"
-                              RequiredError="Telefón je povinný"
-                              Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="Model.Email"
-                              Label="Email"
-                              Variant="Variant.Outlined"
-                              InputType="InputType.Email" />
-            </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.PhoneNumber"
+                                  Label="Telefón"
+                                  For="@(() => Model.PhoneNumber)"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.Email"
+                                  Label="Email"
+                                  For="@(() => Model.Email)"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Email" />
+                </MudItem>
 
-            <MudItem xs="12" sm="6">
-                <MudDatePicker Label="Dátum narodenia"
-                               @bind-Date="Model.DateOfBirth"
-                               Variant="Variant.Outlined"
-                               Clearable="true" />
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudSelect T="string"
-                           Label="Rola"
-                           @bind-Value="Model.Role"
-                           Variant="Variant.Outlined"
-                           Required="true">
-                    <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
-                    <MudSelectItem Value="@("Coach")">Tréner</MudSelectItem>
-                    <MudSelectItem Value="@("Parent")">Rodič</MudSelectItem>
-                    <MudSelectItem Value="@("Athlete")">Športovec</MudSelectItem>
-                    <MudSelectItem Value="@("Child")">Dieťa</MudSelectItem>
-                </MudSelect>
-            </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Dátum narodenia"
+                                   @bind-Date="Model.DateOfBirth"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string"
+                               Label="Rola"
+                               @bind-Value="Model.Role"
+                               For="@(() => Model.Role)"
+                               Variant="Variant.Outlined">
+                        <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
+                        <MudSelectItem Value="@("Coach")">Tréner</MudSelectItem>
+                        <MudSelectItem Value="@("Parent")">Rodič</MudSelectItem>
+                        <MudSelectItem Value="@("Athlete")">Športovec</MudSelectItem>
+                        <MudSelectItem Value="@("Child")">Dieťa</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
 
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="Model.RodneCislo"
-                              Label="Rodné číslo"
-                              Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="Model.Bydlisko"
-                              Label="Bydlisko"
-                              Variant="Variant.Outlined" />
-            </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.RodneCislo"
+                                  Label="Rodné číslo"
+                                  For="@(() => Model.RodneCislo)"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.Bydlisko"
+                                  Label="Bydlisko"
+                                  For="@(() => Model.Bydlisko)"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
 
-            <MudItem xs="12">
-                <MudCheckBox @bind-Value="Model.GeneratePassword"
-                             Label="Vygenerovať náhodné heslo a poslať do SMS/Emailu"
-                             Color="Color.Primary" />
-            </MudItem>
-        </MudGrid>
+                <MudItem xs="12">
+                    <MudCheckBox @bind-Value="Model.GeneratePassword"
+                                 Label="Vygenerovať náhodné heslo a poslať do SMS/Emailu"
+                                 Color="Color.Primary" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Color="Color.Primary"
+                               Variant="Variant.Filled"
+                               FullWidth="true">Vytvoriť účet</MudButton>
+                </MudItem>
+            </MudGrid>
+        </EditForm>
     </DialogContent>
 
     <DialogActions>
         <MudButton OnClick="Cancel">Zrušiť</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Vytvoriť účet</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -90,27 +102,36 @@
 
     private void Submit()
     {
-        if (string.IsNullOrWhiteSpace(Model.FirstName)
-            || string.IsNullOrWhiteSpace(Model.LastName)
-            || string.IsNullOrWhiteSpace(Model.PhoneNumber)
-            || string.IsNullOrWhiteSpace(Model.Role))
-        {
-            return;
-        }
-
         MudDialog.Close(DialogResult.Ok(Model));
     }
 
     public class AddUserDialogModel
     {
+        [Required(ErrorMessage = "Meno je povinné.")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Meno musí mať 2 – 100 znakov.")]
         public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Priezvisko je povinné.")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Priezvisko musí mať 2 – 100 znakov.")]
         public string LastName { get; set; } = string.Empty;
+
+        [EmailAddress(ErrorMessage = "Neplatný formát emailu.")]
         public string? Email { get; set; }
+
+        [Required(ErrorMessage = "Telefón je povinný.")]
         public string PhoneNumber { get; set; } = string.Empty;
+
         public DateTime? DateOfBirth { get; set; }
+
+        [Required(ErrorMessage = "Rola je povinná.")]
         public string Role { get; set; } = "Parent";
+
+        [StringLength(20, ErrorMessage = "Rodné číslo môže mať max 20 znakov.")]
         public string? RodneCislo { get; set; }
+
+        [StringLength(300, ErrorMessage = "Bydlisko môže mať max 300 znakov.")]
         public string? Bydlisko { get; set; }
+
         public bool GeneratePassword { get; set; } = true;
 
         public CreateUserRequest ToRequest(string password, string resolvedEmail)

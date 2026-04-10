@@ -1,4 +1,7 @@
-﻿@page "/Account/Login"
+@page "/Account/Login"
+
+@attribute [AllowAnonymous]
+@layout ZISK.Components.Layout.LoginLayout
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authentication
@@ -6,63 +9,71 @@
 @using ZISK.Components.Account.Shared
 @using ZISK.Data
 
+@inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Log in</PageTitle>
+<PageTitle>Prihlásenie - ZISK</PageTitle>
 
-<h1>Log in</h1>
-<div class="row">
-    <div class="col-lg-6">
-        <section>
-            <StatusMessage Message="@errorMessage" />
-            <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
-                <DataAnnotationsValidator />
-                <h2>Use a local account to log in.</h2>
-                <hr />
-                <ValidationSummary class="text-danger" role="alert" />
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                    <label for="Input.Email" class="form-label">Email</label>
-                    <ValidationMessage For="() => Input.Email" class="text-danger" />
+<div class="login-page">
+    <div class="login-card">
+        <div class="login-brand">
+            <h1>ZISK</h1>
+            <p>Prihlásenie do systému</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="login-alert">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <span>@errorMessage</span>
+            </div>
+        }
+
+        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+            <DataAnnotationsValidator />
+
+            <div class="form-field">
+                <label for="Input.EmailOrUsername">Email alebo používateľské meno</label>
+                <div class="input-wrapper">
+                    <svg class="input-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                    <InputText @bind-Value="Input.EmailOrUsername" id="Input.EmailOrUsername" autocomplete="username" aria-required="true" placeholder="vas@email.sk alebo jan.novak" />
                 </div>
-                <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
-                    <label for="Input.Password" class="form-label">Password</label>
-                    <ValidationMessage For="() => Input.Password" class="text-danger" />
+                <ValidationMessage For="() => Input.EmailOrUsername" />
+            </div>
+
+            <div class="form-field">
+                <label for="Input.Password">Heslo</label>
+                <div class="input-wrapper">
+                    <svg class="input-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                    <InputText type="password" @bind-Value="Input.Password" id="Input.Password" autocomplete="current-password" aria-required="true" placeholder="Heslo" />
                 </div>
-                <div class="checkbox mb-3">
-                    <label class="form-label">
-                        <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
-                        Remember me
-                    </label>
-                </div>
-                <div>
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
-                </div>
-                <div>
-                    <p>
-                        <a href="Account/ForgotPassword">Forgot your password?</a>
-                    </p>
-                    <p>
-                        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</a>
-                    </p>
-                    <p>
-                        <a href="Account/ResendEmailConfirmation">Resend email confirmation</a>
-                    </p>
-                </div>
-            </EditForm>
-        </section>
+                <ValidationMessage For="() => Input.Password" />
+            </div>
+
+            <div class="form-field form-checkbox">
+                <label class="checkbox-label">
+                    <InputCheckbox @bind-Value="Input.RememberMe" />
+                    Zapamätať si ma
+                </label>
+            </div>
+
+            <button type="submit" class="btn-login">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M10 17v-3H3v-4h7V7l5 5-5 5zm9 2H13v-2h6V5h-6V3h6c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2z"/></svg>
+                Prihlásiť sa
+            </button>
+        </EditForm>
+
+        <div class="login-footer">
+            <a href="Account/ForgotPassword" class="footer-link">Zabudli ste heslo?</a>
+            <span class="login-footer-divider">·</span>
+            <a href="@(NavigationManager.GetUriWithQueryParameters("/registracia", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))" class="register-link">Registrácia</a>
+        </div>
     </div>
-    <div class="col-lg-4 col-lg-offset-2">
-        <section>
-            <h3>Use another service to log in.</h3>
-            <hr />
-            <ExternalLoginPicker />
-        </section>
-    </div>
+
+    <p class="login-copyright">© 2026 ZISK</p>
 </div>
 
 @code {
@@ -87,19 +98,26 @@
     {
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
-            // Clear the existing external cookie to ensure a clean login process
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
         }
     }
 
     public async Task LoginUser()
     {
-        // This doesn't count login failures towards account lockout
-        // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+        var user = await UserManager.FindByEmailAsync(Input.EmailOrUsername)
+                ?? await UserManager.FindByNameAsync(Input.EmailOrUsername);
+
+        if (user is null)
+        {
+            errorMessage = "Nesprávne prihlasovacie údaje.";
+            return;
+        }
+
+        var result = await SignInManager.PasswordSignInAsync(user, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+
         if (result.Succeeded)
         {
-            Logger.LogInformation("User logged in.");
+            Logger.LogInformation("User {Username} logged in.", user.UserName);
             RedirectManager.RedirectTo(ReturnUrl);
         }
         else if (result.RequiresTwoFactor)
@@ -115,21 +133,20 @@
         }
         else
         {
-            errorMessage = "Error: Invalid login attempt.";
+            errorMessage = "Nesprávne prihlasovacie údaje.";
         }
     }
 
     private sealed class InputModel
     {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; } = "";
+        [Required(ErrorMessage = "Email alebo používateľské meno je povinné")]
+        public string EmailOrUsername { get; set; } = "";
 
-        [Required]
+        [Required(ErrorMessage = "Heslo je povinné")]
         [DataType(DataType.Password)]
         public string Password { get; set; } = "";
 
-        [Display(Name = "Remember me?")]
+        [Display(Name = "Zapamätať si ma?")]
         public bool RememberMe { get; set; }
     }
 }
