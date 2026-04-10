@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using ZISK.Shared.Enums;
 
 namespace ZISK.Shared.DTOs.Announcements;
@@ -44,8 +45,14 @@ public record AttachmentDto(
 );
 
 public record CreateAnnouncementRequest(
+    [property: Required(ErrorMessage = "Názov je povinný.")]
+    [property: StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 200 znakov.")]
     string Title,
+
+    [property: Required(ErrorMessage = "Obsah je povinný.")]
+    [property: StringLength(5000, ErrorMessage = "Obsah môže mať max 5000 znakov.")]
     string Content,
+
     Guid? TargetTeamId,
     TargetAudience TargetAudience,
     AnnouncementPriority Priority,
@@ -54,8 +61,14 @@ public record CreateAnnouncementRequest(
 );
 
 public record UpdateAnnouncementRequest(
+    [property: Required(ErrorMessage = "Názov je povinný.")]
+    [property: StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 200 znakov.")]
     string Title,
+
+    [property: Required(ErrorMessage = "Obsah je povinný.")]
+    [property: StringLength(5000, ErrorMessage = "Obsah môže mať max 5000 znakov.")]
     string Content,
+
     Guid? TargetTeamId,
     TargetAudience TargetAudience,
     AnnouncementPriority Priority,

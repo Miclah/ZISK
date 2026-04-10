@@ -221,7 +221,7 @@ public class UserService : IUserService
 
         var result = await _userManager.CreateAsync(user, request.Password);
         if (!result.Succeeded)
-            throw new InvalidOperationException(result.Errors.First().Description);
+            throw new InvalidOperationException(IdentityErrorLocalizer.LocalizeFirst(result.Errors));
 
         await _userManager.AddToRoleAsync(user, request.Role);
 
@@ -436,7 +436,7 @@ public class UserService : IUserService
 
         var result = await _userManager.DeleteAsync(user);
         if (!result.Succeeded)
-            throw new InvalidOperationException(result.Errors.First().Description);
+            throw new InvalidOperationException(IdentityErrorLocalizer.LocalizeFirst(result.Errors));
 
         _auditService.Log("Delete", "User", id, callingUser, null);
     }
