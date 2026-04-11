@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
@@ -20,13 +21,7 @@ public partial class AnnouncementsCreate
     private List<TeamDto> _teams = new();
     private List<IBrowserFile> _selectedFiles = new();
 
-    private string _title = "";
-    private string _content = "";
-    private Guid? _targetTeamId;
-    private TargetAudience _targetAudience = TargetAudience.All;
-    private AnnouncementPriority _priority = AnnouncementPriority.Medium;
-    private bool _isPinned = false;
-    private DateTime? _validUntil;
+    private AnnouncementCreateFormModel _announcementModel = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -39,8 +34,6 @@ public partial class AnnouncementsCreate
             Snackbar.Add($"Chyba pri načítaní tímov: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
-
-    private bool CanSubmit() => !string.IsNullOrWhiteSpace(_title) && !string.IsNullOrWhiteSpace(_content);
 
     private void Cancel() => NavigationManager.NavigateTo("/oznamy");
 
@@ -81,22 +74,19 @@ public partial class AnnouncementsCreate
         return $"{bytes / (1024.0 * 1024.0):F1} MB";
     }
 
-    // AI
     private async Task Submit()
     {
-        if (!CanSubmit()) return;
-
         _isSubmitting = true;
         try
         {
             var request = new CreateAnnouncementRequest(
-                Title: _title,
-                Content: _content,
-                TargetTeamId: _targetTeamId,
-                TargetAudience: _targetAudience,
-                Priority: _priority,
-                IsPinned: _isPinned,
-                ValidUntil: _validUntil
+                Title: _announcementModel.Title,
+                Content: _announcementModel.Content,
+                TargetTeamId: _announcementModel.TargetTeamId,
+                TargetAudience: _announcementModel.TargetAudience,
+                Priority: _announcementModel.Priority,
+                IsPinned: _announcementModel.IsPinned,
+                ValidUntil: _announcementModel.ValidUntil
             );
 
             var announcement = await AnnouncementsApi.CreateAnnouncementAsync(request);
@@ -137,5 +127,22 @@ public partial class AnnouncementsCreate
         {
             _isSubmitting = false;
         }
+    }
+
+    public class AnnouncementCreateFormModel
+    {
+        [Required(ErrorMessage = "Nadpis je povinný.")]
+        [StringLength(200, MinimumLength = 2, ErrorMessage = "Nadpis musí mať 2 – 200 znakov.")]
+        public string Title { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Obsah je povinný.")]
+        [StringLength(5000, ErrorMessage = "Obsah môže mať max 5000 znakov.")]
+        public string Content { get; set; } = string.Empty;
+
+        public Guid? TargetTeamId { get; set; }
+        public TargetAudience TargetAudience { get; set; } = TargetAudience.All;
+        public AnnouncementPriority Priority { get; set; } = AnnouncementPriority.Medium;
+        public bool IsPinned { get; set; } = false;
+        public DateTime? ValidUntil { get; set; }
     }
 }

@@ -1,4 +1,5 @@
 @page "/coach/oznamy"
+@using System.ComponentModel.DataAnnotations
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Announcements
 @using ZISK.Shared.DTOs.Teams
@@ -40,14 +41,24 @@ else
 <MudDialog @bind-Visible="_createDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
     <TitleContent><MudText Typo="Typo.h6">Nový oznam</MudText></TitleContent>
     <DialogContent>
-        <MudStack Spacing="2">
-            <MudTextField @bind-Value="_title" Label="Nadpis" Variant="Variant.Outlined" />
-            <MudTextField @bind-Value="_content" Label="Text oznamu" Variant="Variant.Outlined" Lines="5" />
-        </MudStack>
+        <EditForm Model="@_announcementModel" OnValidSubmit="CreateAnnouncement">
+            <DataAnnotationsValidator />
+            <MudStack Spacing="2">
+                <MudTextField @bind-Value="_announcementModel.Title"
+                              For="@(() => _announcementModel.Title)"
+                              Label="Nadpis" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_announcementModel.Content"
+                              For="@(() => _announcementModel.Content)"
+                              Label="Text oznamu" Variant="Variant.Outlined" Lines="5" />
+                <MudButton ButtonType="ButtonType.Submit"
+                           Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           FullWidth="true">Uložiť</MudButton>
+            </MudStack>
+        </EditForm>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="() => _createDialogVisible = false">Zrušiť</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CreateAnnouncement">Uložiť</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -57,8 +68,7 @@ else
     private List<AnnouncementListDto> _announcements = [];
 
     private bool _createDialogVisible;
-    private string _title = string.Empty;
-    private string _content = string.Empty;
+    private CoachAnnouncementFormModel _announcementModel = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -91,21 +101,20 @@ else
 
     private void OpenCreateDialog()
     {
-        _title = string.Empty;
-        _content = string.Empty;
+        _announcementModel = new CoachAnnouncementFormModel();
         _createDialogVisible = true;
     }
 
     private async Task CreateAnnouncement()
     {
-        if (_teamId is null || string.IsNullOrWhiteSpace(_title) || string.IsNullOrWhiteSpace(_content))
+        if (_teamId is null)
             return;
 
         try
         {
             await AnnouncementsApi.CreateAnnouncementAsync(new CreateAnnouncementRequest(
-                _title,
-                _content,
+                _announcementModel.Title,
+                _announcementModel.Content,
                 _teamId,
                 TargetAudience.All,
                 AnnouncementPriority.Medium,
@@ -119,5 +128,16 @@ else
         {
             Snackbar.Add($"Chyba pri ukladaní oznamu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
+    }
+
+    public class CoachAnnouncementFormModel
+    {
+        [Required(ErrorMessage = "Nadpis je povinný.")]
+        [StringLength(200, MinimumLength = 2, ErrorMessage = "Nadpis musí mať 2 – 200 znakov.")]
+        public string Title { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Text oznamu je povinný.")]
+        [StringLength(5000, ErrorMessage = "Text môže mať max 5000 znakov.")]
+        public string Content { get; set; } = string.Empty;
     }
 }

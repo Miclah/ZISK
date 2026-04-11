@@ -1,4 +1,5 @@
 @page "/coach/treningy"
+@using System.ComponentModel.DataAnnotations
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Trainings
 @using ZISK.Shared.DTOs.Teams
@@ -86,21 +87,35 @@ else
 <MudDialog @bind-Visible="_editDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
     <TitleContent><MudText Typo="Typo.h6">@(_editingTraining is null ? "Pridať tréning" : "Upraviť tréning")</MudText></TitleContent>
     <DialogContent>
-        <MudStack Spacing="2">
-            <MudDatePicker @bind-Date="_date" Label="Dátum" Variant="Variant.Outlined" />
-            <MudTimePicker @bind-Time="_from" Label="Čas od" Variant="Variant.Outlined" />
-            <MudTimePicker @bind-Time="_to" Label="Čas do" Variant="Variant.Outlined" />
-            <MudTextField @bind-Value="_location" Label="Miesto" Variant="Variant.Outlined" />
-            <MudSelect T="TrainingType" @bind-Value="_type" Label="Typ tréningu" Variant="Variant.Outlined">
-                <MudSelectItem Value="TrainingType.Conditioning">Bežný</MudSelectItem>
-                <MudSelectItem Value="TrainingType.Match">Zápas</MudSelectItem>
-                <MudSelectItem Value="TrainingType.Other">Sústredenie</MudSelectItem>
-            </MudSelect>
-        </MudStack>
+        <EditForm Model="@_trainingModel" OnValidSubmit="SaveTraining">
+            <DataAnnotationsValidator />
+            <MudStack Spacing="2">
+                <MudDatePicker @bind-Date="_trainingModel.Date"
+                               For="@(() => _trainingModel.Date)"
+                               Label="Dátum" Variant="Variant.Outlined" />
+                <MudTimePicker @bind-Time="_trainingModel.From"
+                               For="@(() => _trainingModel.From)"
+                               Label="Čas od" Variant="Variant.Outlined" />
+                <MudTimePicker @bind-Time="_trainingModel.To"
+                               For="@(() => _trainingModel.To)"
+                               Label="Čas do" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_trainingModel.Location"
+                              For="@(() => _trainingModel.Location)"
+                              Label="Miesto" Variant="Variant.Outlined" />
+                <MudSelect T="TrainingType" @bind-Value="_trainingModel.Type" Label="Typ tréningu" Variant="Variant.Outlined">
+                    <MudSelectItem Value="TrainingType.Conditioning">Bežný</MudSelectItem>
+                    <MudSelectItem Value="TrainingType.Match">Zápas</MudSelectItem>
+                    <MudSelectItem Value="TrainingType.Other">Sústredenie</MudSelectItem>
+                </MudSelect>
+                <MudButton ButtonType="ButtonType.Submit"
+                           Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           FullWidth="true">Uložiť</MudButton>
+            </MudStack>
+        </EditForm>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="() => _editDialogVisible = false">Zrušiť</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveTraining">Uložiť</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -132,11 +147,7 @@ else
 
     private bool _editDialogVisible;
     private TrainingEventDto? _editingTraining;
-    private DateTime? _date = DateTime.Today;
-    private TimeSpan? _from = new TimeSpan(17, 0, 0);
-    private TimeSpan? _to = new TimeSpan(18, 30, 0);
-    private string _location = string.Empty;
-    private TrainingType _type = TrainingType.Conditioning;
+    private CoachTrainingFormModel _trainingModel = new();
 
     private bool _deleteDialogVisible;
     private TrainingEventDto? _deletingTraining;
@@ -173,7 +184,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní tréningov: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Chyba pri načítaní tréningov: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -184,33 +195,38 @@ else
     private void OpenCreateDialog()
     {
         _editingTraining = null;
-        _date = DateTime.Today;
-        _from = new TimeSpan(17, 0, 0);
-        _to = new TimeSpan(18, 30, 0);
-        _location = string.Empty;
-        _type = TrainingType.Conditioning;
+        _trainingModel = new CoachTrainingFormModel
+        {
+            Date = DateTime.Today,
+            From = new TimeSpan(17, 0, 0),
+            To = new TimeSpan(18, 30, 0),
+            Type = TrainingType.Conditioning
+        };
         _editDialogVisible = true;
     }
 
     private void OpenEditDialog(TrainingEventDto training)
     {
         _editingTraining = training;
-        _date = training.StartTime.Date;
-        _from = training.StartTime.TimeOfDay;
-        _to = training.EndTime.TimeOfDay;
-        _location = training.Location ?? string.Empty;
-        _type = training.Type;
+        _trainingModel = new CoachTrainingFormModel
+        {
+            Date = training.StartTime.Date,
+            From = training.StartTime.TimeOfDay,
+            To = training.EndTime.TimeOfDay,
+            Location = training.Location,
+            Type = training.Type
+        };
         _editDialogVisible = true;
     }
 
     private async Task SaveTraining()
     {
-        if (_teamId is null || !_date.HasValue || !_from.HasValue || !_to.HasValue)
+        if (_teamId is null)
             return;
 
-        var start = _date.Value.Date.Add(_from.Value);
-        var end = _date.Value.Date.Add(_to.Value);
-        var title = _type switch
+        var start = _trainingModel.Date!.Value.Date.Add(_trainingModel.From!.Value);
+        var end = _trainingModel.Date!.Value.Date.Add(_trainingModel.To!.Value);
+        var title = _trainingModel.Type switch
         {
             TrainingType.Match => "Zápas",
             TrainingType.Other => "Sústredenie",
@@ -221,11 +237,17 @@ else
         {
             if (_editingTraining is null)
             {
-                await TrainingsApi.CreateTrainingAsync(new CreateTrainingEventRequest(_teamId.Value, title, start, end, _location, _type, null));
+                await TrainingsApi.CreateTrainingAsync(new CreateTrainingEventRequest(
+                    _teamId.Value, title, start, end,
+                    string.IsNullOrWhiteSpace(_trainingModel.Location) ? null : _trainingModel.Location,
+                    _trainingModel.Type, null));
             }
             else
             {
-                await TrainingsApi.UpdateTrainingAsync(_editingTraining.Id, new UpdateTrainingEventRequest(title, start, end, _location, _type, _editingTraining.CoachNote, _editingTraining.IsLocked));
+                await TrainingsApi.UpdateTrainingAsync(_editingTraining.Id, new UpdateTrainingEventRequest(
+                    title, start, end,
+                    string.IsNullOrWhiteSpace(_trainingModel.Location) ? null : _trainingModel.Location,
+                    _trainingModel.Type, _editingTraining.CoachNote, _editingTraining.IsLocked));
             }
 
             _editDialogVisible = false;
@@ -233,7 +255,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri ukladaní tréningu: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Chyba pri ukladaní tréningu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 
@@ -269,7 +291,24 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri rušení tréningu: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Chyba pri rušení tréningu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
+    }
+
+    public class CoachTrainingFormModel
+    {
+        [Required(ErrorMessage = "Dátum je povinný.")]
+        public DateTime? Date { get; set; }
+
+        [Required(ErrorMessage = "Čas začiatku je povinný.")]
+        public TimeSpan? From { get; set; }
+
+        [Required(ErrorMessage = "Čas konca je povinný.")]
+        public TimeSpan? To { get; set; }
+
+        [StringLength(200, ErrorMessage = "Miesto môže mať max 200 znakov.")]
+        public string? Location { get; set; }
+
+        public TrainingType Type { get; set; } = TrainingType.Conditioning;
     }
 }

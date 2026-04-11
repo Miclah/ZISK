@@ -60,9 +60,9 @@ else if (_selectedTraining != null)
             </MudTd>
             <MudTd>
                 <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
-                    <MudButton Color="Color.Success" OnClick="@(() => MarkStatus(context.ChildId, AttendanceStatus.Present))">P</MudButton>
-                    <MudButton Color="Color.Error" OnClick="@(() => MarkStatus(context.ChildId, AttendanceStatus.Absent))">N</MudButton>
-                    <MudButton Color="Color.Warning" OnClick="@(() => MarkStatus(context.ChildId, AttendanceStatus.Excused))">O</MudButton>
+                    <MudTooltip Text="Prítomný"><MudButton Color="Color.Success" OnClick="@(() => MarkStatus(context.ChildId, AttendanceStatus.Present))">P</MudButton></MudTooltip>
+                    <MudTooltip Text="Neprítomný"><MudButton Color="Color.Error" OnClick="@(() => MarkStatus(context.ChildId, AttendanceStatus.Absent))">N</MudButton></MudTooltip>
+                    <MudTooltip Text="Ospravedlnený"><MudButton Color="Color.Warning" OnClick="@(() => MarkStatus(context.ChildId, AttendanceStatus.Excused))">O</MudButton></MudTooltip>
                 </MudButtonGroup>
             </MudTd>
         </RowTemplate>
