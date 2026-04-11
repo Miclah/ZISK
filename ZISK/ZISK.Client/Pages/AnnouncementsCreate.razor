@@ -1,4 +1,5 @@
-﻿@page "/oznamy/vytvorit"
+@page "/oznamy/vytvorit"
+@using System.ComponentModel.DataAnnotations
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Announcements
 @using ZISK.Shared.DTOs.Teams
@@ -11,105 +12,108 @@
 
 <MudGrid>
     <MudItem xs="12" md="8">
-        <MudPaper Class="pa-4" Elevation="2">
-            <MudStack Spacing="3">
-                <MudTextField @bind-Value="_title" Label="Nadpis oznamu" Variant="Variant.Outlined" 
-                              Required="true" RequiredError="Nadpis je povinný" />
+        <EditForm Model="@_announcementModel" OnValidSubmit="Submit">
+            <DataAnnotationsValidator />
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudStack Spacing="3">
+                    <MudTextField @bind-Value="_announcementModel.Title"
+                                  For="@(() => _announcementModel.Title)"
+                                  Label="Nadpis oznamu" Variant="Variant.Outlined" />
 
-                <MudTextField @bind-Value="_content" Label="Obsah oznamu" Variant="Variant.Outlined" 
-                              Lines="6" Required="true" RequiredError="Obsah je povinný" />
+                    <MudTextField @bind-Value="_announcementModel.Content"
+                                  For="@(() => _announcementModel.Content)"
+                                  Label="Obsah oznamu" Variant="Variant.Outlined" Lines="6" />
 
-                <MudGrid>
-                    <MudItem xs="12" sm="6">
-                        <MudSelect T="Guid?" @bind-Value="_targetTeamId" Label="Určené pre tím" Variant="Variant.Outlined" Clearable="true" Placeholder="Celý klub">
-                            @foreach (var team in _teams)
-                            {
-                                <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
-                            }
-                        </MudSelect>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Ak nevyberiete, oznam sa zverejní pre celý klub</MudText>
-                    </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudSelect T="TargetAudience" @bind-Value="_targetAudience" Label="Cieľová skupina" Variant="Variant.Outlined">
-                            <MudSelectItem Value="TargetAudience.All">Všetci</MudSelectItem>
-                            <MudSelectItem Value="TargetAudience.Parents">Rodičia</MudSelectItem>
-                            <MudSelectItem Value="TargetAudience.Athletes">Športovci</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
-                </MudGrid>
+                    <MudGrid>
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="Guid?" @bind-Value="_announcementModel.TargetTeamId" Label="Určené pre tím" Variant="Variant.Outlined" Clearable="true" Placeholder="Celý klub">
+                                @foreach (var team in _teams)
+                                {
+                                    <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Ak nevyberiete, oznam sa zverejní pre celý klub</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="TargetAudience" @bind-Value="_announcementModel.TargetAudience" Label="Cieľová skupina" Variant="Variant.Outlined">
+                                <MudSelectItem Value="TargetAudience.All">Všetci</MudSelectItem>
+                                <MudSelectItem Value="TargetAudience.Parents">Rodičia</MudSelectItem>
+                                <MudSelectItem Value="TargetAudience.Athletes">Športovci</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                    </MudGrid>
 
-                <MudGrid>
-                    <MudItem xs="12" sm="6">
-                        <MudSelect T="AnnouncementPriority" @bind-Value="_priority" Label="Priorita" Variant="Variant.Outlined">
-                            <MudSelectItem Value="AnnouncementPriority.Low">Nízka (informačné)</MudSelectItem>
-                            <MudSelectItem Value="AnnouncementPriority.Medium">Stredná (dôležité)</MudSelectItem>
-                            <MudSelectItem Value="AnnouncementPriority.High">Vysoká (urgentné)</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudDatePicker @bind-Date="_validUntil" Label="Platí do (voliteľné)" Variant="Variant.Outlined" 
-                                       MinDate="DateTime.Now" Clearable="true" />
-                    </MudItem>
-                </MudGrid>
+                    <MudGrid>
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="AnnouncementPriority" @bind-Value="_announcementModel.Priority" Label="Priorita" Variant="Variant.Outlined">
+                                <MudSelectItem Value="AnnouncementPriority.Low">Nízka (informačné)</MudSelectItem>
+                                <MudSelectItem Value="AnnouncementPriority.Medium">Stredná (dôležité)</MudSelectItem>
+                                <MudSelectItem Value="AnnouncementPriority.High">Vysoká (urgentné)</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudDatePicker @bind-Date="_announcementModel.ValidUntil" Label="Platí do (voliteľné)" Variant="Variant.Outlined"
+                                           MinDate="DateTime.Now" Clearable="true" />
+                        </MudItem>
+                    </MudGrid>
 
-                <MudCheckBox @bind-Value="_isPinned" Label="Pripnúť na začiatok" Color="Color.Primary" />
+                    <MudCheckBox @bind-Value="_announcementModel.IsPinned" Label="Pripnúť na začiatok" Color="Color.Primary" />
 
-                <MudDivider Class="my-2" />
+                    <MudDivider Class="my-2" />
 
-                // AI
-                <MudText Typo="Typo.subtitle1">Prílohy (voliteľné)</MudText>
-                
-                <MudButton HtmlTag="label"
-                           for="announcement-files"
-                           Variant="Variant.Outlined"
-                           Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.CloudUpload">
-                    Vybrať súbory
-                </MudButton>
-                <InputFile id="announcement-files"
-                           OnChange="OnFilesSelected"
-                           multiple
-                           accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif" />
+                    <MudText Typo="Typo.subtitle1">Prílohy (voliteľné)</MudText>
 
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    Podporované formáty: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF (max 10MB)
-                </MudText>
+                    <MudButton HtmlTag="label"
+                               for="announcement-files"
+                               Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.CloudUpload">
+                        Vybrať súbory
+                    </MudButton>
+                    <InputFile id="announcement-files"
+                               OnChange="OnFilesSelected"
+                               multiple
+                               accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif" />
 
-                @if (_selectedFiles.Any())
-                {
-                    <MudStack Spacing="1">
-                        @foreach (var file in _selectedFiles)
-                        {
-                            <MudPaper Class="pa-2" Elevation="0" Style="background-color: #f5f5f5;">
-                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                                        <MudIcon Icon="@GetFileIcon(file.Name)" Size="Size.Small" Color="Color.Primary" />
-                                        <MudText Typo="Typo.body2">@file.Name</MudText>
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">(@FormatFileSize(file.Size))</MudText>
-                                    </MudStack>
-                                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" 
-                                                   OnClick="@(() => RemoveFile(file))" />
-                                </MudStack>
-                            </MudPaper>
-                        }
-                    </MudStack>
-                }
-            </MudStack>
-        </MudPaper>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Podporované formáty: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF (max 10MB)
+                    </MudText>
 
-        <MudPaper Class="pa-4 mt-4" Elevation="0">
-            <MudStack Row="true" Justify="Justify.SpaceBetween">
-                <MudButton Variant="Variant.Text" OnClick="Cancel">Zrušiť</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" 
-                           Disabled="@(!CanSubmit() || _isSubmitting)">
-                    @if (_isSubmitting)
+                    @if (_selectedFiles.Any())
                     {
-                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        <MudStack Spacing="1">
+                            @foreach (var file in _selectedFiles)
+                            {
+                                <MudPaper Class="pa-2" Elevation="0" Style="background-color: #f5f5f5;">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                            <MudIcon Icon="@GetFileIcon(file.Name)" Size="Size.Small" Color="Color.Primary" />
+                                            <MudText Typo="Typo.body2">@file.Name</MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">(@FormatFileSize(file.Size))</MudText>
+                                        </MudStack>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                                                       OnClick="@(() => RemoveFile(file))" />
+                                    </MudStack>
+                                </MudPaper>
+                            }
+                        </MudStack>
                     }
-                    Zverejniť
-                </MudButton>
-            </MudStack>
-        </MudPaper>
+                </MudStack>
+            </MudPaper>
+
+            <MudPaper Class="pa-4 mt-4" Elevation="0">
+                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                    <MudButton Variant="Variant.Text" OnClick="Cancel">Zrušiť</MudButton>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                               Disabled="@_isSubmitting">
+                        @if (_isSubmitting)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        }
+                        Zverejniť
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+        </EditForm>
     </MudItem>
 </MudGrid>
-
