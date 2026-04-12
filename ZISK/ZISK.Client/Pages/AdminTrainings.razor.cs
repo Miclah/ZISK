@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using ZISK.Client.Services;
@@ -19,15 +20,8 @@ public partial class AdminTrainings
     private List<TrainingEventDto> _trainings = new();
 
     private Guid? _editingId;
-    private Guid _teamId;
-    private string _title = "";
-    private DateTime? _startDate;
-    private TimeSpan? _startTime;
-    private TimeSpan? _endTime;
-    private string _location = "";
-    private TrainingType _type = TrainingType.Conditioning;
-    private string _coachNote = "";
     private bool _isLocked = false;
+    private TrainingFormModel _trainingModel = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -38,7 +32,7 @@ public partial class AdminTrainings
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -56,55 +50,53 @@ public partial class AdminTrainings
         if (training != null)
         {
             _editingId = training.Id;
-            _teamId = training.TeamId;
-            _title = training.Title;
-            _startDate = training.StartTime.Date;
-            _startTime = training.StartTime.TimeOfDay;
-            _endTime = training.EndTime.TimeOfDay;
-            _location = training.Location ?? "";
-            _type = training.Type;
-            _coachNote = training.CoachNote ?? "";
             _isLocked = training.IsLocked;
+            _trainingModel = new TrainingFormModel
+            {
+                TeamId = training.TeamId,
+                Title = training.Title,
+                StartDate = training.StartTime.Date,
+                StartTime = training.StartTime.TimeOfDay,
+                EndTime = training.EndTime.TimeOfDay,
+                Location = string.IsNullOrWhiteSpace(training.Location) ? null : training.Location,
+                Type = training.Type,
+                CoachNote = string.IsNullOrWhiteSpace(training.CoachNote) ? null : training.CoachNote
+            };
         }
         else
         {
             _editingId = null;
-            _teamId = _teams.FirstOrDefault()?.Id ?? Guid.Empty;
-            _title = "";
-            _startDate = DateTime.Today;
-            _startTime = new TimeSpan(16, 0, 0);
-            _endTime = new TimeSpan(17, 30, 0);
-            _location = "";
-            _type = TrainingType.Conditioning;
-            _coachNote = "";
             _isLocked = false;
+            _trainingModel = new TrainingFormModel
+            {
+                TeamId = _teams.FirstOrDefault()?.Id,
+                StartDate = DateTime.Today,
+                StartTime = new TimeSpan(16, 0, 0),
+                EndTime = new TimeSpan(17, 30, 0),
+                Type = TrainingType.Conditioning
+            };
         }
         _dialogVisible = true;
     }
 
     private void CloseDialog() => _dialogVisible = false;
 
-    private bool CanSave() =>
-        _teamId != Guid.Empty &&
-        !string.IsNullOrWhiteSpace(_title) &&
-        _startDate.HasValue &&
-        _startTime.HasValue &&
-        _endTime.HasValue;
-
     private async Task Save()
     {
         try
         {
-            var start = _startDate!.Value.Add(_startTime!.Value);
-            var end = _startDate!.Value.Add(_endTime!.Value);
+            var start = _trainingModel.StartDate!.Value.Add(_trainingModel.StartTime!.Value);
+            var end = _trainingModel.StartDate!.Value.Add(_trainingModel.EndTime!.Value);
 
             if (_editingId.HasValue)
             {
                 var request = new UpdateTrainingEventRequest(
-                    _title, start, end,
-                    string.IsNullOrWhiteSpace(_location) ? null : _location,
-                    _type,
-                    string.IsNullOrWhiteSpace(_coachNote) ? null : _coachNote,
+                    _trainingModel.Title,
+                    start,
+                    end,
+                    string.IsNullOrWhiteSpace(_trainingModel.Location) ? null : _trainingModel.Location,
+                    _trainingModel.Type,
+                    string.IsNullOrWhiteSpace(_trainingModel.CoachNote) ? null : _trainingModel.CoachNote,
                     _isLocked);
                 await TrainingsApi.UpdateTrainingAsync(_editingId.Value, request);
                 Snackbar.Add("Tréning upravený", Severity.Success);
@@ -112,10 +104,13 @@ public partial class AdminTrainings
             else
             {
                 var request = new CreateTrainingEventRequest(
-                    _teamId, _title, start, end,
-                    string.IsNullOrWhiteSpace(_location) ? null : _location,
-                    _type,
-                    string.IsNullOrWhiteSpace(_coachNote) ? null : _coachNote);
+                    _trainingModel.TeamId!.Value,
+                    _trainingModel.Title,
+                    start,
+                    end,
+                    string.IsNullOrWhiteSpace(_trainingModel.Location) ? null : _trainingModel.Location,
+                    _trainingModel.Type,
+                    string.IsNullOrWhiteSpace(_trainingModel.CoachNote) ? null : _trainingModel.CoachNote);
                 await TrainingsApi.CreateTrainingAsync(request);
                 Snackbar.Add("Tréning vytvorený", Severity.Success);
             }
@@ -124,7 +119,7 @@ public partial class AdminTrainings
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 
@@ -138,7 +133,7 @@ public partial class AdminTrainings
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 
@@ -158,4 +153,31 @@ public partial class AdminTrainings
         TrainingType.Recovery => "Regeneračný",
         _ => "Iný"
     };
+
+    public class TrainingFormModel
+    {
+        [Required(ErrorMessage = "Tím je povinný.")]
+        public Guid? TeamId { get; set; }
+
+        [Required(ErrorMessage = "Názov je povinný.")]
+        [StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 200 znakov.")]
+        public string Title { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Dátum je povinný.")]
+        public DateTime? StartDate { get; set; }
+
+        [Required(ErrorMessage = "Čas začiatku je povinný.")]
+        public TimeSpan? StartTime { get; set; }
+
+        [Required(ErrorMessage = "Čas konca je povinný.")]
+        public TimeSpan? EndTime { get; set; }
+
+        [StringLength(200, ErrorMessage = "Miesto môže mať max 200 znakov.")]
+        public string? Location { get; set; }
+
+        public TrainingType Type { get; set; } = TrainingType.Conditioning;
+
+        [StringLength(1000, ErrorMessage = "Poznámka môže mať max 1000 znakov.")]
+        public string? CoachNote { get; set; }
+    }
 }

@@ -1,4 +1,5 @@
 ﻿@page "/admin/treningy"
+@using System.ComponentModel.DataAnnotations
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Teams
 @using ZISK.Shared.DTOs.Trainings
@@ -44,30 +45,50 @@ else
 <MudDialog @bind-Visible="_dialogVisible" Options="new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true }">
     <TitleContent>@(_editingId.HasValue ? "Upraviť tréning" : "Nový tréning")</TitleContent>
     <DialogContent>
-        <MudStack Spacing="3">
-            <MudSelect T="Guid" @bind-Value="_teamId" Label="Tím" Variant="Variant.Outlined" Required="true">
-                @foreach (var team in _teams)
-                {
-                    <MudSelectItem Value="@team.Id">@team.Name</MudSelectItem>
-                }
-            </MudSelect>
-            <MudTextField @bind-Value="_title" Label="Názov" Variant="Variant.Outlined" Required="true" />
-            <MudDatePicker @bind-Date="_startDate" Label="Dátum" Variant="Variant.Outlined" Required="true" />
-            <MudTimePicker @bind-Time="_startTime" Label="Začiatok" Variant="Variant.Outlined" Required="true" />
-            <MudTimePicker @bind-Time="_endTime" Label="Koniec" Variant="Variant.Outlined" Required="true" />
-            <MudTextField @bind-Value="_location" Label="Miesto" Variant="Variant.Outlined" />
-            <MudSelect T="TrainingType" @bind-Value="_type" Label="Typ" Variant="Variant.Outlined">
-                <MudSelectItem Value="TrainingType.Conditioning">Kondičný</MudSelectItem>
-                <MudSelectItem Value="TrainingType.Technical">Technický</MudSelectItem>
-                <MudSelectItem Value="TrainingType.Match">Herný</MudSelectItem>
-                <MudSelectItem Value="TrainingType.Recovery">Regeneračný</MudSelectItem>
-            </MudSelect>
-            <MudTextField @bind-Value="_coachNote" Label="Poznámka" Variant="Variant.Outlined" Lines="2" />
-        </MudStack>
+        <EditForm Model="@_trainingModel" OnValidSubmit="Save">
+            <DataAnnotationsValidator />
+            <MudStack Spacing="3">
+                <MudSelect T="Guid?" @bind-Value="_trainingModel.TeamId"
+                           For="@(() => _trainingModel.TeamId)"
+                           Label="Tím" Variant="Variant.Outlined">
+                    @foreach (var team in _teams)
+                    {
+                        <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField @bind-Value="_trainingModel.Title"
+                              For="@(() => _trainingModel.Title)"
+                              Label="Názov" Variant="Variant.Outlined" />
+                <MudDatePicker @bind-Date="_trainingModel.StartDate"
+                               For="@(() => _trainingModel.StartDate)"
+                               Label="Dátum" Variant="Variant.Outlined" />
+                <MudTimePicker @bind-Time="_trainingModel.StartTime"
+                               For="@(() => _trainingModel.StartTime)"
+                               Label="Začiatok" Variant="Variant.Outlined" />
+                <MudTimePicker @bind-Time="_trainingModel.EndTime"
+                               For="@(() => _trainingModel.EndTime)"
+                               Label="Koniec" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_trainingModel.Location"
+                              For="@(() => _trainingModel.Location)"
+                              Label="Miesto" Variant="Variant.Outlined" />
+                <MudSelect T="TrainingType" @bind-Value="_trainingModel.Type" Label="Typ" Variant="Variant.Outlined">
+                    <MudSelectItem Value="TrainingType.Conditioning">Kondičný</MudSelectItem>
+                    <MudSelectItem Value="TrainingType.Technical">Technický</MudSelectItem>
+                    <MudSelectItem Value="TrainingType.Match">Herný</MudSelectItem>
+                    <MudSelectItem Value="TrainingType.Recovery">Regeneračný</MudSelectItem>
+                </MudSelect>
+                <MudTextField @bind-Value="_trainingModel.CoachNote"
+                              For="@(() => _trainingModel.CoachNote)"
+                              Label="Poznámka" Variant="Variant.Outlined" Lines="2" />
+                <MudButton ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           FullWidth="true">Uložiť</MudButton>
+            </MudStack>
+        </EditForm>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="CloseDialog">Zrušiť</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Disabled="@(!CanSave())">Uložiť</MudButton>
     </DialogActions>
 </MudDialog>
 
