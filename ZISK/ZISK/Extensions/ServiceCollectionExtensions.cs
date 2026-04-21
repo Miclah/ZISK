@@ -17,6 +17,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDocumentService, DocumentService>();
         services.AddScoped<ITeamService, TeamService>();
         services.AddScoped<IFileService, FileService>();
+        services.AddScoped<ISeasonService, SeasonService>();
+        services.AddScoped<ITrainingSeriesService, TrainingSeriesService>();
         return services;
     }
 

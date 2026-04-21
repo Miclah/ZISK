@@ -4,7 +4,7 @@ namespace ZISK.Shared.DTOs.Excuses;
 
 public record CreateExcuseRequest(
     [property: Required(ErrorMessage = "Dieťa je povinné.")]
-    Guid ChildId,
+    string ChildId,
 
     Guid? TrainingEventId,
     DateTime? DateFrom,

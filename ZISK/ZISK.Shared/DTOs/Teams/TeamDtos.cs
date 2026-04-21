@@ -22,11 +22,11 @@ public record TeamDetailDto(
 );
 
 public record TeamMemberDto(
-    Guid Id,
+    string Id,
     string FirstName,
     string LastName,
     string? Email,
-    DateOnly DateOfBirth,
+    DateOnly? DateOfBirth,
     List<string> ParentContacts
 );
 

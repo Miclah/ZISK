@@ -8,7 +8,7 @@ public record AttendanceRecordDto(
     Guid TrainingEventId,
     string TrainingName,
     DateTime TrainingDate,
-    Guid ChildId,
+    string ChildId,
     string ChildName,
     AttendanceStatus Status,
     string? Note,
@@ -35,7 +35,7 @@ public record AttendanceStatsDto(
 );
 
 public record MemberAttendanceStatsDto(
-    Guid ChildId,
+    string ChildId,
     string ChildName,
     int Present,
     int Absent,
@@ -48,7 +48,7 @@ public record MarkAttendanceRequest(
     Guid TrainingEventId,
 
     [property: Required(ErrorMessage = "Člen je povinný.")]
-    Guid ChildId,
+    string ChildId,
 
     AttendanceStatus Status,
 
@@ -69,7 +69,7 @@ public record BulkMarkAttendanceRequest(
 );
 
 public record AttendanceEntryDto(
-    Guid ChildId,
+    string ChildId,
     AttendanceStatus Status,
 
     [property: StringLength(500, ErrorMessage = "Poznámka môže mať max 500 znakov.")]

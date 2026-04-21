@@ -1,6 +1,6 @@
 namespace ZISK.Client.Services;
 
-public record UserContextOption(string Key, string Label, Guid? ChildId, Guid? TeamId, bool IsOwnProfile);
+public record UserContextOption(string Key, string Label, string? ChildId, Guid? TeamId, bool IsOwnProfile);
 
 public class UserContextService
 {
