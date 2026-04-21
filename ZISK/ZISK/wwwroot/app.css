@@ -19,6 +19,99 @@ body {
     overflow-wrap: anywhere;
 }
 
+:root {
+    --zisk-gradient-primary: linear-gradient(135deg, #312E81, #4F46E5);
+    --zisk-gradient-accent: linear-gradient(135deg, #F97316, #EA580C);
+    --zisk-app-bg: #F8FAFC;
+    --zisk-appbar-border: rgba(255, 255, 255, 0.08);
+    --zisk-drawer-border: #E2E8F0;
+    --zisk-nav-section-color: #94A3B8;
+    --zisk-nav-section-font-size: 0.65rem;
+    --zisk-logout-color: #DC2626;
+    --zisk-chip-overlay: rgba(255, 255, 255, 0.15);
+    --zisk-text-on-dark-muted: rgba(255, 255, 255, 0.55);
+}
+
+.zisk-logo-text {
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.appbar-version-chip {
+    color: rgba(255, 255, 255, 0.6) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    font-size: 0.65rem !important;
+    height: 20px !important;
+}
+
+.appbar-team-chip {
+    background: var(--zisk-chip-overlay) !important;
+    color: white !important;
+    font-size: 0.65rem !important;
+    height: 20px !important;
+}
+
+.appbar-context-select {
+    max-width: 220px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+}
+
+.appbar-user-avatar {
+    background: var(--zisk-gradient-accent) !important;
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+}
+
+.appbar-user-name {
+    font-weight: 600;
+    line-height: 1.2;
+    color: white;
+}
+
+.appbar-user-role {
+    color: var(--zisk-text-on-dark-muted);
+    line-height: 1.2;
+    font-size: 0.7rem;
+}
+
+.user-menu-header {
+    background: var(--zisk-gradient-primary);
+    padding: 1.25rem;
+    border-radius: 4px 4px 0 0;
+}
+
+.user-menu-avatar {
+    background: var(--zisk-gradient-accent) !important;
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    border: 2px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.nav-section-header {
+    font-weight: 600;
+    color: var(--zisk-nav-section-color);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-size: var(--zisk-nav-section-font-size);
+}
+
+.nav-copyright {
+    color: #CBD5E1;
+    font-size: 0.65rem;
+}
+
+.card-hover {
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.card-hover:hover {
+    box-shadow: var(--mud-elevation-4);
+    transform: translateY(-2px);
+}
+
 .admin-team-card {
     transition: box-shadow 0.2s ease, transform 0.2s ease;
 }

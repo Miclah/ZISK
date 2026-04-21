@@ -1,0 +1,11 @@
+{
+  "mcp.servers": {
+    "jcodemunch": {
+      "command": "uvx",
+      "args": ["jcodemunch-mcp"],
+      "env": {
+        "JCODEMUNCH_SHARE_SAVINGS": "0"
+      }
+    }
+  }
+}

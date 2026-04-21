@@ -1,8 +1,8 @@
-﻿<MudStack Class="pa-3" Style="height: 100%;" Justify="Justify.SpaceBetween">
+<MudStack Class="pa-3" Style="height: 100%;" Justify="Justify.SpaceBetween">
     <MudNavMenu Rounded="true" Margin="Margin.Dense" Color="Color.Primary">
 
         <AuthorizeView Roles="Parent,Athlete">
-            <MudText Typo="Typo.caption" Class="px-3 pt-2 pb-1" Style="font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.8px; font-size: 0.65rem;">
+            <MudText Typo="Typo.caption" Class="px-3 pt-2 pb-1 nav-section-header">
                 Hlavné
             </MudText>
 
@@ -33,7 +33,7 @@
 
         <AuthorizeView Roles="Parent,Athlete">
             <MudDivider Class="my-2 mx-2" Light="true" />
-            <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1" Style="font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.8px; font-size: 0.65rem;">
+            <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1 nav-section-header">
                 Športovec / Rodič
             </MudText>
 
@@ -52,7 +52,7 @@
 
         <AuthorizeView Roles="Child">
             <MudDivider Class="my-2 mx-2" Light="true" />
-            <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1" Style="font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.8px; font-size: 0.65rem;">
+            <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1 nav-section-header">
                 Dieťa
             </MudText>
 
@@ -77,7 +77,7 @@
 
         <AuthorizeView Roles="Coach">
             <MudDivider Class="my-2 mx-2" Light="true" />
-            <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1" Style="font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.8px; font-size: 0.65rem;">
+            <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1 nav-section-header">
                 Tréner
             </MudText>
 
@@ -108,7 +108,7 @@
 
         <AuthorizeView Roles="Admin">
             <MudDivider Class="my-2 mx-2" Light="true" />
-            <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1" Style="font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.8px; font-size: 0.65rem;">
+            <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1 nav-section-header">
                 Administrácia
             </MudText>
 
@@ -142,11 +142,11 @@
                         Icon="@Icons.Material.Rounded.Logout"
                         Match="NavLinkMatch.All"
                         ForceLoad="true"
-                        Style="color: #E74C3C;">
+                        Style="color: var(--zisk-logout-color);">
                 Odhlásiť sa
             </MudNavLink>
         </MudNavMenu>
-        <MudText Typo="Typo.caption" Align="Align.Center" Class="pa-2" Style="color: #CBD5E1; font-size: 0.65rem;">
+        <MudText Typo="Typo.caption" Align="Align.Center" Class="pa-2 nav-copyright">
             © 2026 ZISK
         </MudText>
     </div>

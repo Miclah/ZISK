@@ -68,7 +68,7 @@
                             <MudStack Spacing="0">
                                 <MudText Typo="Typo.subtitle2">@announcement.Title</MudText>
                                 <MudText Typo="Typo.body2" Color="Color.Default">@announcement.ContentPreview</MudText>
-                                <MudText Typo="Typo.caption" Class="text-muted">@announcement.PublishDate.ToString("dd.MM.yyyy HH:mm")</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@announcement.PublishDate.ToString("dd.MM.yyyy HH:mm")</MudText>
                             </MudStack>
                             <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(announcement.Priority)">@GetPriorityText(announcement.Priority)</MudChip>
                         </MudStack>
@@ -165,9 +165,9 @@
     {
         var borderColor = announcement.Priority switch
         {
-            AnnouncementPriority.High => "#f44336",
-            AnnouncementPriority.Medium => "#ff9800",
-            _ => "#1976d2"
+            AnnouncementPriority.High => "var(--mud-palette-error)",
+            AnnouncementPriority.Medium => "var(--mud-palette-warning)",
+            _ => "var(--mud-palette-info)"
         };
         return $"border-left: 3px solid {borderColor};";
     }

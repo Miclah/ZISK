@@ -14,7 +14,7 @@ public interface IAttendanceApi
     Task<List<UserAttendanceDto>> GetMyAttendanceAsync([Query] DateTime? from = null, [Query] DateTime? to = null);
 
     [Get("/api/attendance/stats/{childId}")]
-    Task<AttendanceStatsDto> GetMemberStatsAsync(Guid childId, [Query] DateTime? from = null, [Query] DateTime? to = null);
+    Task<AttendanceStatsDto> GetMemberStatsAsync(string childId, [Query] DateTime? from = null, [Query] DateTime? to = null);
 
     [Get("/api/attendance/stats/team/{teamId}")]
     Task<List<MemberAttendanceStatsDto>> GetTeamStatsAsync(Guid teamId, [Query] DateTime? from = null, [Query] DateTime? to = null);

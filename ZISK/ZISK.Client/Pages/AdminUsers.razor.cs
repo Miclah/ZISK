@@ -1,0 +1,308 @@
+using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Components;
+using MudBlazor;
+using ZISK.Client.Components;
+using ZISK.Client.Services;
+using ZISK.Shared.DTOs.Users;
+
+namespace ZISK.Client.Pages;
+
+public partial class AdminUsers
+{
+    [Inject] private IUsersApi UsersApi { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string? _error;
+
+    private List<UserListDto> _users = new();
+    private List<ParentOptionDto> _parents = new();
+
+    private string _searchText = string.Empty;
+    private string? _selectedRole;
+
+    private bool _editDialogVisible;
+    private UserListDto? _selectedUser;
+
+    private EditUserFormModel _editModel = new();
+    private HashSet<string> _selectedParentIds = new();
+    private string _parentSearch = string.Empty;
+
+    private readonly List<BreadcrumbItem> _breadcrumbs =
+    [
+        new BreadcrumbItem("Domov", href: "/"),
+        new BreadcrumbItem("Administrácia", href: "/admin"),
+        new BreadcrumbItem("Používatelia", href: null, disabled: true)
+    ];
+
+    private IEnumerable<UserListDto> FilteredUsers => _users
+        .Where(u => string.IsNullOrWhiteSpace(_searchText)
+            || ($"{u.FirstName} {u.LastName}").Contains(_searchText, StringComparison.OrdinalIgnoreCase)
+            || (!string.IsNullOrWhiteSpace(u.PhoneNumber) && u.PhoneNumber.Contains(_searchText, StringComparison.OrdinalIgnoreCase)))
+        .Where(u => string.IsNullOrWhiteSpace(_selectedRole) || u.Role == _selectedRole)
+        .OrderBy(u => u.LastName)
+        .ThenBy(u => u.FirstName);
+
+    private IEnumerable<ParentOptionDto> FilteredParents => _parents
+        .Where(p => string.IsNullOrWhiteSpace(_parentSearch) || p.FullName.Contains(_parentSearch, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            _isLoading = true;
+            _error = null;
+
+            var usersTask = UsersApi.GetUsersAsync();
+            var parentsTask = UsersApi.GetParentsAsync();
+
+            await Task.WhenAll(usersTask, parentsTask);
+            _users = await usersTask;
+            _parents = await parentsTask;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Nepodarilo sa načítať používateľov: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(AddUserDialog.Model)] = new AddUserDialog.AddUserDialogModel()
+            {
+                Role = "Parent",
+                GeneratePassword = true
+            }
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<AddUserDialog>("Pridať používateľa", parameters, options);
+        var result = await dialog.Result;
+
+        if (result.Canceled || result.Data is not AddUserDialog.AddUserDialogModel model)
+            return;
+
+        _isSaving = true;
+        try
+        {
+            var createEmail = BuildCreateEmail(model);
+            var initialPassword = GenerateInitialPassword(model);
+            var request = model.ToRequest(initialPassword, createEmail);
+
+            await UsersApi.CreateUserAsync(request);
+            Snackbar.Add("Používateľ bol vytvorený.", Severity.Success);
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri ukladaní: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task OpenEditDialog(UserListDto user)
+    {
+        _selectedUser = user;
+        _editModel = new EditUserFormModel
+        {
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Role = user.Role,
+            Phone = user.PhoneNumber
+        };
+        _selectedParentIds = new HashSet<string>();
+        _parentSearch = string.Empty;
+
+        try
+        {
+            var detail = await UsersApi.GetUserAsync(user.Id);
+            _editModel.Phone = detail.PhoneNumber;
+            _editModel.RodneCislo = detail.RodneCislo;
+            _editModel.Bydlisko = detail.Bydlisko;
+            _editModel.DateOfBirth = detail.DateOfBirth?.ToDateTime(TimeOnly.MinValue);
+            _selectedParentIds = detail.Parents.Select(p => p.Id).ToHashSet();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Nepodarilo sa načítať detail používateľa: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Warning);
+        }
+
+        _editDialogVisible = true;
+    }
+
+    private void CloseEditDialog()
+    {
+        _editDialogVisible = false;
+    }
+
+    private async Task SaveUser()
+    {
+        if (_editModel.Role == "Child" && _selectedParentIds.Count == 0)
+        {
+            Snackbar.Add("Pre dieťa je potrebné vybrať aspoň jedného rodiča.", Severity.Warning);
+            return;
+        }
+
+        if (_editModel.Role == "Child" && !_editModel.DateOfBirth.HasValue)
+        {
+            Snackbar.Add("Pre dieťa je dátum narodenia povinný.", Severity.Warning);
+            return;
+        }
+
+        var dateOfBirth = _editModel.DateOfBirth.HasValue
+            ? DateOnly.FromDateTime(_editModel.DateOfBirth.Value)
+            : (DateOnly?)null;
+
+        _isSaving = true;
+        try
+        {
+            if (_selectedUser != null)
+            {
+                var updateRequest = new UpdateUserRequest(
+                    _editModel.FirstName,
+                    _editModel.LastName,
+                    _editModel.Role,
+                    null,
+                    null,
+                    string.IsNullOrWhiteSpace(_editModel.Phone) ? null : _editModel.Phone,
+                    string.IsNullOrWhiteSpace(_editModel.RodneCislo) ? null : _editModel.RodneCislo,
+                    string.IsNullOrWhiteSpace(_editModel.Bydlisko) ? null : _editModel.Bydlisko,
+                    dateOfBirth,
+                    _selectedParentIds.ToList());
+
+                await UsersApi.UpdateUserAsync(_selectedUser.Id, updateRequest);
+                Snackbar.Add("Používateľ bol upravený.", Severity.Success);
+            }
+
+            _editDialogVisible = false;
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri ukladaní: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task ConfirmDeleteUser(UserListDto user)
+    {
+        bool? result = await DialogService.ShowMessageBoxAsync(
+            "Upozornenie: trvalé zmazanie",
+            $"Naozaj chcete natrvalo vymazať používateľa '{user.FirstName} {user.LastName}'? Táto akcia je nevratná.",
+            yesText: "Áno, vymazať",
+            cancelText: "Zrušiť",
+            options: new DialogOptions { MaxWidth = MaxWidth.Small });
+
+        if (result != true)
+            return;
+
+        try
+        {
+            await UsersApi.DeleteUserAsync(user.Id);
+            Snackbar.Add("Používateľ bol odstránený.", Severity.Success);
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri mazaní: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+    }
+
+    private static string GetRoleText(string role) => role switch
+    {
+        "Admin" => "Admin",
+        "Coach" => "Tréner",
+        "Parent" => "Rodič",
+        "Athlete" => "Športovec",
+        "Child" => "Dieťa",
+        _ => role
+    };
+
+    private static Color GetRoleColor(string role) => role switch
+    {
+        "Admin" => Color.Error,
+        "Coach" => Color.Primary,
+        "Parent" => Color.Secondary,
+        "Athlete" => Color.Info,
+        "Child" => Color.Success,
+        _ => Color.Default
+    };
+
+    private static string GetUserInitials(UserListDto user)
+    {
+        var first = string.IsNullOrWhiteSpace(user.FirstName) ? "?" : user.FirstName.Trim()[0].ToString().ToUpperInvariant();
+        var last = string.IsNullOrWhiteSpace(user.LastName) ? string.Empty : user.LastName.Trim()[0].ToString().ToUpperInvariant();
+        return $"{first}{last}";
+    }
+
+    private static string BuildCreateEmail(AddUserDialog.AddUserDialogModel model)
+    {
+        if (!string.IsNullOrWhiteSpace(model.Email))
+            return model.Email.Trim();
+
+        var phoneDigits = new string((model.PhoneNumber ?? string.Empty).Where(char.IsDigit).ToArray());
+        var suffix = string.IsNullOrWhiteSpace(phoneDigits) ? Guid.NewGuid().ToString("N")[..8] : phoneDigits;
+        return $"{suffix}@zisk.local";
+    }
+
+    private static string GenerateInitialPassword(AddUserDialog.AddUserDialogModel model)
+    {
+        var phoneDigits = new string((model.PhoneNumber ?? string.Empty).Where(char.IsDigit).ToArray());
+
+        if (model.GeneratePassword)
+            return $"Zisk!{Random.Shared.Next(1000, 9999)}";
+
+        var datePart = model.DateOfBirth?.ToString("ddMMyyyy") ?? "01011990";
+        var phonePart = phoneDigits.Length >= 4 ? phoneDigits[^4..] : phoneDigits.PadLeft(4, '0');
+        return $"{datePart}{phonePart}";
+    }
+
+    private void OnSelectedParentsChanged(IEnumerable<string> parentIds)
+    {
+        _selectedParentIds = parentIds.ToHashSet();
+    }
+
+    public class EditUserFormModel
+    {
+        [Required(ErrorMessage = "Meno je povinné.")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Meno musí mať 2 – 100 znakov.")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Priezvisko je povinné.")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Priezvisko musí mať 2 – 100 znakov.")]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Rola je povinná.")]
+        public string Role { get; set; } = "Parent";
+
+        [Phone(ErrorMessage = "Neplatný formát telefónneho čísla.")]
+        public string? Phone { get; set; }
+
+        [StringLength(20, ErrorMessage = "Rodné číslo môže mať max 20 znakov.")]
+        public string? RodneCislo { get; set; }
+
+        [StringLength(300, ErrorMessage = "Bydlisko môže mať max 300 znakov.")]
+        public string? Bydlisko { get; set; }
+
+        public DateTime? DateOfBirth { get; set; }
+    }
+}

@@ -1,4 +1,4 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 @using ZISK.Client.Layout
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Teams
@@ -18,22 +18,20 @@
 <ErrorBoundary>
     <ChildContent>
 <MudLayout>
-    <MudAppBar Elevation="0" Fixed="true" Style="border-bottom: 1px solid rgba(255,255,255,0.08);">
+    <MudAppBar Elevation="0" Fixed="true" Style="border-bottom: 1px solid var(--zisk-appbar-border);">
         <MudIconButton Icon="@Icons.Material.Rounded.Menu"
                        Color="Color.Inherit"
                        Edge="Edge.Start"
                        OnClick="DrawerToggle" />
 
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="ml-1">
-            <MudText Typo="Typo.h6" Style="font-weight: 700; letter-spacing: -0.5px;">ZISK</MudText>
-            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
-                     Style="color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.2); font-size: 0.65rem; height: 20px;">
+            <MudText Typo="Typo.h6" Class="zisk-logo-text">ZISK</MudText>
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="appbar-version-chip">
                 v1.0
             </MudChip>
             @if (_isCoach && !string.IsNullOrWhiteSpace(_coachTeamName))
             {
-                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
-                         Style="background: rgba(255,255,255,0.15); color: white; font-size: 0.65rem; height: 20px;">
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="appbar-team-chip">
                     @_coachTeamName
                 </MudChip>
             }
@@ -48,8 +46,7 @@
                        Variant="Variant.Outlined"
                        Dense="true"
                        Margin="Margin.Dense"
-                       Class="ml-2"
-                       Style="max-width: 220px; background: rgba(255,255,255,0.06); border-radius: 8px;">
+                       Class="ml-2 appbar-context-select">
                 @foreach (var option in UserContextService.Options)
                 {
                     <MudSelectItem Value="@option.Key">@option.Label</MudSelectItem>
@@ -64,17 +61,16 @@
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                     <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="NavigateToProfile" Class="px-2 py-1">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                            <MudAvatar Size="Size.Small"
-                                       Style="background: linear-gradient(135deg, #FF6B35, #e55a2b); width: 32px; height: 32px; font-size: 0.8rem; font-weight: 700;">
+                            <MudAvatar Size="Size.Small" Class="appbar-user-avatar">
                                 @(authContext.User.FindFirst(ClaimTypes.GivenName)?.Value?.Length > 0
                                     ? authContext.User.FindFirst(ClaimTypes.GivenName)!.Value[0].ToString().ToUpper()
                                     : "?")
                             </MudAvatar>
                             <MudStack Spacing="0" Class="ml-2 d-none d-sm-flex" Style="text-align: left;">
-                                <MudText Typo="Typo.body2" Style="font-weight: 600; line-height: 1.2; color: white;">
+                                <MudText Typo="Typo.body2" Class="appbar-user-name">
                                     @authContext.User.FindFirst(ClaimTypes.GivenName)?.Value @authContext.User.FindFirst(ClaimTypes.Surname)?.Value
                                 </MudText>
-                                <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.55); line-height: 1.2; font-size: 0.7rem;">
+                                <MudText Typo="Typo.caption" Class="appbar-user-role">
                                     @authContext.User.FindFirst(ClaimTypes.Role)?.Value
                                 </MudText>
                             </MudStack>
@@ -84,10 +80,9 @@
                     <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Icon="@Icons.Material.Rounded.KeyboardArrowDown">
                     <ChildContent>
                         <div style="min-width: 280px; padding: 0;">
-                            <div style="background: linear-gradient(135deg, #1E3A5F, #2d5a8e); padding: 1.25rem; border-radius: 4px 4px 0 0;">
+                            <div class="user-menu-header">
                                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
-                                    <MudAvatar Size="Size.Large"
-                                               Style="background: linear-gradient(135deg, #FF6B35, #e55a2b); font-size: 1.1rem; font-weight: 700; border: 2px solid rgba(255,255,255,0.2);">
+                                    <MudAvatar Size="Size.Large" Class="user-menu-avatar">
                                         @(authContext.User.FindFirst(ClaimTypes.GivenName)?.Value?.Length > 0
                                             ? authContext.User.FindFirst(ClaimTypes.GivenName)!.Value[0].ToString().ToUpper()
                                             : "?")
@@ -99,8 +94,7 @@
                                         <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.65);">
                                             @authContext.User.FindFirst(ClaimTypes.Email)?.Value
                                         </MudText>
-                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
-                                                 Style="background: rgba(255,255,255,0.15); color: white; font-size: 0.65rem; height: 20px; margin-top: 4px; padding: 0 8px;">
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="appbar-team-chip" Style="margin-top: 4px;">
                                             @authContext.User.FindFirst(ClaimTypes.Role)?.Value
                                         </MudChip>
                                     </MudStack>
@@ -116,7 +110,7 @@
                                 <MudMenuItem Icon="@Icons.Material.Rounded.Logout"
                                              Href="/logout"
                                              ForceLoad="true"
-                                             Style="border-radius: 8px; color: #E74C3C;">
+                                             Style="border-radius: 8px; color: var(--zisk-logout-color);">
                                     Odhlásiť sa
                                 </MudMenuItem>
                             </div>
@@ -134,7 +128,7 @@
                Breakpoint="Breakpoint.Md"
                Variant="DrawerVariant.Responsive"
                Anchor="Anchor.Left"
-               Style="border-right: 1px solid #E2E8F0;">
+               Style="border-right: 1px solid var(--zisk-drawer-border);">
         <MudDrawerContainer>
             <NavMenu />
         </MudDrawerContainer>
@@ -177,7 +171,7 @@
     private bool _showContextSwitcher;
     private string _selectedContextKey = UserContextService.AllKey;
 
-    private string MainContentStyle => "background: #F8FAFC; min-height: 100vh;";
+    private string MainContentStyle => "background: var(--zisk-app-bg); min-height: 100vh;";
 
     protected override async Task OnInitializedAsync()
     {

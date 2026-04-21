@@ -1,4 +1,5 @@
 @page "/admin/systemove-oznamy"
+@using System.ComponentModel.DataAnnotations
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Announcements
 @using ZISK.Shared.DTOs.Teams
@@ -33,7 +34,7 @@ else if (!_announcements.Any())
 }
 else
 {
-    <div class="d-none d-lg-block">
+    <MudHidden Breakpoint="Breakpoint.MdAndDown">
         <MudTable Items="_announcements" Hover="true" Dense="true" Elevation="2">
             <HeaderContent>
                 <MudTh>Názov</MudTh>
@@ -46,42 +47,50 @@ else
                 <MudTd>
                     <MudStack Spacing="0">
                         <MudText Typo="Typo.body1">@context.Title</MudText>
-                        <MudText Typo="Typo.caption" Class="text-muted">@context.ContentPreview</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ContentPreview</MudText>
                     </MudStack>
                 </MudTd>
                 <MudTd>@context.PublishDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
                 <MudTd>@context.AuthorName</MudTd>
                 <MudTd>@(string.IsNullOrWhiteSpace(context.TargetTeamName) ? "Celý klub" : context.TargetTeamName)</MudTd>
                 <MudTd Style="text-align:right">
-                    <button type="button" class="btn btn-sm btn-outline-danger ms-2" @onclick="() => ConfirmDelete(context)">
-                        <i class="bi bi-trash"></i>
-                    </button>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Color="Color.Error"
+                                   Size="Size.Small"
+                                   OnClick="() => ConfirmDelete(context)" />
                 </MudTd>
             </RowTemplate>
         </MudTable>
-    </div>
+    </MudHidden>
 
-    <div class="d-block d-lg-none">
-        @foreach (var announcement in _announcements)
-        {
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h6 class="card-title mb-1">@announcement.Title</h6>
-                    <p class="card-text text-muted mb-2">@announcement.ContentPreview</p>
-                    <div class="small text-muted mb-3">
-                        <div>@announcement.PublishDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
-                        <div>@announcement.AuthorName</div>
-                        <div>@(string.IsNullOrWhiteSpace(announcement.TargetTeamName) ? "Celý klub" : announcement.TargetTeamName)</div>
-                    </div>
-                    <div class="d-flex justify-content-end">
-                        <button type="button" class="btn btn-sm btn-outline-danger ms-2" @onclick="() => ConfirmDelete(announcement)">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
+    <MudHidden Breakpoint="Breakpoint.LgAndUp">
+        <MudStack Spacing="2">
+            @foreach (var announcement in _announcements)
+            {
+                <MudPaper Class="pa-3" Elevation="1">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.subtitle2">@announcement.Title</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@announcement.ContentPreview</MudText>
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @announcement.PublishDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                            </MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@announcement.AuthorName</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @(string.IsNullOrWhiteSpace(announcement.TargetTeamName) ? "Celý klub" : announcement.TargetTeamName)
+                            </MudText>
+                        </MudStack>
+                        <MudStack Row="true" Justify="Justify.FlexEnd">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Color="Color.Error"
+                                           Size="Size.Small"
+                                           OnClick="() => ConfirmDelete(announcement)" />
+                        </MudStack>
+                    </MudStack>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudHidden>
 }
 
 <MudDialog @bind-Visible="_createDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
@@ -89,33 +98,46 @@ else
         <MudText Typo="Typo.h6">Nový systémový oznam</MudText>
     </TitleContent>
     <DialogContent>
-        <MudStack Spacing="3" Class="py-2">
-            <MudTextField @bind-Value="_title" Label="Názov" Variant="Variant.Outlined" Required="true" />
-            <MudTextField @bind-Value="_content" Label="Obsah" Variant="Variant.Outlined" Lines="5" Required="true" />
-            <MudSelect T="string" @bind-Value="_targetMode" Label="Cieľ oznamu" Variant="Variant.Outlined">
-                <MudSelectItem Value="@("All")">Celý klub</MudSelectItem>
-                <MudSelectItem Value="@("Team")">Konkrétny tím</MudSelectItem>
-            </MudSelect>
-            @if (_targetMode == "Team")
-            {
-                <MudSelect T="Guid?" @bind-Value="_targetTeamId" Label="Vyberte tím" Variant="Variant.Outlined" Required="true">
-                    @foreach (var team in _teams)
-                    {
-                        <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
-                    }
+        <EditForm Model="@_announcementModel" OnValidSubmit="CreateAnnouncement">
+            <DataAnnotationsValidator />
+            <MudStack Spacing="3" Class="py-2">
+                <MudTextField @bind-Value="_announcementModel.Title"
+                              For="@(() => _announcementModel.Title)"
+                              Label="Názov" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_announcementModel.Content"
+                              For="@(() => _announcementModel.Content)"
+                              Label="Obsah" Variant="Variant.Outlined" Lines="5" />
+                <MudSelect T="string" @bind-Value="_announcementModel.TargetMode" Label="Cieľ oznamu" Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("All")">Celý klub</MudSelectItem>
+                    <MudSelectItem Value="@("Team")">Konkrétny tím</MudSelectItem>
                 </MudSelect>
-            }
-        </MudStack>
+                @if (_announcementModel.TargetMode == "Team")
+                {
+                    <MudSelect T="Guid?" @bind-Value="_announcementModel.TargetTeamId"
+                               For="@(() => _announcementModel.TargetTeamId)"
+                               Label="Vyberte tím" Variant="Variant.Outlined">
+                        @foreach (var team in _teams)
+                        {
+                            <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                <MudButton ButtonType="ButtonType.Submit"
+                           Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           Disabled="_isSaving"
+                           FullWidth="true">
+                    @if (_isSaving)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    }
+                    Uložiť
+                </MudButton>
+            </MudStack>
+        </EditForm>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="CloseCreateDialog">Zrušiť</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CreateAnnouncement" Disabled="_isSaving">
-            @if (_isSaving)
-            {
-                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-            }
-            Uložiť
-        </MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -127,10 +149,7 @@ else
     private List<TeamDto> _teams = new();
 
     private bool _createDialogVisible;
-    private string _title = string.Empty;
-    private string _content = string.Empty;
-    private string _targetMode = "All";
-    private Guid? _targetTeamId;
+    private AnnouncementFormModel _announcementModel = new();
 
     private readonly List<BreadcrumbItem> _breadcrumbs =
     [
@@ -173,10 +192,7 @@ else
 
     private void OpenCreateDialog()
     {
-        _title = string.Empty;
-        _content = string.Empty;
-        _targetMode = "All";
-        _targetTeamId = null;
+        _announcementModel = new AnnouncementFormModel();
         _createDialogVisible = true;
     }
 
@@ -187,25 +203,13 @@ else
 
     private async Task CreateAnnouncement()
     {
-        if (string.IsNullOrWhiteSpace(_title) || string.IsNullOrWhiteSpace(_content))
-        {
-            Snackbar.Add("Názov aj obsah sú povinné.", Severity.Warning);
-            return;
-        }
-
-        if (_targetMode == "Team" && !_targetTeamId.HasValue)
-        {
-            Snackbar.Add("Vyberte tím pre cielený oznam.", Severity.Warning);
-            return;
-        }
-
         _isSaving = true;
         try
         {
             var request = new CreateAnnouncementRequest(
-                _title,
-                _content,
-                _targetMode == "Team" ? _targetTeamId : null,
+                _announcementModel.Title,
+                _announcementModel.Content,
+                _announcementModel.TargetMode == "Team" ? _announcementModel.TargetTeamId : null,
                 TargetAudience.All,
                 AnnouncementPriority.Medium,
                 false,
@@ -248,5 +252,19 @@ else
         {
             Snackbar.Add($"Chyba pri mazaní oznamu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
+    }
+
+    public class AnnouncementFormModel
+    {
+        [Required(ErrorMessage = "Názov je povinný.")]
+        [StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 200 znakov.")]
+        public string Title { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Obsah je povinný.")]
+        [StringLength(5000, ErrorMessage = "Obsah môže mať max 5000 znakov.")]
+        public string Content { get; set; } = string.Empty;
+
+        public string TargetMode { get; set; } = "All";
+        public Guid? TargetTeamId { get; set; }
     }
 }

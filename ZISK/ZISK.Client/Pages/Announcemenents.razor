@@ -63,7 +63,7 @@
                                 }
                                 <MudText Typo="Typo.h6">@announcement.Title</MudText>
                             </MudStack>
-                            <MudText Typo="Typo.caption" Class="text-muted">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
                                 @announcement.AuthorName • @announcement.PublishDate.ToString("dd.MM.yyyy HH:mm")
                                 @if (!string.IsNullOrEmpty(announcement.TargetTeamName))
                                 {
@@ -98,7 +98,7 @@
 
                         @if (announcement.ValidUntil.HasValue)
                         {
-                            <MudText Typo="Typo.caption" Class="text-muted">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
                                 Platí do: @announcement.ValidUntil.Value.ToString("dd.MM.yyyy")
                             </MudText>
                         }
@@ -146,9 +146,9 @@
     {
         var borderColor = announcement.Priority switch
         {
-            AnnouncementPriority.High => "#f44336",
-            AnnouncementPriority.Medium => "#ff9800",
-            _ => "#1976d2"
+            AnnouncementPriority.High => "var(--mud-palette-error)",
+            AnnouncementPriority.Medium => "var(--mud-palette-warning)",
+            _ => "var(--mud-palette-info)"
         };
         return $"border-left: 4px solid {borderColor};";
     }

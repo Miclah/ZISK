@@ -4,7 +4,7 @@ namespace ZISK.Shared.DTOs.Excuses;
 
 public record ExcuseDto(
     Guid Id,
-    Guid ChildId,
+    string ChildId,
     string ChildName,
     Guid? TrainingEventId,
     string? TrainingName,

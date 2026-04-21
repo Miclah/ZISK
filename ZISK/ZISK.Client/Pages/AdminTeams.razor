@@ -1,4 +1,5 @@
 @page "/admin/timy"
+@using System.ComponentModel.DataAnnotations
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Teams
 @using ZISK.Shared.DTOs.Users
@@ -58,11 +59,11 @@ else
                     </MudCardHeader>
                     <MudCardContent>
                         <div class="d-flex align-center mb-1">
-                            <MudIcon Icon="@Icons.Material.Filled.Sports" Size="Size.Small" Class="mr-2 text-muted" />
+                            <MudIcon Icon="@Icons.Material.Filled.Sports" Size="Size.Small" Class="mr-2" Color="Color.Secondary" />
                             <MudText Typo="Typo.body2">Tréneri: @(GetCoachNamesForTeam(team.Id))</MudText>
                         </div>
                         <div class="d-flex align-center mb-1">
-                            <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" Class="mr-2 text-muted" />
+                            <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" Class="mr-2" Color="Color.Secondary" />
                             <MudText Typo="Typo.body2">Členovia: @team.MemberCount</MudText>
                         </div>
                         @if (!string.IsNullOrWhiteSpace(team.Description))
@@ -96,28 +97,45 @@ else
         <MudText Typo="Typo.h6">@(_isCreating ? "Vytvoriť nový tím" : "Upraviť tím")</MudText>
     </TitleContent>
     <DialogContent>
-        <MudStack Spacing="3" Class="py-2">
-            <MudTextField @bind-Value="_editName" Label="Názov tímu *" Required="true" 
-                          Error="@(!string.IsNullOrEmpty(_editNameError))" ErrorText="@_editNameError" />
-            <MudSelect T="string" @bind-Value="_selectedCoachId" Label="Priradený tréner" Variant="Variant.Outlined" Clearable="true">
-                @foreach (var coach in _coaches)
-                {
-                    <MudSelectItem Value="@coach.Id">@coach.FirstName @coach.LastName</MudSelectItem>
-                }
-            </MudSelect>
-            <MudTextField @bind-Value="_editShortName" Label="Skratka (voliteľné)" MaxLength="10" />
-            <MudTextField @bind-Value="_editDescription" Label="Popis" Lines="3" />
-        </MudStack>
+        <EditForm Model="@_teamModel" OnValidSubmit="SaveTeam">
+            <DataAnnotationsValidator />
+            <MudStack Spacing="3" Class="py-2">
+                <MudTextField @bind-Value="_teamModel.Name"
+                              For="@(() => _teamModel.Name)"
+                              Label="Názov tímu"
+                              Variant="Variant.Outlined" />
+                <MudSelect T="string" @bind-Value="_teamModel.SelectedCoachId" Label="Priradený tréner" Variant="Variant.Outlined" Clearable="true">
+                    @foreach (var coach in _coaches)
+                    {
+                        <MudSelectItem Value="@coach.Id">@coach.FirstName @coach.LastName</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField @bind-Value="_teamModel.ShortName"
+                              For="@(() => _teamModel.ShortName)"
+                              Label="Skratka (voliteľné)"
+                              Variant="Variant.Outlined"
+                              MaxLength="50" />
+                <MudTextField @bind-Value="_teamModel.Description"
+                              For="@(() => _teamModel.Description)"
+                              Label="Popis"
+                              Variant="Variant.Outlined"
+                              Lines="3" />
+                <MudButton ButtonType="ButtonType.Submit"
+                           Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           Disabled="_isSaving"
+                           FullWidth="true">
+                    @if (_isSaving)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    }
+                    Uložiť
+                </MudButton>
+            </MudStack>
+        </EditForm>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="() => _editDialogVisible = false">Zrušiť</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveTeam" Disabled="_isSaving">
-            @if (_isSaving)
-            {
-                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-            }
-            Uložiť
-        </MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -190,11 +208,7 @@ else
     private bool _isSaving = false;
     private TeamDto? _selectedTeam;
 
-    private string _editName = "";
-    private string _editShortName = "";
-    private string _editDescription = "";
-    private string? _selectedCoachId;
-    private string _editNameError = "";
+    private TeamFormModel _teamModel = new();
 
     private bool _rosterDialogVisible = false;
     private bool _isLoadingRoster = false;
@@ -256,11 +270,7 @@ else
     {
         _isCreating = true;
         _selectedTeam = null;
-        _editName = "";
-        _editShortName = "";
-        _editDescription = "";
-        _selectedCoachId = null;
-        _editNameError = "";
+        _teamModel = new TeamFormModel();
         _editDialogVisible = true;
     }
 
@@ -268,44 +278,40 @@ else
     {
         _isCreating = false;
         _selectedTeam = team;
-        _editName = team.Name;
-        _editShortName = team.ShortName ?? "";
-        _editDescription = team.Description ?? "";
-        _selectedCoachId = _coaches.FirstOrDefault(c => c.Teams.Any(t => t.TeamId == team.Id))?.Id;
-        _editNameError = "";
+        _teamModel = new TeamFormModel
+        {
+            Name = team.Name,
+            ShortName = team.ShortName,
+            Description = team.Description,
+            SelectedCoachId = _coaches.FirstOrDefault(c => c.Teams.Any(t => t.TeamId == team.Id))?.Id
+        };
         _editDialogVisible = true;
     }
 
     private async Task SaveTeam()
     {
-        if (string.IsNullOrWhiteSpace(_editName))
-        {
-            _editNameError = "Názov tímu je povinný";
-            return;
-        }
-
         _isSaving = true;
         try
         {
             if (_isCreating)
             {
-                var createdTeam = await TeamsApi.CreateTeamAsync(new CreateTeamRequest(_editName, _editShortName, _editDescription));
+                var createdTeam = await TeamsApi.CreateTeamAsync(new CreateTeamRequest(_teamModel.Name, _teamModel.ShortName, _teamModel.Description));
                 await SyncTeamCoachAssignment(createdTeam.Id);
                 Snackbar.Add("Tím bol vytvorený", Severity.Success);
             }
             else if (_selectedTeam != null)
             {
-                await TeamsApi.UpdateTeamAsync(_selectedTeam.Id, new UpdateTeamRequest(_editName, _editShortName, _editDescription, true));
+                await TeamsApi.UpdateTeamAsync(_selectedTeam.Id, new UpdateTeamRequest(_teamModel.Name, _teamModel.ShortName, _teamModel.Description, true));
                 await SyncTeamCoachAssignment(_selectedTeam.Id);
                 Snackbar.Add("Tím bol upravený", Severity.Success);
             }
-            
+
             _editDialogVisible = false;
             await LoadData();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri ukladaní tímu: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Chyba pri ukladaní tímu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -322,10 +328,25 @@ else
             await UsersApi.RemoveTeamAsync(coach.Id, teamId);
         }
 
-        if (!string.IsNullOrWhiteSpace(_selectedCoachId))
+        if (!string.IsNullOrWhiteSpace(_teamModel.SelectedCoachId))
         {
-            await UsersApi.AssignTeamAsync(_selectedCoachId, teamId, true);
+            await UsersApi.AssignTeamAsync(_teamModel.SelectedCoachId, teamId, true);
         }
+    }
+
+    public class TeamFormModel
+    {
+        [Required(ErrorMessage = "Názov tímu je povinný.")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 100 znakov.")]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(50, ErrorMessage = "Skratka môže mať max 50 znakov.")]
+        public string? ShortName { get; set; }
+
+        [StringLength(500, ErrorMessage = "Popis môže mať max 500 znakov.")]
+        public string? Description { get; set; }
+
+        public string? SelectedCoachId { get; set; }
     }
 
     private async Task DeleteTeam(TeamDto team)

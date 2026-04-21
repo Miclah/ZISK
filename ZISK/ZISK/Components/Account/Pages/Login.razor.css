@@ -19,10 +19,6 @@
     animation: card-in 0.4s ease-out;
 }
 
-.register-card {
-    max-width: 540px;
-}
-
 @keyframes card-in {
     from { opacity: 0; transform: translateY(12px) scale(0.98); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -62,18 +58,6 @@
 }
 
 .login-alert svg { flex-shrink: 0; }
-
-.form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-}
-
-@media (max-width: 480px) {
-    .form-row {
-        grid-template-columns: 1fr;
-    }
-}
 
 .form-field {
     margin-bottom: 1rem;
@@ -137,10 +121,20 @@
     font-weight: 500;
 }
 
-.form-divider {
-    height: 1px;
-    background: #F1F5F9;
-    margin: 0.5rem 0 1rem 0;
+.form-checkbox {
+    margin-bottom: 0.5rem;
+}
+
+.checkbox-label {
+    display: flex !important;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    color: #475569 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    cursor: pointer;
 }
 
 .btn-login {
@@ -177,17 +171,35 @@
     padding-top: 1.25rem;
     border-top: 1px solid #F1F5F9;
     text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.footer-link {
+    color: #64748B;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.footer-link:hover {
+    color: #4F46E5;
+}
+
+.login-footer-divider {
+    color: #CBD5E1;
+    font-size: 0.875rem;
 }
 
 .register-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
     color: #4F46E5;
     text-decoration: none;
     font-size: 0.875rem;
     font-weight: 600;
-    transition: all 0.2s;
+    transition: color 0.2s;
 }
 
 .register-link:hover {

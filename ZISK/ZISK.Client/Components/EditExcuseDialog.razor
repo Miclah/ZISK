@@ -1,0 +1,116 @@
+@using System.ComponentModel.DataAnnotations
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Excuses
+@inject IExcusesApi ExcusesApi
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <EditForm Model="@_model" OnValidSubmit="Submit">
+            <DataAnnotationsValidator />
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    <strong>Dieťa:</strong> @Excuse.ChildName
+                </MudText>
+
+                <MudDatePicker @bind-Date="_model.DateFrom"
+                               For="@(() => _model.DateFrom)"
+                               Label="Od dátumu"
+                               Variant="Variant.Outlined" />
+
+                <MudDatePicker @bind-Date="_model.DateTo"
+                               Label="Do dátumu (voliteľné)"
+                               Variant="Variant.Outlined" />
+
+                <MudTextField @bind-Value="_model.Reason"
+                              For="@(() => _model.Reason)"
+                              Label="Dôvod"
+                              Variant="Variant.Outlined"
+                              Counter="200"
+                              MaxLength="200" />
+
+                <MudTextField @bind-Value="_model.Note"
+                              For="@(() => _model.Note)"
+                              Label="Poznámka"
+                              Variant="Variant.Outlined"
+                              Lines="3" />
+
+                <MudButton ButtonType="ButtonType.Submit"
+                           Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           Disabled="@_isSubmitting"
+                           FullWidth="true">
+                    @if (_isSubmitting)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    }
+                    Uložiť
+                </MudButton>
+            </MudStack>
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Zrušiť</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public ExcuseDto Excuse { get; set; } = default!;
+
+    private EditExcuseFormModel _model = new();
+    private bool _isSubmitting;
+
+    protected override void OnInitialized()
+    {
+        _model.DateFrom = Excuse.DateFrom;
+        _model.DateTo = Excuse.DateTo;
+        _model.Reason = Excuse.Reason ?? string.Empty;
+        _model.Note = Excuse.Note;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        _isSubmitting = true;
+        try
+        {
+            var request = new UpdateExcuseRequest(
+                _model.DateFrom,
+                _model.DateTo,
+                _model.Reason.Trim(),
+                string.IsNullOrWhiteSpace(_model.Note) ? null : _model.Note.Trim());
+
+            await ExcusesApi.UpdateExcuseAsync(Excuse.Id, request);
+            Snackbar.Add("Ospravedlnenka upravená", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    public class EditExcuseFormModel
+    {
+        [Required(ErrorMessage = "Dátum je povinný.")]
+        public DateTime? DateFrom { get; set; }
+
+        public DateTime? DateTo { get; set; }
+
+        [Required(ErrorMessage = "Dôvod je povinný.")]
+        [StringLength(1000, MinimumLength = 3, ErrorMessage = "Dôvod musí mať 3 – 1000 znakov.")]
+        public string Reason { get; set; } = string.Empty;
+
+        [StringLength(500, ErrorMessage = "Poznámka môže mať max 500 znakov.")]
+        public string? Note { get; set; }
+    }
+}

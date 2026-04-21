@@ -21,8 +21,8 @@ public interface ITeamsApi
     Task DeleteTeamAsync(Guid id);
 
     [Post("/api/teams/{id}/members/{childId}")]
-    Task AddMemberAsync(Guid id, Guid childId);
+    Task AddMemberAsync(Guid id, string childId);
 
     [Delete("/api/teams/{id}/members/{childId}")]
-    Task RemoveMemberAsync(Guid id, Guid childId);
+    Task RemoveMemberAsync(Guid id, string childId);
 }

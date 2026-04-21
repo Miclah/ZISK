@@ -30,15 +30,15 @@
         }
         else
         {
-            <MudForm @ref="_form" @bind-IsValid="_formIsValid">
+            <EditForm Model="@_model" OnValidSubmit="Submit">
+                <DataAnnotationsValidator />
                 <MudStack Spacing="3">
                     <MudSelect T="Guid?"
-                               @bind-Value="_selectedPersonId"
+                               @bind-Value="_model.SelectedPersonId"
                                @bind-Value:after="OnSelectedPersonChanged"
+                               For="@(() => _model.SelectedPersonId)"
                                Label="Koho ospravedlňujem?"
-                               Variant="Variant.Outlined"
-                               Required="true"
-                               RequiredError="Vyberte osobu">
+                               Variant="Variant.Outlined">
                         @foreach (var child in _children.OrderBy(c => c.LastName).ThenBy(c => c.FirstName))
                         {
                             <MudSelectItem Value="@((Guid?)child.Id)">
@@ -48,12 +48,11 @@
                     </MudSelect>
 
                     <MudSelect T="Guid?"
-                               @bind-Value="_selectedTrainingId"
+                               @bind-Value="_model.SelectedTrainingId"
+                               For="@(() => _model.SelectedTrainingId)"
                                Label="Na ktorý tréning?"
                                Variant="Variant.Outlined"
-                               Disabled="@(!_selectedPersonId.HasValue || !_availableTrainings.Any())"
-                               Required="true"
-                               RequiredError="Vyberte tréning">
+                               Disabled="@(!_model.SelectedPersonId.HasValue || !_availableTrainings.Any())">
                         @foreach (var training in _availableTrainings)
                         {
                             <MudSelectItem Value="@((Guid?)training.Id)">
@@ -62,30 +61,26 @@
                         }
                     </MudSelect>
 
-                    @if (_selectedPersonId.HasValue && !_availableTrainings.Any())
+                    @if (_model.SelectedPersonId.HasValue && !_availableTrainings.Any())
                     {
                         <MudAlert Severity="Severity.Info" Dense="true">Pre vybranú osobu nie sú dostupné žiadne nadchádzajúce tréningy.</MudAlert>
                     }
 
-                    <MudTextField @bind-Value="_reason" Label="Dôvod" Variant="Variant.Outlined" Lines="3" Counter="200" MaxLength="200" />
-
-                    @if (_validationErrors.Any())
-                    {
-                        <MudAlert Severity="Severity.Error">
-                            @foreach (var error in _validationErrors)
-                            {
-                                <div>@error</div>
-                            }
-                        </MudAlert>
-                    }
+                    <MudTextField @bind-Value="_model.Reason"
+                                  For="@(() => _model.Reason)"
+                                  Label="Dôvod"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  Counter="200"
+                                  MaxLength="200" />
                 </MudStack>
-            </MudForm>
+            </EditForm>
         }
     </DialogContent>
 
     <DialogActions>
         <MudButton OnClick="Cancel">Zrušiť</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_formIsValid || _isSubmitting || _isChild || !_children.Any())">
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitForm" Disabled="@(_isSubmitting || _isChild || !_children.Any())">
             @if (_isSubmitting)
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
@@ -99,19 +94,14 @@
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
-    private MudForm _form = default!;
-    private bool _formIsValid;
+    private ExcuseFormModel _model = new();
+    private EditContext? _editContext;
     private bool _isLoading = true;
     private bool _isSubmitting;
     private bool _isAthlete;
     private bool _isChild;
-    private List<string> _validationErrors = new();
     private List<ChildDto> _children = new();
     private List<TrainingEventDto> _availableTrainings = new();
-
-    private Guid? _selectedPersonId;
-    private Guid? _selectedTrainingId;
-    private string _reason = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -125,7 +115,7 @@
 
             if (_children.Count == 1)
             {
-                _selectedPersonId = _children[0].Id;
+                _model.SelectedPersonId = _children[0].Id;
                 await OnSelectedPersonChanged();
             }
             else
@@ -133,7 +123,7 @@
                 var selected = UserContextService.SelectedOption;
                 if (selected?.ChildId is not null && _children.Any(c => c.Id == selected.ChildId.Value))
                 {
-                    _selectedPersonId = selected.ChildId.Value;
+                    _model.SelectedPersonId = selected.ChildId.Value;
                     await OnSelectedPersonChanged();
                 }
             }
@@ -150,13 +140,13 @@
 
     private async Task OnSelectedPersonChanged()
     {
-        _selectedTrainingId = null;
+        _model.SelectedTrainingId = null;
         _availableTrainings = [];
 
-        if (!_selectedPersonId.HasValue)
+        if (!_model.SelectedPersonId.HasValue)
             return;
 
-        var selected = _children.FirstOrDefault(c => c.Id == _selectedPersonId.Value);
+        var selected = _children.FirstOrDefault(c => c.Id == _model.SelectedPersonId.Value);
         if (selected?.TeamId is null)
             return;
 
@@ -177,29 +167,16 @@
         MudDialog.Cancel();
     }
 
-    private bool ValidateForm()
+    private void SubmitForm()
     {
-        _validationErrors.Clear();
-
-        if (!_selectedPersonId.HasValue)
-            _validationErrors.Add("Vyberte osobu");
-
-        if (!_selectedTrainingId.HasValue)
-            _validationErrors.Add("Vyberte tréning");
-
-        if (!string.IsNullOrWhiteSpace(_reason) && _reason.Length < 3)
-            _validationErrors.Add("Dôvod musí mať aspoň 3 znaky");
-
-        return !_validationErrors.Any();
+        _editContext ??= new EditContext(_model);
+        _editContext.Validate();
     }
+
 
     private async Task Submit()
     {
         if (!_children.Any() || _isChild)
-            return;
-
-        await _form.ValidateAsync();
-        if (!ValidateForm())
             return;
 
         _isSubmitting = true;
@@ -207,11 +184,11 @@
         try
         {
             var request = new CreateExcuseRequest(
-                ChildId: _selectedPersonId!.Value,
-                TrainingEventId: _selectedTrainingId,
+                ChildId: _model.SelectedPersonId!.Value,
+                TrainingEventId: _model.SelectedTrainingId,
                 DateFrom: null,
                 DateTo: null,
-                Reason: string.IsNullOrWhiteSpace(_reason) ? null : _reason.Trim(),
+                Reason: string.IsNullOrWhiteSpace(_model.Reason) ? null : _model.Reason.Trim(),
                 Note: null
             );
 
@@ -227,5 +204,17 @@
         {
             _isSubmitting = false;
         }
+    }
+
+    public class ExcuseFormModel
+    {
+        [Required(ErrorMessage = "Vyberte osobu.")]
+        public Guid? SelectedPersonId { get; set; }
+
+        [Required(ErrorMessage = "Vyberte tréning.")]
+        public Guid? SelectedTrainingId { get; set; }
+
+        [StringLength(200, ErrorMessage = "Dôvod môže mať max 200 znakov.")]
+        public string? Reason { get; set; }
     }
 }
