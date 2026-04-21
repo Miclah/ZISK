@@ -25,27 +25,25 @@ public class ChildrenController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        var userEmail = User.FindFirstValue(ClaimTypes.Email);
         var result = new List<ChildDto>();
 
         if (User.IsInRole("Athlete") || User.IsInRole("Child"))
         {
-            if (!string.IsNullOrWhiteSpace(userEmail))
-            {
-                var ownProfiles = await _context.ChildProfiles
-                    .Include(c => c.Team)
-                    .Where(c => c.IsActive && c.Email == userEmail)
-                    .Select(c => new ChildDto(
-                        c.Id,
-                        c.FirstName,
-                        c.LastName,
-                        c.TeamId,
-                        c.Team != null ? c.Team.Name : null,
-                        true
-                    ))
-                    .ToListAsync();
+            var membership = await _context.TeamMembers
+                .Include(tm => tm.Team)
+                .FirstOrDefaultAsync(tm => tm.UserId == userId);
 
-                result.AddRange(ownProfiles);
+            var user = await _context.Users.FindAsync(userId);
+            if (user != null)
+            {
+                result.Add(new ChildDto(
+                    user.Id,
+                    user.FirstName,
+                    user.LastName,
+                    membership?.TeamId,
+                    membership?.Team.Name,
+                    true
+                ));
             }
         }
 
@@ -53,19 +51,24 @@ public class ChildrenController : ControllerBase
         {
             var children = await _context.ParentChildren
                 .Include(pc => pc.Child)
-                    .ThenInclude(c => c.Team)
                 .Where(pc => pc.ParentId == userId)
-                .Select(pc => new ChildDto(
+                .ToListAsync();
+
+            foreach (var pc in children)
+            {
+                var membership = await _context.TeamMembers
+                    .Include(tm => tm.Team)
+                    .FirstOrDefaultAsync(tm => tm.UserId == pc.ChildId);
+
+                result.Add(new ChildDto(
                     pc.Child.Id,
                     pc.Child.FirstName,
                     pc.Child.LastName,
-                    pc.Child.TeamId,
-                    pc.Child.Team != null ? pc.Child.Team.Name : null,
+                    membership?.TeamId,
+                    membership?.Team.Name,
                     false
-                ))
-                .ToListAsync();
-
-            result.AddRange(children);
+                ));
+            }
         }
 
         return Ok(result
@@ -80,21 +83,38 @@ public class ChildrenController : ControllerBase
     [Authorize(Roles = "Admin,Coach")]
     public async Task<ActionResult<List<ChildDto>>> GetAllChildren()
     {
-        var children = await _context.ChildProfiles
-            .Include(c => c.Team)
-            .Where(c => c.IsActive)
-            .Select(c => new ChildDto(
-                c.Id,
-                c.FirstName,
-                c.LastName,
-                c.TeamId,
-                c.Team != null ? c.Team.Name : null,
-                false
-            ))
+        var childRoleId = await _context.Roles
+            .Where(r => r.Name == "Child")
+            .Select(r => r.Id)
+            .FirstOrDefaultAsync();
+
+        if (childRoleId == null)
+            return Ok(new List<ChildDto>());
+
+        var childUserIds = await _context.UserRoles
+            .Where(ur => ur.RoleId == childRoleId)
+            .Select(ur => ur.UserId)
             .ToListAsync();
 
-        return Ok(children);
+        var memberships = await _context.TeamMembers
+            .Include(tm => tm.Team)
+            .Where(tm => childUserIds.Contains(tm.UserId))
+            .ToListAsync();
+
+        var children = await _context.Users
+            .Where(u => childUserIds.Contains(u.Id) && u.IsActive)
+            .OrderBy(u => u.LastName)
+            .ThenBy(u => u.FirstName)
+            .ToListAsync();
+
+        var result = children.Select(u =>
+        {
+            var m = memberships.FirstOrDefault(tm => tm.UserId == u.Id);
+            return new ChildDto(u.Id, u.FirstName, u.LastName, m?.TeamId, m?.Team.Name, false);
+        }).ToList();
+
+        return Ok(result);
     }
 }
 
-public record ChildDto(Guid Id, string FirstName, string LastName, Guid? TeamId, string? TeamName, bool IsOwnProfile);
+public record ChildDto(string Id, string FirstName, string LastName, Guid? TeamId, string? TeamName, bool IsOwnProfile);

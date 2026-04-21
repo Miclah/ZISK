@@ -5,11 +5,11 @@ namespace ZISK.Data.Entities
 {
     public enum TrainingType
     {
-        Conditioning,   
-        Technical,      
-        Match,          
-        Recovery,       
-        Other           
+        Conditioning,
+        Technical,
+        Match,
+        Recovery,
+        Other
     }
 
     public class TrainingEvent
@@ -20,6 +20,16 @@ namespace ZISK.Data.Entities
 
         [ForeignKey(nameof(TeamId))]
         public Team Team { get; set; } = null!;
+
+        public Guid? SeriesId { get; set; }
+
+        [ForeignKey(nameof(SeriesId))]
+        public TrainingSeries? Series { get; set; }
+
+        public Guid SeasonId { get; set; }
+
+        [ForeignKey(nameof(SeasonId))]
+        public Season Season { get; set; } = null!;
 
         [Required]
         [MaxLength(200)]
@@ -38,6 +48,11 @@ namespace ZISK.Data.Entities
         public string? CoachNote { get; set; }
 
         public bool IsLocked { get; set; } = false;
+
+        public bool IsCancelled { get; set; } = false;
+
+        [MaxLength(500)]
+        public string? CancelledReason { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

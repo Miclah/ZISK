@@ -20,7 +20,7 @@ namespace ZISK.Data.Entities
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public ICollection<ChildProfile> Members { get; set; } = [];
+        public ICollection<TeamMember> Memberships { get; set; } = [];
         public ICollection<TrainingEvent> TrainingEvents { get; set; } = [];
         public ICollection<CoachTeam> Coaches { get; set; } = [];
     }

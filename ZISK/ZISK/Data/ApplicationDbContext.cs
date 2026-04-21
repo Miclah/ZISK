@@ -13,8 +13,10 @@ namespace ZISK.Data
         }
 
         public DbSet<Team> Teams => Set<Team>();
+        public DbSet<TeamMember> TeamMembers => Set<TeamMember>();
         public DbSet<TrainingEvent> TrainingEvents => Set<TrainingEvent>();
-        public DbSet<ChildProfile> ChildProfiles => Set<ChildProfile>();
+        public DbSet<TrainingSeries> TrainingSeries => Set<TrainingSeries>();
+        public DbSet<Season> Seasons => Set<Season>();
         public DbSet<ParentChild> ParentChildren => Set<ParentChild>();
         public DbSet<AttendanceRecord> AttendanceRecords => Set<AttendanceRecord>();
         public DbSet<AbsenceRequest> AbsenceRequests => Set<AbsenceRequest>();
@@ -45,34 +47,68 @@ namespace ZISK.Data
                 .HasIndex(t => t.Name)
                 .IsUnique();
 
-            builder.Entity<ChildProfile>()
-                .HasOne(c => c.Team)
-                .WithMany(t => t.Members)
-                .HasForeignKey(c => c.TeamId)
-                .OnDelete(DeleteBehavior.SetNull);
+            // TeamMember
+            builder.Entity<TeamMember>()
+                .HasKey(tm => new { tm.TeamId, tm.UserId });
 
-            builder.Entity<ChildProfile>()
-                .HasIndex(c => c.TeamId);
+            builder.Entity<TeamMember>()
+                .HasOne(tm => tm.Team)
+                .WithMany(t => t.Memberships)
+                .HasForeignKey(tm => tm.TeamId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            builder.Entity<ChildProfile>()
-                .HasIndex(c => c.Email);
+            builder.Entity<TeamMember>()
+                .HasOne(tm => tm.User)
+                .WithMany(u => u.TeamMemberships)
+                .HasForeignKey(tm => tm.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            builder.Entity<ChildProfile>()
-                .HasOne(c => c.User)
-                .WithMany()
-                .HasForeignKey(c => c.UserId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            builder.Entity<ChildProfile>()
-                .HasIndex(c => c.UserId)
+            // Season
+            builder.Entity<Season>()
+                .HasIndex(s => s.IsActive)
                 .IsUnique()
-                .HasFilter("[UserId] IS NOT NULL");
+                .HasFilter("[IsActive] = 1");
 
+            // TrainingSeries
+            builder.Entity<TrainingSeries>()
+                .HasOne(ts => ts.Team)
+                .WithMany()
+                .HasForeignKey(ts => ts.TeamId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<TrainingSeries>()
+                .HasOne(ts => ts.Coach)
+                .WithMany()
+                .HasForeignKey(ts => ts.CoachId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<TrainingSeries>()
+                .HasOne(ts => ts.Season)
+                .WithMany(s => s.Series)
+                .HasForeignKey(ts => ts.SeasonId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // TrainingEvent
             builder.Entity<TrainingEvent>()
                 .HasOne(te => te.Team)
                 .WithMany(t => t.TrainingEvents)
                 .HasForeignKey(te => te.TeamId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<TrainingEvent>()
+                .HasOne(te => te.Series)
+                .WithMany(ts => ts.Instances)
+                .HasForeignKey(te => te.SeriesId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<TrainingEvent>()
+                .HasOne(te => te.Season)
+                .WithMany(s => s.Trainings)
+                .HasForeignKey(te => te.SeasonId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<TrainingEvent>()
+                .HasIndex(te => new { te.SeasonId, te.StartTime });
 
             builder.Entity<TrainingEvent>()
                 .HasIndex(te => new { te.TeamId, te.StartTime });
@@ -84,14 +120,15 @@ namespace ZISK.Data
                 .HasOne(pc => pc.Parent)
                 .WithMany(u => u.Children)
                 .HasForeignKey(pc => pc.ParentId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<ParentChild>()
                 .HasOne(pc => pc.Child)
-                .WithMany(c => c.Parents)
+                .WithMany(u => u.Parents)
                 .HasForeignKey(pc => pc.ChildId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // AttendanceRecord
             builder.Entity<AttendanceRecord>()
                 .HasOne(ar => ar.TrainingEvent)
                 .WithMany(te => te.AttendanceRecords)
@@ -100,7 +137,7 @@ namespace ZISK.Data
 
             builder.Entity<AttendanceRecord>()
                 .HasOne(ar => ar.Child)
-                .WithMany(c => c.AttendanceRecords)
+                .WithMany()
                 .HasForeignKey(ar => ar.ChildId)
                 .OnDelete(DeleteBehavior.Restrict);
 
@@ -114,6 +151,7 @@ namespace ZISK.Data
                 .HasIndex(ar => new { ar.TrainingEventId, ar.ChildId })
                 .IsUnique();
 
+            // AbsenceRequest
             builder.Entity<AbsenceRequest>()
                 .HasIndex(ar => ar.Status);
 
@@ -125,7 +163,7 @@ namespace ZISK.Data
 
             builder.Entity<AbsenceRequest>()
                 .HasOne(ar => ar.Child)
-                .WithMany(c => c.AbsenceRequests)
+                .WithMany()
                 .HasForeignKey(ar => ar.ChildId)
                 .OnDelete(DeleteBehavior.Restrict);
 
