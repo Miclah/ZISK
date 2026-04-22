@@ -8,6 +8,8 @@
 @using ZISK.Data
 
 @inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
 <PageTitle>Potvrdenie emailu - ZISK</PageTitle>
@@ -68,6 +70,9 @@
     [SupplyParameterFromQuery]
     private string? Code { get; set; }
 
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         if (UserId is null || Code is null)
@@ -80,20 +85,22 @@
         {
             HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
             statusMessage = "Nepodarilo sa nájsť používateľa.";
+            return;
         }
-        else
-        {
-            var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code));
-            var result = await UserManager.ConfirmEmailAsync(user, code);
 
-            if (result.Succeeded)
-            {
-                _success = true;
-            }
-            else
-            {
-                statusMessage = "Odkaz na potvrdenie je neplatný alebo expiroval.";
-            }
+        var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code));
+        var result = await UserManager.ConfirmEmailAsync(user, code);
+
+        if (!result.Succeeded)
+        {
+            statusMessage = "Odkaz na potvrdenie je neplatný alebo expiroval.";
+            return;
         }
+
+        _success = true;
+        await SignInManager.SignInAsync(user, isPersistent: false);
+
+        var target = string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : ReturnUrl;
+        NavigationManager.NavigateTo(target, forceLoad: true);
     }
 }

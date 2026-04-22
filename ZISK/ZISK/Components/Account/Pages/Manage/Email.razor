@@ -6,9 +6,10 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
 @using ZISK.Data
+@using ZISK.Services
 
 @inject UserManager<ApplicationUser> UserManager
-@inject IEmailSender<ApplicationUser> EmailSender
+@inject SmtpEmailSender EmailSender
 @inject IdentityUserAccessor UserAccessor
 @inject NavigationManager NavigationManager
 
@@ -85,7 +86,14 @@
     {
         if (Input.NewEmail is null || Input.NewEmail == email)
         {
-            message = "Your email is unchanged.";
+            message = "E-mail je nezmenený.";
+            return;
+        }
+
+        var existing = await UserManager.FindByEmailAsync(Input.NewEmail);
+        if (existing is not null && existing.Id != user.Id)
+        {
+            message = "Tento e-mail je už obsadený.";
             return;
         }
 
@@ -96,9 +104,9 @@
             NavigationManager.ToAbsoluteUri("Account/ConfirmEmailChange").AbsoluteUri,
             new Dictionary<string, object?> { ["userId"] = userId, ["email"] = Input.NewEmail, ["code"] = code });
 
-        await EmailSender.SendConfirmationLinkAsync(user, Input.NewEmail, HtmlEncoder.Default.Encode(callbackUrl));
+        await EmailSender.SendEmailChangeLinkAsync(user, Input.NewEmail, HtmlEncoder.Default.Encode(callbackUrl));
 
-        message = "Confirmation link to change email sent. Please check your email.";
+        message = "Potvrdzovací odkaz na zmenu e-mailu bol odoslaný. Skontrolujte svoju schránku.";
     }
 
     private async Task OnSendEmailVerificationAsync()
@@ -117,7 +125,7 @@
 
         await EmailSender.SendConfirmationLinkAsync(user, email, HtmlEncoder.Default.Encode(callbackUrl));
 
-        message = "Verification email sent. Please check your email.";
+        message = "Overovací email bol odoslaný. Skontrolujte svoju schránku.";
     }
 
     private sealed class InputModel

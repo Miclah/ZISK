@@ -126,6 +126,7 @@
         [Required(ErrorMessage = "Rola je povinná.")]
         public string Role { get; set; } = "Parent";
 
+        [Required(ErrorMessage = "Rodné číslo je povinné.")]
         [StringLength(20, ErrorMessage = "Rodné číslo môže mať max 20 znakov.")]
         public string? RodneCislo { get; set; }
 

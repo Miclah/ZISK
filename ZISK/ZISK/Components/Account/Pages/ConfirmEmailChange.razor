@@ -46,23 +46,26 @@
         }
 
         var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code));
+        var originalEmailMatchesUsername = string.Equals(user.UserName, user.Email, StringComparison.OrdinalIgnoreCase);
+
         var result = await UserManager.ChangeEmailAsync(user, Email, code);
         if (!result.Succeeded)
         {
-            message = "Error changing email.";
+            message = "Zmena emailovej adresy zlyhala.";
             return;
         }
 
-        // In our UI email and user name are one and the same, so when we update the email
-        // we need to update the user name.
-        var setUserNameResult = await UserManager.SetUserNameAsync(user, Email);
-        if (!setUserNameResult.Succeeded)
+        if (originalEmailMatchesUsername)
         {
-            message = "Error changing user name.";
-            return;
+            var setUserNameResult = await UserManager.SetUserNameAsync(user, Email);
+            if (!setUserNameResult.Succeeded)
+            {
+                message = "Zmena emailovej adresy zlyhala.";
+                return;
+            }
         }
 
         await SignInManager.RefreshSignInAsync(user);
-        message = "Thank you for confirming your email change.";
+        message = "Ďakujeme za potvrdenie zmeny emailovej adresy.";
     }
 }

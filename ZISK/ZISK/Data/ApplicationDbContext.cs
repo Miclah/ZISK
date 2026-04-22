@@ -24,6 +24,7 @@ namespace ZISK.Data
         public DbSet<AnnouncementAttachment> AnnouncementAttachments => Set<AnnouncementAttachment>();
         public DbSet<Document> Documents => Set<Document>();
         public DbSet<CoachTeam> CoachTeams => Set<CoachTeam>();
+        public DbSet<EmailConfirmationCode> EmailConfirmationCodes => Set<EmailConfirmationCode>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -221,6 +222,15 @@ namespace ZISK.Data
                 .WithMany(t => t.Coaches)
                 .HasForeignKey(ct => ct.TeamId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<EmailConfirmationCode>()
+                .HasOne(c => c.User)
+                .WithMany()
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<EmailConfirmationCode>()
+                .HasIndex(c => c.UserId);
         }
     }
 }

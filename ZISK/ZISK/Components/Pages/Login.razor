@@ -45,15 +45,15 @@
             <DataAnnotationsValidator />
 
             <div class="form-field">
-                <label for="email">Email</label>
+                <label for="email">E-mail alebo používateľské meno</label>
                 <div class="input-wrapper">
-                    <svg class="input-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-                    <InputText @bind-Value="Input.Email"
+                    <svg class="input-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                    <InputText @bind-Value="Input.EmailOrUsername"
                                id="email"
-                               placeholder="vas@email.sk"
+                               placeholder="vas@email.sk alebo jan.novak"
                                autocomplete="username" />
                 </div>
-                <ValidationMessage For="() => Input.Email" />
+                <ValidationMessage For="() => Input.EmailOrUsername" />
             </div>
 
             <div class="form-field">
@@ -129,37 +129,57 @@
         _showResendLink = false;
         _unconfirmedEmail = null;
 
-        var user = await UserManager.FindByEmailAsync(Input.Email);
-        if (user == null)
+        var identifier = Input.EmailOrUsername?.Trim() ?? string.Empty;
+
+        var user = await UserManager.FindByNameAsync(identifier)
+                ?? await UserManager.FindByEmailAsync(identifier);
+
+        if (user is null)
         {
-            errorMessage = "Neplatný email alebo heslo.";
+            errorMessage = "Nesprávne prihlasovacie údaje.";
             return;
         }
 
         if (!user.IsActive)
         {
-            Logger.LogWarning("Inactive user {Email} attempted to log in.", Input.Email);
+            Logger.LogWarning("Inactive user {UserId} attempted to log in.", user.Id);
             errorMessage = "Váš účet bol deaktivovaný. Kontaktujte administrátora.";
             return;
         }
 
-        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+        var passwordOk = await UserManager.CheckPasswordAsync(user, Input.Password);
+        if (!passwordOk)
+        {
+            errorMessage = "Nesprávne prihlasovacie údaje.";
+            return;
+        }
+
+        if (!user.EmailConfirmed)
+        {
+            Logger.LogInformation("Login blocked for unconfirmed user {UserId}.", user.Id);
+            _showResendLink = true;
+            _unconfirmedEmail = user.Email;
+            errorMessage = "Váš e-mail ešte nie je overený.";
+            return;
+        }
+
+        var result = await SignInManager.PasswordSignInAsync(user.UserName!, Input.Password, Input.RememberMe, lockoutOnFailure: false);
 
         if (result.Succeeded)
         {
-            Logger.LogInformation("User {Email} logged in successfully.", Input.Email);
+            Logger.LogInformation("User {UserId} logged in successfully.", user.Id);
             NavigationManager.NavigateTo(GetSafeRedirectUrl(), forceLoad: true);
             return;
         }
 
         if (result.IsLockedOut)
         {
-            Logger.LogWarning("User account {Email} locked out.", Input.Email);
+            Logger.LogWarning("User account {UserId} locked out.", user.Id);
             errorMessage = "Váš účet je dočasne uzamknutý.";
             return;
         }
 
-        errorMessage = "Neplatný email alebo heslo.";
+        errorMessage = "Nesprávne prihlasovacie údaje.";
     }
 
     private string GetSafeRedirectUrl()
@@ -181,9 +201,8 @@
 
     private sealed class InputModel
     {
-        [Required(ErrorMessage = "Email je povinný")]
-        [EmailAddress(ErrorMessage = "Neplatný formát emailu")]
-        public string Email { get; set; } = "";
+        [Required(ErrorMessage = "Zadajte e-mail alebo používateľské meno.")]
+        public string EmailOrUsername { get; set; } = "";
 
         [Required(ErrorMessage = "Heslo je povinné")]
         [DataType(DataType.Password)]

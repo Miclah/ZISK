@@ -1,0 +1,570 @@
+@page "/registracia"
+@page "/Account/Register"
+@rendermode InteractiveServer
+@attribute [AllowAnonymous]
+@layout ZISK.Components.Layout.LoginLayout
+
+@using System.ComponentModel.DataAnnotations
+@using System.Text
+@using System.Text.Encodings.Web
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using MudBlazor
+@using ZISK.Data
+@using ZISK.Services
+@using ZISK.Shared.DTOs.Addresses
+
+@inject UserManager<ApplicationUser> UserManager
+@inject Microsoft.AspNetCore.Identity.UI.Services.IEmailSender EmailSender
+@inject ILogger<Register> Logger
+@inject NavigationManager NavigationManager
+@inject UsernameGenerator UsernameGenerator
+@inject EmailConfirmationCodeService EmailConfirmationCodes
+@inject NominatimService Nominatim
+
+<PageTitle>Registrácia - ZISK</PageTitle>
+
+<div class="register-wizard-page">
+    <MudPaper Class="register-card" Elevation="6">
+        <div class="register-brand">
+            <MudText Typo="Typo.h5" Class="brand-title">ZISK</MudText>
+            <MudText Typo="Typo.body2" Class="brand-subtitle">Vytvorenie nového účtu</MudText>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_globalError))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">@_globalError</MudAlert>
+        }
+
+        <MudStepper @ref="_stepper"
+                    NonLinear="false"
+                    OnPreviewInteraction="OnStepperPreview"
+                    CompleteStep="false"
+                    ShowResetButton="false">
+
+            <ChildContent>
+                <MudStep Title="Osobné údaje" Icon="@Icons.Material.Rounded.Person">
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_model.FirstName"
+                                          Label="Meno"
+                                          Required="true"
+                                          OnBlur="OnNameBlur"
+                                          Variant="Variant.Outlined"
+                                          Immediate="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_model.LastName"
+                                          Label="Priezvisko"
+                                          Required="true"
+                                          OnBlur="OnNameBlur"
+                                          Variant="Variant.Outlined"
+                                          Immediate="true" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.Email"
+                                          Label="E-mail"
+                                          Required="true"
+                                          InputType="InputType.Email"
+                                          Variant="Variant.Outlined"
+                                          OnBlur="OnEmailBlurAsync"
+                                          Immediate="true"
+                                          Adornment="Adornment.End"
+                                          AdornmentIcon="@EmailStatusIcon"
+                                          AdornmentColor="@EmailStatusColor"
+                                          HelperText="@_emailStatusText"
+                                          Error="@(_emailAvailability == Availability.Taken || !string.IsNullOrEmpty(_emailFormatError))"
+                                          ErrorText="@(_emailFormatError ?? "Tento e-mail je už registrovaný.")" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_model.PhoneNumber"
+                                          Label="Telefón (voliteľný)"
+                                          Variant="Variant.Outlined"
+                                          Placeholder="+421 9XX XXX XXX" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudDatePicker Label="Dátum narodenia"
+                                           @bind-Date="_model.DateOfBirth"
+                                           Variant="Variant.Outlined"
+                                           Required="true"
+                                           MaxDate="_maxBirthDate"
+                                           OpenTo="OpenTo.Year" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.RodneCislo"
+                                          Label="Rodné číslo"
+                                          Required="true"
+                                          Variant="Variant.Outlined"
+                                          Placeholder="XXXXXX/XXXX"
+                                          HelperText="Vyžadujeme ho pre fakturáciu a členskú evidenciu." />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudAutocomplete T="NominatimAddressDto"
+                                             Value="_selectedAddress"
+                                             ValueChanged="OnAddressSelected"
+                                             SearchFunc="SearchAddressesAsync"
+                                             Label="Bydlisko"
+                                             Variant="Variant.Outlined"
+                                             DebounceInterval="350"
+                                             MinCharacters="3"
+                                             CoerceText="false"
+                                             CoerceValue="false"
+                                             ResetValueOnEmptyText="false"
+                                             ToStringFunc="@(a => a?.ToFormattedString())"
+                                             Placeholder="Zadajte ulicu alebo mesto"
+                                             HelperText="Vyberte z ponuky alebo dopíšte ručne, ak vyhľadávanie nie je dostupné."
+                                             Required="false" />
+                            <MudTextField @bind-Value="_model.Bydlisko"
+                                          Label="Upravená adresa"
+                                          Variant="Variant.Outlined"
+                                          Required="true"
+                                          Class="mt-2"
+                                          HelperText="Uloží sa ako text." />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.Username"
+                                          Label="Preferované používateľské meno"
+                                          Required="true"
+                                          Variant="Variant.Outlined"
+                                          Immediate="true"
+                                          DebounceInterval="300"
+                                          OnDebounceIntervalElapsed="OnUsernameChangedAsync"
+                                          Adornment="Adornment.End"
+                                          AdornmentIcon="@UsernameStatusIcon"
+                                          AdornmentColor="@UsernameStatusColor"
+                                          HelperText="@_usernameStatusText"
+                                          Error="@(_usernameAvailability == Availability.Taken)"
+                                          ErrorText="Toto meno je obsadené." />
+                        </MudItem>
+                    </MudGrid>
+                </MudStep>
+
+                <MudStep Title="Heslo" Icon="@Icons.Material.Rounded.Lock">
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.Password"
+                                          Label="Heslo"
+                                          InputType="InputType.Password"
+                                          Variant="Variant.Outlined"
+                                          Required="true"
+                                          Immediate="true" />
+                            <MudProgressLinear Color="@StrengthColor"
+                                               Value="@_strengthPct"
+                                               Class="mt-1"
+                                               Size="Size.Small" />
+                            <MudText Typo="Typo.caption" Color="@StrengthColor">@_strengthLabel</MudText>
+                            <MudText Typo="Typo.caption" Class="d-block mt-1">
+                                Heslo musí mať minimálne 8 znakov, veľké a malé písmeno, aj číslicu.
+                            </MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.ConfirmPassword"
+                                          Label="Potvrdenie hesla"
+                                          InputType="InputType.Password"
+                                          Variant="Variant.Outlined"
+                                          Required="true"
+                                          Error="@(!string.IsNullOrEmpty(_model.ConfirmPassword) && _model.Password != _model.ConfirmPassword)"
+                                          ErrorText="Heslá sa nezhodujú." />
+                        </MudItem>
+                    </MudGrid>
+                </MudStep>
+
+                <MudStep Title="Potvrdenie" Icon="@Icons.Material.Rounded.Check">
+                    <MudSimpleTable Dense="true" Hover="false" Bordered="false" Striped="false" Class="summary-table">
+                        <tbody>
+                            <tr><th>Meno</th><td>@($"{_model.FirstName} {_model.LastName}")</td></tr>
+                            <tr><th>E-mail</th><td>@_model.Email</td></tr>
+                            @if (!string.IsNullOrWhiteSpace(_model.PhoneNumber))
+                            {
+                                <tr><th>Telefón</th><td>@_model.PhoneNumber</td></tr>
+                            }
+                            <tr><th>Dátum narodenia</th><td>@(_model.DateOfBirth?.ToString("d.M.yyyy") ?? "")</td></tr>
+                            <tr><th>Rodné číslo</th><td>@_model.RodneCislo</td></tr>
+                            <tr><th>Bydlisko</th><td>@_model.Bydlisko</td></tr>
+                            <tr><th>Používateľské meno</th><td>@_model.Username</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+
+                    <MudCheckBox T="bool" @bind-Value="_gdprAccepted" Color="Color.Primary" Class="mt-3">
+                        Súhlasím so spracovaním osobných údajov (<MudLink Href="/dokumenty/gdpr" Target="_blank">GDPR</MudLink>).
+                    </MudCheckBox>
+                    <MudCheckBox T="bool" @bind-Value="_rulesAccepted" Color="Color.Primary">
+                        Súhlasím s <MudLink Href="/dokumenty/pravidla" Target="_blank">pravidlami klubu</MudLink>.
+                    </MudCheckBox>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               FullWidth="true"
+                               Class="mt-3"
+                               Size="Size.Large"
+                               Disabled="@(_submitting || !_gdprAccepted || !_rulesAccepted)"
+                               OnClick="SubmitAsync">
+                        @if (_submitting)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                            <span>Odosielam…</span>
+                        }
+                        else
+                        {
+                            <span>Registrovať sa</span>
+                        }
+                    </MudButton>
+                </MudStep>
+            </ChildContent>
+        </MudStepper>
+
+        <div class="register-footer">
+            <MudLink Href="/login">Späť na prihlásenie</MudLink>
+        </div>
+    </MudPaper>
+
+    <p class="register-copyright">© 2026 ZISK · Adresné dáta © OpenStreetMap contributors</p>
+</div>
+
+@code {
+    private MudStepper? _stepper;
+    private RegisterModel _model = new();
+    private NominatimAddressDto? _selectedAddress;
+
+    private Availability _usernameAvailability = Availability.Idle;
+    private Availability _emailAvailability = Availability.Idle;
+    private string? _usernameStatusText;
+    private string? _emailStatusText;
+    private string? _emailFormatError;
+    private bool _usernameManuallyEdited;
+
+    private bool _gdprAccepted;
+    private bool _rulesAccepted;
+    private bool _submitting;
+    private string? _globalError;
+
+    private DateTime _maxBirthDate = DateTime.Today.AddYears(-18);
+
+    private int _strengthPct;
+    private string _strengthLabel = string.Empty;
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private Color StrengthColor => _strengthPct switch
+    {
+        >= 100 => Color.Success,
+        >= 75 => Color.Info,
+        >= 50 => Color.Warning,
+        > 0 => Color.Error,
+        _ => Color.Default
+    };
+
+    private string EmailStatusIcon => _emailAvailability switch
+    {
+        Availability.Free => Icons.Material.Rounded.CheckCircle,
+        Availability.Taken => Icons.Material.Rounded.Error,
+        Availability.Checking => Icons.Material.Rounded.HourglassEmpty,
+        _ => string.Empty
+    };
+
+    private Color EmailStatusColor => _emailAvailability switch
+    {
+        Availability.Free => Color.Success,
+        Availability.Taken => Color.Error,
+        _ => Color.Default
+    };
+
+    private string UsernameStatusIcon => _usernameAvailability switch
+    {
+        Availability.Free => Icons.Material.Rounded.CheckCircle,
+        Availability.Taken => Icons.Material.Rounded.Error,
+        Availability.Checking => Icons.Material.Rounded.HourglassEmpty,
+        _ => string.Empty
+    };
+
+    private Color UsernameStatusColor => _usernameAvailability switch
+    {
+        Availability.Free => Color.Success,
+        Availability.Taken => Color.Error,
+        _ => Color.Default
+    };
+
+    private async Task OnNameBlur()
+    {
+        if (_usernameManuallyEdited) return;
+        if (string.IsNullOrWhiteSpace(_model.FirstName) || string.IsNullOrWhiteSpace(_model.LastName))
+            return;
+
+        _model.Username = await UsernameGenerator.GenerateAsync(_model.FirstName, _model.LastName);
+        await CheckUsernameAsync(_model.Username);
+    }
+
+    private async Task OnUsernameChangedAsync(string value)
+    {
+        _usernameManuallyEdited = true;
+        await CheckUsernameAsync(value);
+    }
+
+    private async Task CheckUsernameAsync(string? username)
+    {
+        if (string.IsNullOrWhiteSpace(username) || username.Length < 3)
+        {
+            _usernameAvailability = Availability.Idle;
+            _usernameStatusText = null;
+            return;
+        }
+
+        _usernameAvailability = Availability.Checking;
+        _usernameStatusText = "Overujem dostupnosť…";
+        StateHasChanged();
+
+        var existing = await UserManager.FindByNameAsync(username);
+        if (existing is null)
+        {
+            _usernameAvailability = Availability.Free;
+            _usernameStatusText = "Voľné";
+        }
+        else
+        {
+            _usernameAvailability = Availability.Taken;
+            _usernameStatusText = null;
+        }
+        StateHasChanged();
+    }
+
+    private async Task OnEmailBlurAsync()
+    {
+        _emailFormatError = null;
+        if (string.IsNullOrWhiteSpace(_model.Email))
+        {
+            _emailAvailability = Availability.Idle;
+            _emailStatusText = null;
+            return;
+        }
+        if (!new EmailAddressAttribute().IsValid(_model.Email))
+        {
+            _emailFormatError = "Neplatný formát e-mailu.";
+            _emailAvailability = Availability.Idle;
+            _emailStatusText = null;
+            return;
+        }
+
+        _emailAvailability = Availability.Checking;
+        _emailStatusText = "Overujem dostupnosť…";
+
+        var existing = await UserManager.FindByEmailAsync(_model.Email);
+        if (existing is null)
+        {
+            _emailAvailability = Availability.Free;
+            _emailStatusText = "Voľné";
+        }
+        else
+        {
+            _emailAvailability = Availability.Taken;
+            _emailStatusText = null;
+        }
+    }
+
+    private async Task<IEnumerable<NominatimAddressDto>> SearchAddressesAsync(string value, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length < 3)
+            return Enumerable.Empty<NominatimAddressDto>();
+        try
+        {
+            return await Nominatim.SearchAsync(value, ct);
+        }
+        catch
+        {
+            return Enumerable.Empty<NominatimAddressDto>();
+        }
+    }
+
+    private void OnAddressSelected(NominatimAddressDto? dto)
+    {
+        _selectedAddress = dto;
+        if (dto is not null)
+            _model.Bydlisko = dto.ToFormattedString();
+    }
+
+    private async Task OnStepperPreview(StepperInteractionEventArgs args)
+    {
+        if (args.Action != StepAction.Complete) return;
+
+        if (args.StepIndex == 0 && !IsStepOneValid())
+        {
+            args.Cancel = true;
+            return;
+        }
+        if (args.StepIndex == 1 && !IsStepTwoValid())
+        {
+            args.Cancel = true;
+            return;
+        }
+        await Task.CompletedTask;
+    }
+
+    private bool IsStepOneValid()
+    {
+        if (string.IsNullOrWhiteSpace(_model.FirstName) || _model.FirstName.Length < 2) return false;
+        if (string.IsNullOrWhiteSpace(_model.LastName) || _model.LastName.Length < 2) return false;
+        if (!new EmailAddressAttribute().IsValid(_model.Email)) return false;
+        if (_emailAvailability != Availability.Free) return false;
+        if (_model.DateOfBirth is null) return false;
+        if (_model.DateOfBirth > _maxBirthDate) return false;
+        if (string.IsNullOrWhiteSpace(_model.Bydlisko) || _model.Bydlisko.Length < 5) return false;
+        if (string.IsNullOrWhiteSpace(_model.RodneCislo) || _model.RodneCislo.Trim().Length < 9) return false;
+        if (string.IsNullOrWhiteSpace(_model.Username) || _usernameAvailability != Availability.Free) return false;
+        return true;
+    }
+
+    private bool IsStepTwoValid()
+    {
+        if (string.IsNullOrWhiteSpace(_model.Password) || _model.Password.Length < 8) return false;
+        if (_model.Password != _model.ConfirmPassword) return false;
+        if (!_model.Password.Any(char.IsUpper)) return false;
+        if (!_model.Password.Any(char.IsLower)) return false;
+        if (!_model.Password.Any(char.IsDigit)) return false;
+        return true;
+    }
+
+    protected override void OnParametersSet()
+    {
+        ComputeStrength();
+    }
+
+    private void ComputeStrength()
+    {
+        var p = _model.Password ?? string.Empty;
+        var score = 0;
+        if (p.Length >= 8) score++;
+        if (p.Any(char.IsUpper) && p.Any(char.IsLower) && p.Any(char.IsDigit)) score++;
+        if (p.Any(c => !char.IsLetterOrDigit(c))) score++;
+        if (p.Length >= 12) score++;
+
+        (_strengthPct, _strengthLabel) = score switch
+        {
+            0 => (0, string.IsNullOrEmpty(p) ? string.Empty : "Slabé"),
+            1 => (25, "Slabé"),
+            2 => (50, "Priemerné"),
+            3 => (75, "Dobré"),
+            _ => (100, "Silné")
+        };
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_submitting) return;
+        _globalError = null;
+
+        if (!IsStepOneValid() || !IsStepTwoValid())
+        {
+            _globalError = "Skontrolujte zadané údaje.";
+            return;
+        }
+        if (!_gdprAccepted || !_rulesAccepted)
+        {
+            _globalError = "Musíte súhlasiť so spracovaním osobných údajov a pravidlami klubu.";
+            return;
+        }
+
+        _submitting = true;
+        try
+        {
+            var user = new ApplicationUser
+            {
+                UserName = _model.Username,
+                Email = _model.Email,
+                FirstName = _model.FirstName.Trim(),
+                LastName = _model.LastName.Trim(),
+                PhoneNumber = string.IsNullOrWhiteSpace(_model.PhoneNumber) ? null : _model.PhoneNumber,
+                RodneCislo = _model.RodneCislo.Trim(),
+                Bydlisko = _model.Bydlisko.Trim(),
+                DateOfBirth = _model.DateOfBirth.HasValue ? DateOnly.FromDateTime(_model.DateOfBirth.Value) : null,
+                EmailConfirmed = false,
+                IsActive = true
+            };
+
+            var result = await UserManager.CreateAsync(user, _model.Password);
+            if (!result.Succeeded)
+            {
+                _globalError = string.Join(" ", result.Errors.Select(e => e.Description));
+                return;
+            }
+
+            await UserManager.AddToRoleAsync(user, "Parent");
+
+            var linkToken = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+            var encoded = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(linkToken));
+            var callback = NavigationManager.GetUriWithQueryParameters(
+                NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
+                new Dictionary<string, object?> { ["userId"] = user.Id, ["code"] = encoded, ["returnUrl"] = ReturnUrl });
+
+            var code = await EmailConfirmationCodes.IssueAsync(user);
+            await EmailSender.SendEmailAsync(
+                user.Email!,
+                "ZISK – Potvrdenie e-mailu",
+                BuildConfirmationEmailBody(user, callback, code));
+
+            Logger.LogInformation("Registered new user {UserId} ({Email})", user.Id, user.Email);
+
+            NavigationManager.NavigateTo(
+                NavigationManager.GetUriWithQueryParameters("/overenie/email",
+                    new Dictionary<string, object?> { ["userId"] = user.Id, ["email"] = user.Email, ["returnUrl"] = ReturnUrl }),
+                forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Registration failed");
+            _globalError = "Registrácia zlyhala. Skúste to prosím neskôr.";
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private static string BuildConfirmationEmailBody(ApplicationUser user, string confirmationLink, string code)
+    {
+        return $"""
+            <h2>Vitajte v ZISK, {HtmlEncoder.Default.Encode(user.FirstName)}!</h2>
+            <p>Pre aktiváciu účtu máte dve možnosti — kliknite na odkaz alebo zadajte 6-miestny kód na stránke overenia:</p>
+            <p style="text-align: center; margin: 24px 0;">
+                <a href="{confirmationLink}"
+                   style="background-color: #1976d2; color: white; padding: 12px 30px;
+                          text-decoration: none; border-radius: 6px; font-weight: bold;
+                          display: inline-block;">Potvrdiť e-mail</a>
+            </p>
+            <p style="text-align: center; font-size: 28px; letter-spacing: 8px; font-weight: 700; color: #1976d2;">
+                {code}
+            </p>
+            <p style="color: #666; font-size: 13px; text-align: center;">Kód je platný 30 minút.</p>
+            <p style="color: #666; font-size: 13px;">
+                Ak tlačidlo nefunguje, skopírujte tento odkaz:<br/>
+                <a href="{confirmationLink}" style="color: #1976d2;">{confirmationLink}</a>
+            </p>
+            """;
+    }
+
+    private sealed class RegisterModel
+    {
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public string? RodneCislo { get; set; }
+        public string Bydlisko { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+
+    private enum Availability
+    {
+        Idle,
+        Checking,
+        Free,
+        Taken
+    }
+}

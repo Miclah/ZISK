@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__jcodemunch__search_text",
+      "mcp__jcodemunch__plan_turn",
+      "mcp__jcodemunch__resolve_repo",
+      "mcp__jcodemunch__get_repo_outline",
+      "mcp__jcodemunch__get_file_content"
+    ]
+  }
+}

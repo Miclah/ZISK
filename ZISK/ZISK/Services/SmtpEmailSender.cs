@@ -96,6 +96,29 @@ public class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSender
         return SendEmailAsync(email, "ZISK – Obnovenie hesla", html);
     }
 
+    public Task SendEmailChangeLinkAsync(ApplicationUser user, string newEmail, string changeLink)
+    {
+        var html = $"""
+            <h2>Zmena emailovej adresy</h2>
+            <p>Dostali sme žiadosť o zmenu emailovej adresy vášho účtu na <strong>{newEmail}</strong>. Kliknite na tlačidlo nižšie na potvrdenie:</p>
+            <p style="text-align: center; margin: 30px 0;">
+                <a href="{changeLink}"
+                   style="background-color: #1976d2; color: white; padding: 12px 30px;
+                          text-decoration: none; border-radius: 6px; font-weight: bold;
+                          display: inline-block;">
+                    Potvrdiť zmenu emailu
+                </a>
+            </p>
+            <p style="color: #666; font-size: 13px;">
+                Ak ste o zmenu emailu nežiadali, tento email ignorujte.<br/>
+                Ak tlačidlo nefunguje, skopírujte tento odkaz do prehliadača:<br/>
+                <a href="{changeLink}" style="color: #1976d2;">{changeLink}</a>
+            </p>
+            """;
+
+        return SendEmailAsync(newEmail, "ZISK – Potvrdenie zmeny emailovej adresy", html);
+    }
+
     public Task SendPasswordResetCodeAsync(ApplicationUser user, string email, string resetCode)
     {
         var html = $"""

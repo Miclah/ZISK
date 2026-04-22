@@ -51,6 +51,7 @@ namespace ZISK.Shared.DTOs.Users
         [property: Phone(ErrorMessage = "Neplatný formát telefónneho čísla.")]
         string? PhoneNumber,
 
+        [property: Required(ErrorMessage = "Rodné číslo je povinné.")]
         [property: StringLength(20, ErrorMessage = "Rodné číslo môže mať max 20 znakov.")]
         string? RodneCislo,
 
@@ -84,6 +85,7 @@ namespace ZISK.Shared.DTOs.Users
         [property: Phone(ErrorMessage = "Neplatný formát telefónneho čísla.")]
         string? PhoneNumber,
 
+        [property: Required(ErrorMessage = "Rodné číslo je povinné.")]
         [property: StringLength(20, ErrorMessage = "Rodné číslo môže mať max 20 znakov.")]
         string? RodneCislo,
 

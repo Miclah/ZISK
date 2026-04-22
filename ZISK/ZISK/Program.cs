@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
+using System.Threading.RateLimiting;
 using ZISK.Components;
 using ZISK.Components.Account;
 using ZISK.Client.Services;
@@ -61,6 +63,9 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
+builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
+    options.TokenLifespan = TimeSpan.FromHours(1));
+
 // Cookie konfiguracia
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -74,14 +79,43 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
-builder.Services.AddTransient<IEmailSender<ApplicationUser>, SmtpEmailSender>();
-builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
+builder.Services.AddTransient<SmtpEmailSender>();
+builder.Services.AddTransient<IEmailSender<ApplicationUser>>(sp => sp.GetRequiredService<SmtpEmailSender>());
+builder.Services.AddTransient<IEmailSender>(sp => sp.GetRequiredService<SmtpEmailSender>());
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ITeamAccessService, TeamAccessService>();
 builder.Services.AddScoped<DatabaseInitializer>();
 builder.Services.AddScoped<UsernameGenerator>();
+builder.Services.AddScoped<EmailConfirmationCodeService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<ForwardAuthHeaderHandler>();
+
+builder.Services.AddMemoryCache();
+builder.Services.Configure<NominatimSettings>(builder.Configuration.GetSection("Nominatim"));
+builder.Services.AddSingleton<NominatimService>();
+builder.Services.AddHttpClient(NominatimService.HttpClientName, (sp, client) =>
+{
+    var settings = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<NominatimSettings>>().Value;
+    client.BaseAddress = new Uri(settings.BaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(10);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(settings.BuildUserAgentHeader());
+    client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+    client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("sk,cs,en");
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("forgot-password", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromHours(1),
+                QueueLimit = 0
+            }));
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
 
 builder.Services.AddMudServices();
 builder.Services.AddScoped<UserContextService>();
@@ -102,6 +136,7 @@ else
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.UseAntiforgery();
 
 app.MapControllers();

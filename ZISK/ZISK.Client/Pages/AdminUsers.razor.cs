@@ -297,6 +297,7 @@ public partial class AdminUsers
         [Phone(ErrorMessage = "Neplatný formát telefónneho čísla.")]
         public string? Phone { get; set; }
 
+        [Required(ErrorMessage = "Rodné číslo je povinné.")]
         [StringLength(20, ErrorMessage = "Rodné číslo môže mať max 20 znakov.")]
         public string? RodneCislo { get; set; }
 

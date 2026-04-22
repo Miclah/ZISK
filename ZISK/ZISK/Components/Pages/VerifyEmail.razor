@@ -1,0 +1,264 @@
+@page "/overenie/email"
+@attribute [ExcludeFromInteractiveRouting]
+@attribute [AllowAnonymous]
+@layout ZISK.Components.Layout.LoginLayout
+
+@using System.ComponentModel.DataAnnotations
+@using System.Text
+@using System.Text.Encodings.Web
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Identity.UI.Services
+@using Microsoft.AspNetCore.WebUtilities
+@using ZISK.Data
+@using ZISK.Services
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject EmailConfirmationCodeService EmailConfirmationCodes
+@inject Microsoft.AspNetCore.Identity.UI.Services.IEmailSender EmailSender
+@inject NavigationManager NavigationManager
+@inject ILogger<VerifyEmail> Logger
+
+<PageTitle>Overenie e-mailu - ZISK</PageTitle>
+
+<div class="login-page">
+    <div class="login-card">
+        <div class="login-brand">
+            <h1>ZISK</h1>
+            <p>Overte svoj e-mail</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_infoMessage))
+        {
+            <div class="login-alert login-alert-info">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                <span>@_infoMessage</span>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="login-alert">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <span>@_errorMessage</span>
+            </div>
+        }
+
+        <p style="color: #475569; font-size: 0.9rem; text-align: center; margin-bottom: 1rem;">
+            Poslali sme šesťmiestny kód na
+            <strong>@(Email ?? "váš e-mail")</strong>.
+            Zadajte ho nižšie alebo kliknite na odkaz v e-maile.
+        </p>
+
+        <EditForm Model="VerifyInput" FormName="verify-email" OnValidSubmit="VerifyCodeAsync" method="post">
+            <DataAnnotationsValidator />
+
+            <input type="hidden" name="VerifyInput.UserId" value="@UserId" />
+            <input type="hidden" name="VerifyInput.ReturnUrl" value="@ReturnUrl" />
+
+            <div class="form-field">
+                <label for="verify-code">Overovací kód</label>
+                <div class="input-wrapper">
+                    <svg class="input-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+                    <InputText @bind-Value="VerifyInput.Code"
+                               id="verify-code"
+                               placeholder="123456"
+                               inputmode="numeric"
+                               autocomplete="one-time-code"
+                               maxlength="6"
+                               style="letter-spacing: 0.6em; font-size: 1.25rem; text-align: center;" />
+                </div>
+                <ValidationMessage For="() => VerifyInput.Code" />
+            </div>
+
+            <button type="submit" class="btn-login">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                Overiť
+            </button>
+        </EditForm>
+
+        <EditForm Model="ResendInput" FormName="verify-email-resend" OnValidSubmit="ResendCodeAsync" method="post">
+            <input type="hidden" name="ResendInput.UserId" value="@UserId" />
+            <input type="hidden" name="ResendInput.ReturnUrl" value="@ReturnUrl" />
+            <button type="submit"
+                    style="background: none; border: none; color: #1565c0; font-weight: 600; cursor: pointer; margin-top: 1rem; text-decoration: underline; width: 100%;">
+                Poslať nový kód
+            </button>
+        </EditForm>
+
+        <div class="login-footer">
+            <a href="/login" class="register-link">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                Späť na prihlásenie
+            </a>
+        </div>
+    </div>
+
+    <p class="login-copyright">© 2026 ZISK</p>
+</div>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromQuery(Name = "userId")]
+    private string? UserId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "email")]
+    private string? Email { get; set; }
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    private string? ReturnUrl { get; set; }
+
+    private string? _infoMessage;
+    private string? _errorMessage;
+
+    private VerifyModel? _verifyInput;
+    private ResendModel? _resendInput;
+
+    [SupplyParameterFromForm(FormName = "verify-email")]
+    private VerifyModel VerifyInput
+    {
+        get => _verifyInput ??= new VerifyModel { UserId = UserId ?? string.Empty, ReturnUrl = ReturnUrl };
+        set => _verifyInput = value;
+    }
+
+    [SupplyParameterFromForm(FormName = "verify-email-resend")]
+    private ResendModel ResendInput
+    {
+        get => _resendInput ??= new ResendModel { UserId = UserId ?? string.Empty, ReturnUrl = ReturnUrl };
+        set => _resendInput = value;
+    }
+
+    private async Task VerifyCodeAsync()
+    {
+        var userId = VerifyInput.UserId;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            _errorMessage = "Chýbajúci identifikátor používateľa.";
+            return;
+        }
+
+        var user = await UserManager.FindByIdAsync(userId);
+        if (user is null)
+        {
+            _errorMessage = "Používateľ neexistuje.";
+            return;
+        }
+
+        if (user.EmailConfirmed)
+        {
+            await SignInAndRedirectAsync(user);
+            return;
+        }
+
+        var redemption = await EmailConfirmationCodes.RedeemAsync(userId, VerifyInput.Code?.Trim() ?? string.Empty);
+
+        switch (redemption)
+        {
+            case CodeRedemptionResult.Success:
+                user.EmailConfirmed = true;
+                var update = await UserManager.UpdateAsync(user);
+                if (!update.Succeeded)
+                {
+                    _errorMessage = "Nepodarilo sa aktivovať účet, skúste to prosím neskôr.";
+                    return;
+                }
+                Logger.LogInformation("Email confirmed via code for user {UserId}", user.Id);
+                await SignInAndRedirectAsync(user);
+                return;
+            case CodeRedemptionResult.Expired:
+                _errorMessage = "Kód už expiroval. Požiadajte o nový kód.";
+                return;
+            case CodeRedemptionResult.TooManyAttempts:
+                _errorMessage = "Prekročili ste povolený počet pokusov. Požiadajte o nový kód.";
+                return;
+            case CodeRedemptionResult.NotFound:
+                _errorMessage = "Pre váš účet neexistuje aktívny kód. Odošlite si nový.";
+                return;
+            case CodeRedemptionResult.Invalid:
+            default:
+                _errorMessage = "Nesprávny kód.";
+                return;
+        }
+    }
+
+    private async Task ResendCodeAsync()
+    {
+        var userId = ResendInput.UserId;
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            _errorMessage = "Chýbajúci identifikátor používateľa.";
+            return;
+        }
+
+        var user = await UserManager.FindByIdAsync(userId);
+        if (user is null)
+        {
+            _errorMessage = "Používateľ neexistuje.";
+            return;
+        }
+
+        if (user.EmailConfirmed)
+        {
+            _infoMessage = "E-mail je už overený. Môžete sa prihlásiť.";
+            return;
+        }
+
+        var linkToken = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+        var encoded = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(linkToken));
+        var callback = NavigationManager.GetUriWithQueryParameters(
+            NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
+            new Dictionary<string, object?> { ["userId"] = user.Id, ["code"] = encoded, ["returnUrl"] = ResendInput.ReturnUrl });
+
+        var code = await EmailConfirmationCodes.IssueAsync(user);
+        await EmailSender.SendEmailAsync(
+            user.Email!,
+            "ZISK – Nový overovací kód",
+            BuildResendEmailBody(callback, code));
+
+        _infoMessage = "Nový kód sme odoslali na váš e-mail.";
+    }
+
+    private async Task SignInAndRedirectAsync(ApplicationUser user)
+    {
+        await SignInManager.SignInAsync(user, isPersistent: false);
+        var target = string.IsNullOrWhiteSpace(VerifyInput.ReturnUrl) ? "/" : VerifyInput.ReturnUrl;
+        NavigationManager.NavigateTo(target, forceLoad: true);
+    }
+
+    private static string BuildResendEmailBody(string confirmationLink, string code)
+    {
+        return $"""
+            <h2>Nový overovací kód</h2>
+            <p>Na žiadosť vám posielame nový overovací kód:</p>
+            <p style="text-align: center; font-size: 28px; letter-spacing: 8px; font-weight: 700; color: #1976d2;">
+                {code}
+            </p>
+            <p style="color: #666; font-size: 13px; text-align: center;">Kód je platný 30 minút.</p>
+            <p style="text-align: center; margin: 24px 0;">
+                <a href="{confirmationLink}"
+                   style="background-color: #1976d2; color: white; padding: 12px 30px;
+                          text-decoration: none; border-radius: 6px; font-weight: bold;
+                          display: inline-block;">Potvrdiť e-mail</a>
+            </p>
+            """;
+    }
+
+    private sealed class VerifyModel
+    {
+        public string UserId { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Zadajte overovací kód.")]
+        [RegularExpression("^[0-9]{6}$", ErrorMessage = "Kód musí mať 6 číslic.")]
+        public string Code { get; set; } = string.Empty;
+
+        public string? ReturnUrl { get; set; }
+    }
+
+    private sealed class ResendModel
+    {
+        public string UserId { get; set; } = string.Empty;
+        public string? ReturnUrl { get; set; }
+    }
+}
