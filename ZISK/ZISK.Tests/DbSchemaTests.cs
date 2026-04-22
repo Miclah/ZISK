@@ -18,33 +18,35 @@ public class DbSchemaTests
     }
 
     [Fact]
-    public void ChildProfile_HasIndex_OnEmail()
+    public void TeamMember_HasCompositePk_TeamIdAndUserId()
     {
         using var ctx = new ApplicationDbContext(CreateOptions());
-        var indexes = IndexNames<ChildProfile>(ctx);
-        Assert.Contains(indexes, n => n!.Contains("Email", StringComparison.OrdinalIgnoreCase));
+        var entityType = ctx.Model.FindEntityType(typeof(TeamMember))!;
+        var pk = entityType.FindPrimaryKey()!;
+        Assert.Equal(2, pk.Properties.Count);
+        Assert.Contains(pk.Properties, p => p.Name == "TeamId");
+        Assert.Contains(pk.Properties, p => p.Name == "UserId");
     }
 
     [Fact]
-    public void ChildProfile_HasUniqueIndex_OnUserId()
+    public void TeamMember_TeamFk_IsCascade()
     {
         using var ctx = new ApplicationDbContext(CreateOptions());
-        var entityType = ctx.Model.FindEntityType(typeof(ChildProfile))!;
-        var userIdIndex = entityType.GetIndexes()
-            .FirstOrDefault(i => i.Properties.Any(p => p.Name == "UserId"));
-        Assert.NotNull(userIdIndex);
-        Assert.True(userIdIndex.IsUnique);
-    }
-
-    [Fact]
-    public void ChildProfile_HasFk_ToApplicationUser_ViaUserId()
-    {
-        using var ctx = new ApplicationDbContext(CreateOptions());
-        var entityType = ctx.Model.FindEntityType(typeof(ChildProfile))!;
+        var entityType = ctx.Model.FindEntityType(typeof(TeamMember))!;
         var fk = entityType.GetForeignKeys()
-            .FirstOrDefault(f => f.Properties.Any(p => p.Name == "UserId"));
-        Assert.NotNull(fk);
-        Assert.Equal(DeleteBehavior.SetNull, fk.DeleteBehavior);
+            .First(f => f.Properties.Any(p => p.Name == "TeamId"));
+        Assert.Equal(DeleteBehavior.Cascade, fk.DeleteBehavior);
+    }
+
+    [Fact]
+    public void Season_HasUniqueFilteredIndex_OnIsActive()
+    {
+        using var ctx = new ApplicationDbContext(CreateOptions());
+        var entityType = ctx.Model.FindEntityType(typeof(Season))!;
+        var idx = entityType.GetIndexes()
+            .FirstOrDefault(i => i.Properties.Any(p => p.Name == "IsActive"));
+        Assert.NotNull(idx);
+        Assert.True(idx.IsUnique);
     }
 
     [Fact]
@@ -137,13 +139,4 @@ public class DbSchemaTests
         Assert.Equal(DeleteBehavior.Cascade, fk.DeleteBehavior);
     }
 
-    [Fact]
-    public void ChildProfile_TeamFk_IsSetNull()
-    {
-        using var ctx = new ApplicationDbContext(CreateOptions());
-        var entityType = ctx.Model.FindEntityType(typeof(ChildProfile))!;
-        var fk = entityType.GetForeignKeys()
-            .First(f => f.Properties.Any(p => p.Name == "TeamId"));
-        Assert.Equal(DeleteBehavior.SetNull, fk.DeleteBehavior);
-    }
 }

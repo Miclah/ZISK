@@ -55,26 +55,26 @@ public class TrainingService : ITrainingService
         if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(training.TeamId))
             throw new UnauthorizedAccessException();
 
-        var teamMembers = await _context.ChildProfiles
-            .Where(c => c.TeamId == training.TeamId && c.IsActive)
+        var teamMembers = await _context.TeamMembers
+            .Include(tm => tm.User)
+            .Where(tm => tm.TeamId == training.TeamId)
             .ToListAsync();
 
         var excuses = await _context.AbsenceRequests
             .Where(ar => ar.TrainingEventId == id && ar.Status == AbsenceRequestStatus.Received)
             .ToListAsync();
 
-        // Use dictionaries to avoid O(n²) lookup in the loop
         var attendanceByChild = training.AttendanceRecords.ToDictionary(ar => ar.ChildId);
         var excuseByChild = excuses.ToDictionary(e => e.ChildId);
 
         var attendance = teamMembers.Select(member =>
         {
-            attendanceByChild.TryGetValue(member.Id, out var record);
-            excuseByChild.TryGetValue(member.Id, out var excuse);
+            attendanceByChild.TryGetValue(member.UserId, out var record);
+            excuseByChild.TryGetValue(member.UserId, out var excuse);
 
             return new TrainingAttendanceDto(
-                member.Id,
-                $"{member.FirstName} {member.LastName}",
+                member.UserId,
+                $"{member.User.FirstName} {member.User.LastName}",
                 record != null ? (AttendanceStatus)(int)record.Status : AttendanceStatus.Absent,
                 record?.Note,
                 record?.CoachComment,

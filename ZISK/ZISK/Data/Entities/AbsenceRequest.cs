@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ZISK.Data.Entities
@@ -12,16 +12,15 @@ namespace ZISK.Data.Entities
     {
         public Guid Id { get; set; }
 
-        public Guid ChildId { get; set; }
+        public string ChildId { get; set; } = string.Empty;
 
         [ForeignKey(nameof(ChildId))]
-        public ChildProfile Child { get; set; } = null!;
+        public ApplicationUser Child { get; set; } = null!;
 
         public string ParentId { get; set; } = string.Empty;
 
         [ForeignKey(nameof(ParentId))]
         public ApplicationUser Parent { get; set; } = null!;
-
 
         public Guid? TrainingEventId { get; set; }
 
@@ -39,7 +38,6 @@ namespace ZISK.Data.Entities
         public string? Note { get; set; }
 
         public AbsenceRequestStatus Status { get; set; } = AbsenceRequestStatus.Received;
-
 
         public string? ReviewedByUserId { get; set; }
 

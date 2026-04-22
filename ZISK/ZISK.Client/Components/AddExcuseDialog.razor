@@ -33,7 +33,7 @@
             <EditForm Model="@_model" OnValidSubmit="Submit">
                 <DataAnnotationsValidator />
                 <MudStack Spacing="3">
-                    <MudSelect T="Guid?"
+                    <MudSelect T="string?"
                                @bind-Value="_model.SelectedPersonId"
                                @bind-Value:after="OnSelectedPersonChanged"
                                For="@(() => _model.SelectedPersonId)"
@@ -41,7 +41,7 @@
                                Variant="Variant.Outlined">
                         @foreach (var child in _children.OrderBy(c => c.LastName).ThenBy(c => c.FirstName))
                         {
-                            <MudSelectItem Value="@((Guid?)child.Id)">
+                            <MudSelectItem Value="@((string?)child.Id)">
                                 @(child.IsOwnProfile ? $"Seba ({child.FirstName} {child.LastName})" : $"{child.FirstName} {child.LastName}")
                             </MudSelectItem>
                         }
@@ -52,7 +52,7 @@
                                For="@(() => _model.SelectedTrainingId)"
                                Label="Na ktorý tréning?"
                                Variant="Variant.Outlined"
-                               Disabled="@(!_model.SelectedPersonId.HasValue || !_availableTrainings.Any())">
+                               Disabled="@(_model.SelectedPersonId is null || !_availableTrainings.Any())">
                         @foreach (var training in _availableTrainings)
                         {
                             <MudSelectItem Value="@((Guid?)training.Id)">
@@ -61,7 +61,7 @@
                         }
                     </MudSelect>
 
-                    @if (_model.SelectedPersonId.HasValue && !_availableTrainings.Any())
+                    @if (_model.SelectedPersonId is not null && !_availableTrainings.Any())
                     {
                         <MudAlert Severity="Severity.Info" Dense="true">Pre vybranú osobu nie sú dostupné žiadne nadchádzajúce tréningy.</MudAlert>
                     }
@@ -121,9 +121,9 @@
             else
             {
                 var selected = UserContextService.SelectedOption;
-                if (selected?.ChildId is not null && _children.Any(c => c.Id == selected.ChildId.Value))
+                if (selected?.ChildId is not null && _children.Any(c => c.Id == selected.ChildId))
                 {
-                    _model.SelectedPersonId = selected.ChildId.Value;
+                    _model.SelectedPersonId = selected.ChildId;
                     await OnSelectedPersonChanged();
                 }
             }
@@ -143,10 +143,10 @@
         _model.SelectedTrainingId = null;
         _availableTrainings = [];
 
-        if (!_model.SelectedPersonId.HasValue)
+        if (_model.SelectedPersonId is null)
             return;
 
-        var selected = _children.FirstOrDefault(c => c.Id == _model.SelectedPersonId.Value);
+        var selected = _children.FirstOrDefault(c => c.Id == _model.SelectedPersonId);
         if (selected?.TeamId is null)
             return;
 
@@ -184,7 +184,7 @@
         try
         {
             var request = new CreateExcuseRequest(
-                ChildId: _model.SelectedPersonId!.Value,
+                ChildId: _model.SelectedPersonId!,
                 TrainingEventId: _model.SelectedTrainingId,
                 DateFrom: null,
                 DateTo: null,
@@ -209,7 +209,7 @@
     public class ExcuseFormModel
     {
         [Required(ErrorMessage = "Vyberte osobu.")]
-        public Guid? SelectedPersonId { get; set; }
+        public string? SelectedPersonId { get; set; }
 
         [Required(ErrorMessage = "Vyberte tréning.")]
         public Guid? SelectedTrainingId { get; set; }

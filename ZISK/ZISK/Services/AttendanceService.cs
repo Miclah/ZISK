@@ -59,7 +59,7 @@ public class AttendanceService : IAttendanceService
     public async Task<List<UserAttendanceDto>> GetMyAttendanceAsync(ClaimsPrincipal user, DateTime? from, DateTime? to)
     {
         var userId = user.GetRequiredUserId();
-        var childIds = new List<Guid>();
+        var childIds = new List<string>();
 
         if (user.IsInRole("Parent"))
         {
@@ -70,14 +70,7 @@ public class AttendanceService : IAttendanceService
         }
         else if (user.IsInRole("Athlete") || user.IsInRole("Child"))
         {
-            var userEmail = user.GetEmail();
-            if (!string.IsNullOrWhiteSpace(userEmail))
-            {
-                childIds = await _context.ChildProfiles
-                    .Where(c => c.IsActive && c.Email == userEmail)
-                    .Select(c => c.Id)
-                    .ToListAsync();
-            }
+            childIds = [userId];
         }
 
         if (!childIds.Any())
@@ -107,7 +100,7 @@ public class AttendanceService : IAttendanceService
             .ToListAsync();
     }
 
-    public async Task<AttendanceStatsDto> GetMemberStatsAsync(Guid childId, DateTime? from, DateTime? to)
+    public async Task<AttendanceStatsDto> GetMemberStatsAsync(string childId, DateTime? from, DateTime? to)
     {
         var query = _context.AttendanceRecords
             .Include(ar => ar.TrainingEvent)
@@ -133,10 +126,15 @@ public class AttendanceService : IAttendanceService
 
     public async Task<List<MemberAttendanceStatsDto>> GetTeamStatsAsync(Guid teamId, DateTime? from, DateTime? to)
     {
+        var teamMemberIds = await _context.TeamMembers
+            .Where(tm => tm.TeamId == teamId)
+            .Select(tm => tm.UserId)
+            .ToListAsync();
+
         var query = _context.AttendanceRecords
             .Include(ar => ar.TrainingEvent)
             .Include(ar => ar.Child)
-            .Where(ar => ar.Child.TeamId == teamId && ar.Child.IsActive);
+            .Where(ar => teamMemberIds.Contains(ar.ChildId) && ar.Child.IsActive);
 
         if (from.HasValue)
             query = query.Where(ar => ar.TrainingEvent.StartTime >= from.Value);
@@ -160,15 +158,16 @@ public class AttendanceService : IAttendanceService
             .ToListAsync();
 
         var membersWithRecords = stats.Select(s => s.ChildId).ToHashSet();
-        var allMembers = await _context.ChildProfiles
-            .Where(c => c.TeamId == teamId && c.IsActive)
-            .Select(c => new { c.Id, c.FirstName, c.LastName })
+        var allMembers = await _context.TeamMembers
+            .Include(tm => tm.User)
+            .Where(tm => tm.TeamId == teamId && tm.User.IsActive)
+            .Select(tm => new { tm.UserId, tm.User.FirstName, tm.User.LastName })
             .ToListAsync();
 
-        foreach (var member in allMembers.Where(m => !membersWithRecords.Contains(m.Id)))
+        foreach (var member in allMembers.Where(m => !membersWithRecords.Contains(m.UserId)))
         {
             stats.Add(new MemberAttendanceStatsDto(
-                member.Id,
+                member.UserId,
                 $"{member.FirstName} {member.LastName}",
                 0, 0, 0, 0
             ));
@@ -191,7 +190,7 @@ public class AttendanceService : IAttendanceService
         if (training.IsLocked)
             throw new InvalidOperationException("Dochádzka pre tento tréning je uzamknutá");
 
-        var child = await _context.ChildProfiles.FindAsync(request.ChildId)
+        var child = await _context.Users.FindAsync(request.ChildId)
             ?? throw new KeyNotFoundException("Člen neexistuje");
 
         var existingRecord = await _context.AttendanceRecords
@@ -292,9 +291,9 @@ public class AttendanceService : IAttendanceService
         if (training == null || DateTime.UtcNow < training.StartTime.AddMinutes(10))
             return;
 
-        var teamMemberIds = await _context.ChildProfiles
-            .Where(c => c.TeamId == training.TeamId && c.IsActive)
-            .Select(c => c.Id)
+        var teamMemberIds = await _context.TeamMembers
+            .Where(tm => tm.TeamId == training.TeamId)
+            .Select(tm => tm.UserId)
             .ToListAsync();
 
         if (!teamMemberIds.Any())
@@ -310,7 +309,7 @@ public class AttendanceService : IAttendanceService
             return;
 
         var excuses = await _context.AbsenceRequests
-            .Where(ar => ar.Child.TeamId == training.TeamId
+            .Where(ar => missingIds.Contains(ar.ChildId)
                          && ar.Status == AbsenceRequestStatus.Received
                          && (ar.TrainingEventId == trainingEventId
                              || (ar.DateFrom.HasValue && ar.DateTo.HasValue

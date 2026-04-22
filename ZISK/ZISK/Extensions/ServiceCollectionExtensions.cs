@@ -54,6 +54,12 @@ public static class ServiceCollectionExtensions
         services.AddRefitClient<IStatsApi>()
             .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
             .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
+        services.AddRefitClient<ISeasonsApi>()
+            .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
+            .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
+        services.AddRefitClient<ITrainingSeriesApi>()
+            .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
+            .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
 
         return services;
     }

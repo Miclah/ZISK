@@ -34,7 +34,7 @@
                                 </MudAvatar>
                                 <MudStack Spacing="0">
                                     <MudText Typo="Typo.body1">@member.FirstName @member.LastName</MudText>
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@member.DateOfBirth.ToString("dd.MM.yyyy")</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@(member.DateOfBirth?.ToString("dd.MM.yyyy") ?? "-")</MudText>
                                 </MudStack>
                             </MudStack>
                         </MudStack>
@@ -79,7 +79,7 @@
             <MudStack Spacing="1">
                 <MudText Typo="Typo.body1">@_selectedMember.FirstName @_selectedMember.LastName</MudText>
                 <MudText Typo="Typo.body2" Color="Color.Secondary">Email: @(_selectedMember.Email ?? "neuvedený")</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">Dátum narodenia: @_selectedMember.DateOfBirth.ToString("dd.MM.yyyy")</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Dátum narodenia: @(_selectedMember.DateOfBirth?.ToString("dd.MM.yyyy") ?? "-")</MudText>
                 <MudText Typo="Typo.body2" Style="font-weight:600;" Class="mt-2">Kontakty rodičov</MudText>
                 @if (_selectedMember.ParentContacts.Any())
                 {

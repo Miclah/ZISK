@@ -32,7 +32,7 @@ public record TrainingEventDetailDto(
 );
 
 public record TrainingAttendanceDto(
-    Guid ChildId,
+    string ChildId,
     string ChildName,
     AttendanceStatus Status,
     string? Note,

@@ -18,7 +18,7 @@ public class StatsService : IStatsService
     public async Task<DashboardStatsDto> GetDashboardStatsAsync()
     {
         var teams = await _context.Teams.AsNoTracking().ToListAsync();
-        var members = await _context.ChildProfiles.AsNoTracking().ToListAsync();
+        var totalMembers = await _context.TeamMembers.AsNoTracking().Select(tm => tm.UserId).Distinct().CountAsync();
         var users = await _context.Users.CountAsync();
         var pendingExcuses = await _context.AbsenceRequests.CountAsync(ar => ar.Status == AbsenceRequestStatus.Received);
 
@@ -27,8 +27,8 @@ public class StatsService : IStatsService
         return new DashboardStatsDto(
             TotalTeams: teams.Count,
             ActiveTeams: teams.Count(t => t.IsActive),
-            TotalMembers: members.Count,
-            ActiveMembers: members.Count(m => m.IsActive),
+            TotalMembers: totalMembers,
+            ActiveMembers: totalMembers,
             TotalUsers: users,
             PendingExcuses: pendingExcuses,
             AttendanceStats: attendanceStats
@@ -44,7 +44,7 @@ public class StatsService : IStatsService
                 t.Id,
                 t.Name,
                 t.IsActive,
-                MemberCount = t.Members.Count(m => m.IsActive),
+                MemberCount = t.Memberships.Count,
                 TrainingCount = t.TrainingEvents.Count
             })
             .ToListAsync();

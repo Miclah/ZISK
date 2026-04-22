@@ -23,13 +23,27 @@ public class ExcuseService : IExcuseService
 
     public async Task<List<ExcuseListDto>> GetExcusesAsync(ExcuseStatus? status, ClaimsPrincipal user)
     {
-        var query = _context.AbsenceRequests
-            .Include(ar => ar.Child).ThenInclude(c => c.Team)
-            .AsNoTracking();
-
         var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
+
+        IQueryable<AbsenceRequest> query;
         if (accessibleTeamIds is not null)
-            query = query.Where(ar => ar.Child.TeamId.HasValue && accessibleTeamIds.Contains(ar.Child.TeamId.Value));
+        {
+            var allowedChildIds = await _context.TeamMembers
+                .Where(tm => accessibleTeamIds.Contains(tm.TeamId))
+                .Select(tm => tm.UserId)
+                .ToListAsync();
+
+            query = _context.AbsenceRequests
+                .Include(ar => ar.Child)
+                .Where(ar => allowedChildIds.Contains(ar.ChildId))
+                .AsNoTracking();
+        }
+        else
+        {
+            query = _context.AbsenceRequests
+                .Include(ar => ar.Child)
+                .AsNoTracking();
+        }
 
         if (status.HasValue)
         {
@@ -37,26 +51,28 @@ public class ExcuseService : IExcuseService
             query = query.Where(ar => ar.Status == dbStatus);
         }
 
-        return await query
-            .OrderByDescending(ar => ar.CreatedAt)
-            .Select(ar => new ExcuseListDto(
-                ar.Id,
-                ar.TrainingEventId,
-                $"{ar.Child.FirstName} {ar.Child.LastName}",
-                ar.Child.Team != null ? ar.Child.Team.Name : "Bez tímu",
-                ar.DateFrom,
-                ar.DateTo,
-                ar.Reason,
-                (ExcuseStatus)(int)ar.Status,
-                ar.CreatedAt
-            ))
-            .ToListAsync();
+        var items = await query.OrderByDescending(ar => ar.CreatedAt).ToListAsync();
+
+        var childIds = items.Select(i => i.ChildId).Distinct().ToList();
+        var teamMap = await BuildChildTeamMapAsync(childIds);
+
+        return items.Select(ar => new ExcuseListDto(
+            ar.Id,
+            ar.TrainingEventId,
+            $"{ar.Child.FirstName} {ar.Child.LastName}",
+            teamMap.TryGetValue(ar.ChildId, out var tn) ? tn : "Bez tímu",
+            ar.DateFrom,
+            ar.DateTo,
+            ar.Reason,
+            (ExcuseStatus)(int)ar.Status,
+            ar.CreatedAt
+        )).ToList();
     }
 
     public async Task<ExcuseDto> GetExcuseAsync(Guid id, ClaimsPrincipal user)
     {
         var excuse = await _context.AbsenceRequests
-            .Include(ar => ar.Child).ThenInclude(c => c.Team)
+            .Include(ar => ar.Child)
             .Include(ar => ar.TrainingEvent)
             .Include(ar => ar.Parent)
             .AsNoTracking()
@@ -64,8 +80,17 @@ public class ExcuseService : IExcuseService
             ?? throw new KeyNotFoundException();
 
         var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
-        if (accessibleTeamIds is not null && (!excuse.Child.TeamId.HasValue || !accessibleTeamIds.Contains(excuse.Child.TeamId.Value)))
-            throw new UnauthorizedAccessException();
+        if (accessibleTeamIds is not null)
+        {
+            var childTeamIds = await _context.TeamMembers
+                .Where(tm => tm.UserId == excuse.ChildId)
+                .Select(tm => tm.TeamId)
+                .ToListAsync();
+            if (!childTeamIds.Any(tId => accessibleTeamIds.Contains(tId)))
+                throw new UnauthorizedAccessException();
+        }
+
+        var teamMap = await BuildChildTeamMapAsync([excuse.ChildId]);
 
         return new ExcuseDto(
             excuse.Id,
@@ -79,7 +104,7 @@ public class ExcuseService : IExcuseService
             excuse.Note,
             (ExcuseStatus)(int)excuse.Status,
             excuse.CreatedAt,
-            excuse.Child.Team?.Name ?? "Bez tímu"
+            teamMap.TryGetValue(excuse.ChildId, out var tn) ? tn : "Bez tímu"
         );
     }
 
@@ -90,27 +115,24 @@ public class ExcuseService : IExcuseService
         if (user.IsInRole("Child"))
             throw new UnauthorizedAccessException();
 
-        var userEmail = user.GetEmail();
-
         ValidateExcuseFields(request.Reason, request.Note, request.DateFrom, request.DateTo);
 
         if (request.TrainingEventId == null && request.DateFrom == null)
             throw new ArgumentException("Musíte zadať buď konkrétny tréning alebo dátum absencie");
 
-        var child = await _context.ChildProfiles
-            .Include(c => c.Team)
-            .FirstOrDefaultAsync(c => c.Id == request.ChildId)
+        var child = await _context.Users.FindAsync(request.ChildId)
             ?? throw new ArgumentException("Dieťa neexistuje");
 
         if (user.IsInRole("Parent"))
         {
-            var ownsChild = await _context.ParentChildren.AnyAsync(pc => pc.ParentId == userId && pc.ChildId == request.ChildId);
+            var ownsChild = await _context.ParentChildren
+                .AnyAsync(pc => pc.ParentId == userId && pc.ChildId == request.ChildId);
             if (!ownsChild)
                 throw new UnauthorizedAccessException();
         }
         else if (user.IsInRole("Athlete"))
         {
-            if (string.IsNullOrWhiteSpace(userEmail) || !string.Equals(child.Email, userEmail, StringComparison.OrdinalIgnoreCase))
+            if (request.ChildId != userId)
                 throw new UnauthorizedAccessException();
         }
 
@@ -132,11 +154,13 @@ public class ExcuseService : IExcuseService
         await _context.SaveChangesAsync();
         _auditService.Log("Create", "Excuse", absence.Id.ToString(), user, new { absence.ChildId, absence.DateFrom, absence.DateTo });
 
+        var teamMap = await BuildChildTeamMapAsync([request.ChildId]);
+
         return new ExcuseDto(
             absence.Id, absence.ChildId, $"{child.FirstName} {child.LastName}",
             absence.TrainingEventId, null, absence.DateFrom, absence.DateTo,
             absence.Reason, absence.Note, ExcuseStatus.Received, absence.CreatedAt,
-            child.Team?.Name ?? "Bez tímu"
+            teamMap.TryGetValue(request.ChildId, out var tn) ? tn : "Bez tímu"
         );
     }
 
@@ -159,7 +183,6 @@ public class ExcuseService : IExcuseService
         ValidateExcuseFields(request.Reason, request.Note, null, request.DateTo, request.DateFrom);
 
         var userId = user.GetUserId();
-        var userEmail = user.GetEmail();
         var excuse = await _context.AbsenceRequests.FindAsync(id)
             ?? throw new KeyNotFoundException();
 
@@ -168,11 +191,7 @@ public class ExcuseService : IExcuseService
 
         if (!user.IsInRole("Admin") && excuse.ParentId != userId)
         {
-            if (!user.IsInRole("Athlete") || string.IsNullOrWhiteSpace(userEmail))
-                throw new UnauthorizedAccessException();
-
-            var isOwnProfile = await _context.ChildProfiles.AnyAsync(c => c.Id == excuse.ChildId && c.Email == userEmail);
-            if (!isOwnProfile)
+            if (!user.IsInRole("Athlete") || excuse.ChildId != userId)
                 throw new UnauthorizedAccessException();
         }
 
@@ -188,7 +207,6 @@ public class ExcuseService : IExcuseService
     public async Task DeleteExcuseAsync(Guid id, ClaimsPrincipal user)
     {
         var userId = user.GetUserId();
-        var userEmail = user.GetEmail();
         var excuse = await _context.AbsenceRequests.FindAsync(id)
             ?? throw new KeyNotFoundException();
 
@@ -197,11 +215,7 @@ public class ExcuseService : IExcuseService
 
         if (!user.IsInRole("Admin") && excuse.ParentId != userId)
         {
-            if (!user.IsInRole("Athlete") || string.IsNullOrWhiteSpace(userEmail))
-                throw new UnauthorizedAccessException();
-
-            var isOwnProfile = await _context.ChildProfiles.AnyAsync(c => c.Id == excuse.ChildId && c.Email == userEmail);
-            if (!isOwnProfile)
+            if (!user.IsInRole("Athlete") || excuse.ChildId != userId)
                 throw new UnauthorizedAccessException();
         }
 
@@ -213,47 +227,46 @@ public class ExcuseService : IExcuseService
     public async Task<List<ExcuseListDto>> GetMyExcusesAsync(ClaimsPrincipal user)
     {
         var userId = user.GetRequiredUserId();
-        var userEmail = user.GetEmail();
 
-        var query = _context.AbsenceRequests
-            .Include(ar => ar.Child).ThenInclude(c => c.Team)
-            .AsQueryable();
+        IQueryable<AbsenceRequest> query;
 
         if (user.IsInRole("Parent"))
         {
-            query = query.Where(ar => ar.ParentId == userId);
+            query = _context.AbsenceRequests
+                .Include(ar => ar.Child)
+                .Where(ar => ar.ParentId == userId);
         }
         else if (user.IsInRole("Athlete") || user.IsInRole("Child"))
         {
-            if (string.IsNullOrWhiteSpace(userEmail))
-                return [];
-            query = query.Where(ar => ar.Child.Email == userEmail);
+            query = _context.AbsenceRequests
+                .Include(ar => ar.Child)
+                .Where(ar => ar.ChildId == userId);
         }
         else
         {
             throw new UnauthorizedAccessException();
         }
 
-        return await query
-            .OrderByDescending(ar => ar.CreatedAt)
-            .Select(ar => new ExcuseListDto(
-                ar.Id,
-                ar.TrainingEventId,
-                $"{ar.Child.FirstName} {ar.Child.LastName}",
-                ar.Child.Team != null ? ar.Child.Team.Name : "Bez tímu",
-                ar.DateFrom,
-                ar.DateTo,
-                ar.Reason,
-                (ExcuseStatus)(int)ar.Status,
-                ar.CreatedAt
-            ))
-            .ToListAsync();
+        var items = await query.OrderByDescending(ar => ar.CreatedAt).AsNoTracking().ToListAsync();
+        var childIds = items.Select(i => i.ChildId).Distinct().ToList();
+        var teamMap = await BuildChildTeamMapAsync(childIds);
+
+        return items.Select(ar => new ExcuseListDto(
+            ar.Id,
+            ar.TrainingEventId,
+            $"{ar.Child.FirstName} {ar.Child.LastName}",
+            teamMap.TryGetValue(ar.ChildId, out var tn) ? tn : "Bez tímu",
+            ar.DateFrom,
+            ar.DateTo,
+            ar.Reason,
+            (ExcuseStatus)(int)ar.Status,
+            ar.CreatedAt
+        )).ToList();
     }
 
     public async Task<int> GetPendingCountAsync(ClaimsPrincipal user)
     {
         var userId = user.GetRequiredUserId();
-        var userEmail = user.GetEmail();
 
         if (user.IsInRole("Admin") || user.IsInRole("Coach"))
         {
@@ -261,20 +274,36 @@ public class ExcuseService : IExcuseService
             if (accessibleTeamIds is null)
                 return await _context.AbsenceRequests.CountAsync(ar => ar.Status == AbsenceRequestStatus.Received);
 
+            var allowedChildIds = await _context.TeamMembers
+                .Where(tm => accessibleTeamIds.Contains(tm.TeamId))
+                .Select(tm => tm.UserId)
+                .ToListAsync();
+
             return await _context.AbsenceRequests.CountAsync(ar =>
-                ar.Status == AbsenceRequestStatus.Received &&
-                ar.Child.TeamId.HasValue && accessibleTeamIds.Contains(ar.Child.TeamId.Value));
+                ar.Status == AbsenceRequestStatus.Received && allowedChildIds.Contains(ar.ChildId));
         }
 
         if (user.IsInRole("Parent"))
             return await _context.AbsenceRequests.CountAsync(ar =>
                 ar.Status == AbsenceRequestStatus.Received && ar.ParentId == userId);
 
-        if ((user.IsInRole("Athlete") || user.IsInRole("Child")) && !string.IsNullOrWhiteSpace(userEmail))
+        if (user.IsInRole("Athlete") || user.IsInRole("Child"))
             return await _context.AbsenceRequests.CountAsync(ar =>
-                ar.Status == AbsenceRequestStatus.Received && ar.Child.Email == userEmail);
+                ar.Status == AbsenceRequestStatus.Received && ar.ChildId == userId);
 
         return 0;
+    }
+
+    private async Task<Dictionary<string, string>> BuildChildTeamMapAsync(List<string> childIds)
+    {
+        var memberships = await _context.TeamMembers
+            .Include(tm => tm.Team)
+            .Where(tm => childIds.Contains(tm.UserId))
+            .ToListAsync();
+
+        return memberships
+            .GroupBy(tm => tm.UserId)
+            .ToDictionary(g => g.Key, g => g.First().Team.Name);
     }
 
     private static void ValidateExcuseFields(string? reason, string? note, DateTime? dateFrom, DateTime? dateTo, DateTime? dateFromForRange = null)
