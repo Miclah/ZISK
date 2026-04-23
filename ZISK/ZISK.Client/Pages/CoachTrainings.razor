@@ -14,75 +14,83 @@
 
 <PageTitle>Tréningy</PageTitle>
 
-<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
-    <MudText Typo="Typo.h5">Tréningy</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Rounded.Add" OnClick="OpenCreateDialog">
-        Pridať tréning
-    </MudButton>
-</MudStack>
+<MudText Typo="Typo.h5" Class="mb-3">Tréningy</MudText>
 
-<MudToggleGroup T="string" SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" Class="mb-4" @bind-Value="_listMode">
-    <MudToggleItem Value="@("Tyden")">Týždeň</MudToggleItem>
-    <MudToggleItem Value="@("Mesiac")">Mesiac</MudToggleItem>
-</MudToggleGroup>
-
-@if (_isLoading)
-{
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
-}
-else if (!_trainings.Any())
-{
-    <MudPaper Class="pa-4" Elevation="1">
-        <MudStack Spacing="2" AlignItems="AlignItems.Start">
-            <MudAlert Severity="Severity.Info" Dense="true">Zatiaľ nemáte žiadne naplánované tréningy.</MudAlert>
+<MudTabs Elevation="1" Rounded="true" PanelClass="pa-3">
+    <MudTabPanel Text="Jednorazové tréningy">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudToggleGroup T="string" SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" @bind-Value="_listMode">
+                <MudToggleItem Value="@("Tyden")">Týždeň</MudToggleItem>
+                <MudToggleItem Value="@("Mesiac")">Mesiac</MudToggleItem>
+            </MudToggleGroup>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Rounded.Add" OnClick="OpenCreateDialog">
-                Pridať prvý tréning
+                Pridať tréning
             </MudButton>
         </MudStack>
-    </MudPaper>
-}
-else
-{
-    <MudStack Spacing="2">
-        @foreach (var training in VisibleTrainings)
+
+        @if (_isLoading)
         {
-            <MudCard Elevation="1" Class="mb-3">
-                <MudCardContent>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudStack Spacing="0" Style="cursor:pointer" @onclick='() => NavigationManager.NavigateTo($"/coach/treningy/{training.Id}")'>
-                            <MudText Typo="Typo.body1">@training.Title</MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Default">@training.StartTime.ToString("dd.MM.yyyy HH:mm") - @training.EndTime.ToString("HH:mm")</MudText>
-                            @if (!string.IsNullOrWhiteSpace(training.Location))
-                            {
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">@training.Location</MudText>
-                            }
-                        </MudStack>
-
-                        <MudHidden Breakpoint="Breakpoint.SmAndDown">
-                            <MudStack Row="true" Spacing="1">
-                                <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Rounded.Edit" OnClick="() => OpenEditDialog(training)">
-                                    Upraviť
-                                </MudButton>
-                                <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Error" StartIcon="@Icons.Material.Rounded.Delete" OnClick="() => OpenDeleteDialog(training)">
-                                    Zrušiť
-                                </MudButton>
-                            </MudStack>
-                        </MudHidden>
-
-                        <MudHidden Breakpoint="Breakpoint.MdAndUp">
-                            <MudMenu Icon="@Icons.Material.Rounded.MoreVert">
-                                <MudMenuItem Icon="@Icons.Material.Rounded.Edit" OnClick="() => OpenEditDialog(training)">Upraviť</MudMenuItem>
-                                <MudMenuItem Icon="@Icons.Material.Rounded.Delete" IconColor="Color.Error" OnClick="() => OpenDeleteDialog(training)">Zrušiť tréning</MudMenuItem>
-                            </MudMenu>
-                        </MudHidden>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
         }
-    </MudStack>
-}
+        else if (!_trainings.Any())
+        {
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudStack Spacing="2" AlignItems="AlignItems.Start">
+                    <MudAlert Severity="Severity.Info" Dense="true">Zatiaľ nemáte žiadne naplánované tréningy.</MudAlert>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Rounded.Add" OnClick="OpenCreateDialog">
+                        Pridať prvý tréning
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+        }
+        else
+        {
+            <MudStack Spacing="2">
+                @foreach (var training in VisibleTrainings)
+                {
+                    <MudCard Elevation="1" Class="mb-3">
+                        <MudCardContent>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <MudStack Spacing="0" Style="cursor:pointer" @onclick='() => NavigationManager.NavigateTo($"/coach/treningy/{training.Id}")'>
+                                    <MudText Typo="Typo.body1">@training.Title</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Default">@training.StartTime.ToString("dd.MM.yyyy HH:mm") - @training.EndTime.ToString("HH:mm")</MudText>
+                                    @if (!string.IsNullOrWhiteSpace(training.Location))
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@training.Location</MudText>
+                                    }
+                                </MudStack>
 
-<MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Fixed="true" Style="bottom: 24px; right: 24px; z-index: 100;" Class="coach-fab" OnClick="OpenCreateDialog" />
+                                <MudHidden Breakpoint="Breakpoint.SmAndDown">
+                                    <MudStack Row="true" Spacing="1">
+                                        <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Rounded.Edit" OnClick="() => OpenEditDialog(training)">
+                                            Upraviť
+                                        </MudButton>
+                                        <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Error" StartIcon="@Icons.Material.Rounded.Delete" OnClick="() => OpenDeleteDialog(training)">
+                                            Zrušiť
+                                        </MudButton>
+                                    </MudStack>
+                                </MudHidden>
+
+                                <MudHidden Breakpoint="Breakpoint.MdAndUp">
+                                    <MudMenu Icon="@Icons.Material.Rounded.MoreVert">
+                                        <MudMenuItem Icon="@Icons.Material.Rounded.Edit" OnClick="() => OpenEditDialog(training)">Upraviť</MudMenuItem>
+                                        <MudMenuItem Icon="@Icons.Material.Rounded.Delete" IconColor="Color.Error" OnClick="() => OpenDeleteDialog(training)">Zrušiť tréning</MudMenuItem>
+                                    </MudMenu>
+                                </MudHidden>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                }
+            </MudStack>
+        }
+
+        <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Fixed="true" Style="bottom: 24px; right: 24px; z-index: 100;" Class="coach-fab" OnClick="OpenCreateDialog" />
+    </MudTabPanel>
+
+    <MudTabPanel Text="Opakované tréningy">
+        <TrainingSeriesManager IsAdmin="false" TeamIdFilter="@_teamId" />
+    </MudTabPanel>
+</MudTabs>
 
 <MudDialog @bind-Visible="_editDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
     <TitleContent><MudText Typo="Typo.h6">@(_editingTraining is null ? "Pridať tréning" : "Upraviť tréning")</MudText></TitleContent>

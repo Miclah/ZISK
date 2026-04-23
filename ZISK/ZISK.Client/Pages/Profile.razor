@@ -1,6 +1,11 @@
 @page "/profil"
 @using System.Security.Claims
 @using System.Globalization
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Invitations
+@inject IInvitationsApi InvitationsApi
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
 @attribute [Authorize]
 
 <PageTitle>Môj profil - ZISK</PageTitle>
@@ -48,6 +53,34 @@
         </MudItem>
     </MudGrid>
 
+    @if (_isParent)
+    {
+        <MudCard Elevation="1" Class="mt-4">
+            <MudCardContent>
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Pripojiť sa k dieťaťu</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                    Zadajte kód, ktorý vám poskytol iný rodič, a prepojte sa s dieťaťom.
+                </MudText>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudTextField @bind-Value="_redeemCode"
+                                  Label="Kód pozvánky"
+                                  Variant="Variant.Outlined"
+                                  Placeholder="XXXX-XXXX"
+                                  Style="max-width:180px;"
+                                  Margin="Margin.Dense" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RedeemCode"
+                               Disabled="@(_isRedeeming || string.IsNullOrWhiteSpace(_redeemCode))">
+                        @if (_isRedeeming)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        }
+                        Pripojiť
+                    </MudButton>
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    }
+
     <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
         <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Rounded.Lock" Href="/Account/Manage/ChangePassword">
             Zmeniť heslo
@@ -61,6 +94,9 @@
     private string _email = string.Empty;
     private string _role = string.Empty;
     private string _joinedDateLabel = DateTime.Now.ToString("dd.MM.yyyy", CultureInfo.GetCultureInfo("sk-SK"));
+    private bool _isParent;
+    private string _redeemCode = string.Empty;
+    private bool _isRedeeming;
 
     [CascadingParameter]
     private Task<AuthenticationState> AuthState { get; set; } = default!;
@@ -74,11 +110,35 @@
         _lastName = user.FindFirst(ClaimTypes.Surname)?.Value ?? string.Empty;
         _email = user.FindFirst(ClaimTypes.Email)?.Value ?? user.Identity?.Name ?? string.Empty;
         _role = user.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
+        _isParent = user.IsInRole("Parent");
 
         var joinedDate = user.FindFirst("created_at")?.Value;
         if (!string.IsNullOrWhiteSpace(joinedDate) && DateTime.TryParse(joinedDate, out var parsed))
         {
             _joinedDateLabel = parsed.ToString("dd.MM.yyyy", CultureInfo.GetCultureInfo("sk-SK"));
+        }
+    }
+
+    private async Task RedeemCode()
+    {
+        if (string.IsNullOrWhiteSpace(_redeemCode))
+            return;
+
+        _isRedeeming = true;
+        try
+        {
+            await InvitationsApi.RedeemCodeAsync(new RedeemCodeRequest(_redeemCode));
+            Snackbar.Add("Úspešne prepojené s dieťaťom!", Severity.Success);
+            _redeemCode = string.Empty;
+            NavigationManager.NavigateTo("/domov");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _isRedeeming = false;
         }
     }
 }

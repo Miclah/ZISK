@@ -70,6 +70,10 @@
                                             {
                                                 <MudText Typo="Typo.caption" Color="Color.Secondary">@training.Location</MudText>
                                             }
+                                            @if (!string.IsNullOrWhiteSpace(training.CoachNote))
+                                            {
+                                                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-1 pa-1">@training.CoachNote</MudAlert>
+                                            }
                                         </MudStack>
                                         <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(training.Type)">
                                             @GetTypeText(training.Type)

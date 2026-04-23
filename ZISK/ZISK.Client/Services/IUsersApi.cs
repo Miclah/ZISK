@@ -34,5 +34,8 @@ namespace ZISK.Client.Services
 
         [Delete("/api/users/{userId}/teams/{teamId}")]
         Task RemoveTeamAsync(string userId, Guid teamId);
+
+        [Post("/api/users/{id}/upgrade-to-athlete")]
+        Task UpgradeToAthleteAsync(string id);
     }
 }

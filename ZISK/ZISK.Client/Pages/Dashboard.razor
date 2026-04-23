@@ -1,5 +1,7 @@
 ﻿@page "/domov"
 @implements IDisposable
+@using System.Security.Claims
+@using ZISK.Client.Components
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Announcements
 @using ZISK.Shared.DTOs.Trainings
@@ -10,6 +12,8 @@
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject UserContextService UserContextService
+@inject IDialogService DialogService
+@inject AuthenticationStateProvider AuthStateProvider
 @attribute [Authorize(Roles = "Parent,Athlete")]
 
 <PageTitle>Nástenka</PageTitle>
@@ -50,6 +54,47 @@
             </MudCardContent>
         </MudCard>
 
+        @if (_isParent)
+        {
+            <MudCard Elevation="2" Class="mb-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.h6">Moje deti</MudText>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.PersonAdd"
+                                       OnClick="OpenAddChildDialog">
+                                Pridať dieťa
+                            </MudButton>
+                        </MudStack>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    @if (!_myChildren.Any())
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Default">Nemáte priradené žiadne dieťa.</MudText>
+                    }
+                    else
+                    {
+                        <MudStack Spacing="1">
+                            @foreach (var child in _myChildren.Where(c => !c.IsOwnProfile))
+                            {
+                                <MudButton Variant="Variant.Text" Color="Color.Default"
+                                           StartIcon="@Icons.Material.Filled.ChildCare"
+                                           OnClick='() => NavigationManager.NavigateTo($"/dieta/{child.Id}")'>
+                                    @child.FirstName @child.LastName
+                                    @if (!string.IsNullOrWhiteSpace(child.TeamName))
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-2">(@child.TeamName)</MudText>
+                                    }
+                                </MudButton>
+                            }
+                        </MudStack>
+                    }
+                </MudCardContent>
+            </MudCard>
+        }
+
         <MudText Typo="Typo.h6" Class="mb-3">Oznamy</MudText>
 
         @if (!_announcements.Any())
@@ -84,11 +129,15 @@
 
     private bool _isLoading = true;
     private bool _disposed;
+    private bool _isParent;
     private List<AnnouncementListDto> _announcements = new();
     private ContextTraining? _nextEvent;
+    private List<ChildDto> _myChildren = new();
 
     protected override async Task OnInitializedAsync()
     {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        _isParent = state.User.IsInRole("Parent");
         UserContextService.Changed += OnContextChanged;
         await LoadData();
     }
@@ -116,6 +165,7 @@
             _isLoading = true;
 
             var people = await ChildrenApi.GetMyChildrenAsync();
+            _myChildren = people;
             var selected = UserContextService.SelectedOption;
 
             var scopedPeople = selected is null || selected.Key == UserContextService.AllKey
@@ -185,6 +235,16 @@
         AnnouncementPriority.Medium => "Stredná",
         _ => "Info"
     };
+
+    private async Task OpenAddChildDialog()
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<AddChildDialog>("Pridať dieťa", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+            await LoadData();
+    }
 
     public void Dispose()
     {

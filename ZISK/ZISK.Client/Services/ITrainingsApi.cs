@@ -9,8 +9,8 @@ public interface ITrainingsApi
     // AI
     [Get("/api/trainings")]
     Task<List<TrainingEventDto>> GetTrainingsAsync(
-        [Query] Guid? teamId = null, 
-        [Query] DateTime? from = null, 
+        [Query] Guid? teamId = null,
+        [Query] DateTime? from = null,
         [Query] DateTime? to = null);
 
     [Get("/api/trainings/{id}")]
@@ -21,6 +21,9 @@ public interface ITrainingsApi
 
     [Put("/api/trainings/{id}")]
     Task UpdateTrainingAsync(Guid id, [Body] UpdateTrainingEventRequest request);
+
+    [Post("/api/trainings/{id}/cancel")]
+    Task CancelTrainingAsync(Guid id, [Body] CancelTrainingRequest request);
 
     [Put("/api/trainings/{id}/lock")]
     Task LockTrainingAsync(Guid id);

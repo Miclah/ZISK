@@ -26,6 +26,14 @@ else
         <MudText Typo="Typo.body2" Color="Color.Secondary">Miesto: @(_training.Location ?? "Neuvedené")</MudText>
     </MudPaper>
 
+    <MudPaper Class="pa-4 mb-4" Elevation="1">
+        <MudText Typo="Typo.h6" Class="mb-2">Poznámka k tréningu</MudText>
+        <MudTextField @bind-Value="_coachNote" Lines="4" MaxLength="1000" Variant="Variant.Outlined" Placeholder="Poznámka pre hráčov a rodičov..." />
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Class="mt-2" OnClick="SaveCoachNoteAsync" Disabled="@_saving">
+            Uložiť poznámku
+        </MudButton>
+    </MudPaper>
+
     <MudList T="TrainingAttendanceDto" Dense="true">
         @foreach (var player in _training.Attendance.OrderBy(a => a.ChildName))
         {
@@ -87,14 +95,40 @@ else
     [Parameter] public Guid Id { get; set; }
 
     private bool _isLoading = true;
+    private bool _saving;
     private TrainingEventDetailDto? _training;
     private List<AttendanceRecordDto> _records = [];
+    private string _coachNote = string.Empty;
     private bool _excuseDialogVisible;
     private string _selectedExcuseReason = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
+    }
+
+    private async Task SaveCoachNoteAsync()
+    {
+        if (_training is null) return;
+        _saving = true;
+        try
+        {
+            await TrainingsApi.UpdateTrainingAsync(Id, new UpdateTrainingEventRequest(
+                _training.Title, _training.StartTime, _training.EndTime,
+                _training.Location, _training.Type,
+                string.IsNullOrWhiteSpace(_coachNote) ? null : _coachNote,
+                _training.IsLocked));
+            _training = _training with { CoachNote = string.IsNullOrWhiteSpace(_coachNote) ? null : _coachNote };
+            Snackbar.Add("Poznámka uložená.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
     }
 
     private async Task LoadData()
@@ -108,6 +142,7 @@ else
 
             _training = await trainingTask;
             _records = await attendanceTask;
+            _coachNote = _training?.CoachNote ?? string.Empty;
 
             if (_training is not null)
             {
