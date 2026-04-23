@@ -19,7 +19,7 @@ public class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSender
         _logger = logger;
     }
 
-    public async Task SendEmailAsync(string email, string subject, string htmlMessage)
+    public virtual async Task SendEmailAsync(string email, string subject, string htmlMessage)
     {
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(_smtp.SenderName, _smtp.SenderEmail));
@@ -132,6 +132,52 @@ public class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSender
             """;
 
         return SendEmailAsync(email, "ZISK – Kód pre obnovenie hesla", html);
+    }
+
+    public Task SendParentInvitationLinkAsync(string targetEmail, ApplicationUser initiator, string childName, string acceptUrl, CancellationToken ct = default)
+    {
+        var html = $"""
+            <h2>Pozvánka na prepojenie s dieťaťom</h2>
+            <p><strong>{initiator.FirstName} {initiator.LastName}</strong> vás pozýva, aby ste sa stali rodičom/opatrovníkom dieťaťa <strong>{childName}</strong> v systéme ZISK.</p>
+            <p style="text-align: center; margin: 30px 0;">
+                <a href="{acceptUrl}"
+                   style="background-color: #4F46E5; color: white; padding: 12px 30px;
+                          text-decoration: none; border-radius: 6px; font-weight: bold;
+                          display: inline-block;">
+                    Prijať pozvánku
+                </a>
+            </p>
+            <p style="color: #666; font-size: 13px;">
+                Ak toto nie ste vy, tento email ignorujte.<br/>
+                Ak tlačidlo nefunguje, skopírujte tento odkaz do prehliadača:<br/>
+                <a href="{acceptUrl}" style="color: #4F46E5;">{acceptUrl}</a>
+            </p>
+            <p style="color: #999; font-size: 12px;">Pozvánka je platná 24 hodín.</p>
+            """;
+
+        return SendEmailAsync(targetEmail, "ZISK – Pozvánka na prepojenie s dieťaťom", html);
+    }
+
+    public Task SendChildUpgradeNotificationAsync(ApplicationUser recipient, string upgradedChildName, CancellationToken ct = default)
+    {
+        var html = $"""
+            <h2>Zmena roly v systéme ZISK</h2>
+            <p>Informujeme vás, že <strong>{upgradedChildName}</strong> dovŕšil/a 18 rokov a bol/a automaticky povýšený/á na rolu <strong>Športovec</strong>.</p>
+            <p>Športovec môže samostatne spravovať svoje ospravedlnenky a ďalšie záznamy.</p>
+            """;
+
+        return SendEmailAsync(recipient.Email ?? string.Empty, "ZISK – Zmena roly na Športovca", html);
+    }
+
+    public Task SendChildAddedNotificationAsync(string recipientEmail, string newChildName, string creatingParentName, CancellationToken ct = default)
+    {
+        var html = $"""
+            <h2>Nové dieťa zaregistrované</h2>
+            <p>Rodič/opatrovník <strong>{creatingParentName}</strong> zaregistroval/a nové dieťa <strong>{newChildName}</strong> v systéme ZISK.</p>
+            <p>Ak potrebujete ďalšie informácie, kontaktujte administrátora.</p>
+            """;
+
+        return SendEmailAsync(recipientEmail, "ZISK – Nové dieťa zaregistrované", html);
     }
 
     private static string WrapInTemplate(string title, string content)

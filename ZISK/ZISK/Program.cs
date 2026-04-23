@@ -87,6 +87,7 @@ builder.Services.AddScoped<ITeamAccessService, TeamAccessService>();
 builder.Services.AddScoped<DatabaseInitializer>();
 builder.Services.AddScoped<UsernameGenerator>();
 builder.Services.AddScoped<EmailConfirmationCodeService>();
+builder.Services.AddHostedService<ChildUpgradeService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<ForwardAuthHeaderHandler>();
 

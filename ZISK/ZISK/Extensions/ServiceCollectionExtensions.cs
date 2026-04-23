@@ -19,6 +19,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFileService, FileService>();
         services.AddScoped<ISeasonService, SeasonService>();
         services.AddScoped<ITrainingSeriesService, TrainingSeriesService>();
+        services.AddScoped<IParentInvitationService, ParentInvitationService>();
+        services.AddScoped<ChildUpgradeWorker>();
         return services;
     }
 
@@ -58,6 +60,9 @@ public static class ServiceCollectionExtensions
             .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
             .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
         services.AddRefitClient<ITrainingSeriesApi>()
+            .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
+            .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
+        services.AddRefitClient<IInvitationsApi>()
             .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
             .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
 
