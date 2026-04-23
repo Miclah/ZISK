@@ -21,6 +21,11 @@ body {
 
 :root {
     --zisk-gradient-primary: linear-gradient(135deg, #312E81, #4F46E5);
+    --zisk-training-conditioning: #F97316;
+    --zisk-training-technical: #2563EB;
+    --zisk-training-match: #DC2626;
+    --zisk-training-recovery: #059669;
+    --zisk-training-other: #6B7280;
     --zisk-gradient-accent: linear-gradient(135deg, #F97316, #EA580C);
     --zisk-app-bg: #F8FAFC;
     --zisk-appbar-border: rgba(255, 255, 255, 0.08);
@@ -128,6 +133,22 @@ body {
 .hover-effect:hover {
     box-shadow: var(--mud-elevation-4);
     transform: translateY(-2px);
+}
+
+.training-chip {
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+.training-chip--cancelled {
+    text-decoration: line-through;
+    opacity: 0.65;
+    position: relative;
 }
 
 .profile-data-grid dt,

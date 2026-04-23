@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ZISK.Services;
 using ZISK.Shared.DTOs.Users;
+using Microsoft.AspNetCore.Identity;
 
 namespace ZISK.Controllers;
 
@@ -11,10 +12,12 @@ namespace ZISK.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
+    private readonly ChildUpgradeWorker _upgradeWorker;
 
-    public UsersController(IUserService userService)
+    public UsersController(IUserService userService, ChildUpgradeWorker upgradeWorker)
     {
         _userService = userService;
+        _upgradeWorker = upgradeWorker;
     }
 
     [HttpGet]
@@ -109,6 +112,18 @@ public class UsersController : ControllerBase
         }
         catch (KeyNotFoundException) { return NotFound(); }
         catch (InvalidOperationException ex) { return StatusCode(500, ex.Message); }
+    }
+
+    [HttpPost("{id}/upgrade-to-athlete")]
+    public async Task<IActionResult> UpgradeToAthlete(string id)
+    {
+        try
+        {
+            await _upgradeWorker.UpgradeSingleAsync(id, User);
+            return Ok();
+        }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
 
     [HttpDelete("{id}")]

@@ -11,4 +11,5 @@ public interface IAttendanceService
     Task<List<MemberAttendanceStatsDto>> GetTeamStatsAsync(Guid teamId, DateTime? from, DateTime? to);
     Task<AttendanceRecordDto> MarkAttendanceAsync(MarkAttendanceRequest request, ClaimsPrincipal user);
     Task BulkMarkAttendanceAsync(BulkMarkAttendanceRequest request, ClaimsPrincipal user);
+    Task AutoCompleteForTrainingAsync(Guid trainingEventId, bool setLocked);
 }

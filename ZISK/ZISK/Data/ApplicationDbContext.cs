@@ -25,6 +25,7 @@ namespace ZISK.Data
         public DbSet<Document> Documents => Set<Document>();
         public DbSet<CoachTeam> CoachTeams => Set<CoachTeam>();
         public DbSet<EmailConfirmationCode> EmailConfirmationCodes => Set<EmailConfirmationCode>();
+        public DbSet<ParentInvitation> ParentInvitations => Set<ParentInvitation>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -231,6 +232,31 @@ namespace ZISK.Data
 
             builder.Entity<EmailConfirmationCode>()
                 .HasIndex(c => c.UserId);
+
+            // ParentInvitation
+            builder.Entity<ParentInvitation>()
+                .HasOne(pi => pi.Child)
+                .WithMany()
+                .HasForeignKey(pi => pi.ChildUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ParentInvitation>()
+                .HasOne(pi => pi.Initiator)
+                .WithMany()
+                .HasForeignKey(pi => pi.InitiatorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ParentInvitation>()
+                .HasOne(pi => pi.UsedBy)
+                .WithMany()
+                .HasForeignKey(pi => pi.UsedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<ParentInvitation>()
+                .HasIndex(pi => new { pi.ChildUserId, pi.UsedAt });
+
+            builder.Entity<ParentInvitation>()
+                .HasIndex(pi => pi.CodeHash);
         }
     }
 }

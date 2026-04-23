@@ -13,7 +13,9 @@ public record TrainingEventDto(
     string? Location,
     TrainingType Type,
     string? CoachNote,
-    bool IsLocked
+    bool IsLocked,
+    bool IsCancelled,
+    string? CancelledReason
 );
 
 public record TrainingEventDetailDto(
@@ -27,6 +29,8 @@ public record TrainingEventDetailDto(
     TrainingType Type,
     string? CoachNote,
     bool IsLocked,
+    bool IsCancelled,
+    string? CancelledReason,
     DateTime CreatedAt,
     List<TrainingAttendanceDto> Attendance
 );
@@ -39,6 +43,12 @@ public record TrainingAttendanceDto(
     string? CoachComment,
     bool HasExcuse,
     string? ExcuseReason
+);
+
+public record CancelTrainingRequest(
+    [property: Required(ErrorMessage = "Dôvod zrušenia je povinný.")]
+    [property: StringLength(500, ErrorMessage = "Dôvod môže mať max 500 znakov.")]
+    string Reason
 );
 
 public record CreateTrainingEventRequest(

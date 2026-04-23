@@ -35,7 +35,7 @@ public class AttendanceService : IAttendanceService
         if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(training.TeamId))
             throw new UnauthorizedAccessException();
 
-        await EnsureAutomaticAttendance(trainingEventId);
+        await AutoCompleteForTrainingAsync(trainingEventId, false);
 
         return await _context.AttendanceRecords
             .Include(ar => ar.Child)
@@ -282,22 +282,24 @@ public class AttendanceService : IAttendanceService
         _auditService.Log("BulkMarkAttendance", "Training", request.TrainingEventId.ToString(), user, new { Count = request.Entries.Count });
     }
 
-    private async Task EnsureAutomaticAttendance(Guid trainingEventId)
+    public async Task AutoCompleteForTrainingAsync(Guid trainingEventId, bool setLocked)
     {
         var training = await _context.TrainingEvents
-            .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == trainingEventId);
 
         if (training == null || DateTime.UtcNow < training.StartTime.AddMinutes(10))
             return;
 
         var teamMemberIds = await _context.TeamMembers
-            .Where(tm => tm.TeamId == training.TeamId)
+            .Where(tm => tm.TeamId == training.TeamId && tm.JoinedAt <= training.StartTime)
             .Select(tm => tm.UserId)
             .ToListAsync();
 
         if (!teamMemberIds.Any())
+        {
+            if (setLocked) { training.IsLocked = true; await _context.SaveChangesAsync(); }
             return;
+        }
 
         var existingChildIds = await _context.AttendanceRecords
             .Where(ar => ar.TrainingEventId == trainingEventId)
@@ -305,31 +307,35 @@ public class AttendanceService : IAttendanceService
             .ToListAsync();
 
         var missingIds = teamMemberIds.Except(existingChildIds).ToList();
-        if (!missingIds.Any())
-            return;
 
-        var excuses = await _context.AbsenceRequests
-            .Where(ar => missingIds.Contains(ar.ChildId)
-                         && ar.Status == AbsenceRequestStatus.Received
-                         && (ar.TrainingEventId == trainingEventId
-                             || (ar.DateFrom.HasValue && ar.DateTo.HasValue
-                                 && ar.DateFrom.Value.Date <= training.StartTime.Date
-                                 && ar.DateTo.Value.Date >= training.StartTime.Date)))
-            .Select(ar => ar.ChildId)
-            .Distinct()
-            .ToListAsync();
-
-        foreach (var childId in missingIds)
+        if (missingIds.Any())
         {
-            _context.AttendanceRecords.Add(new AttendanceRecord
+            var excuses = await _context.AbsenceRequests
+                .Where(ar => missingIds.Contains(ar.ChildId)
+                             && ar.Status == AbsenceRequestStatus.Received
+                             && (ar.TrainingEventId == trainingEventId
+                                 || (ar.DateFrom.HasValue && ar.DateTo.HasValue
+                                     && ar.DateFrom.Value.Date <= training.StartTime.Date
+                                     && ar.DateTo.Value.Date >= training.StartTime.Date)))
+                .Select(ar => ar.ChildId)
+                .Distinct()
+                .ToListAsync();
+
+            foreach (var childId in missingIds)
             {
-                Id = Guid.NewGuid(),
-                TrainingEventId = trainingEventId,
-                ChildId = childId,
-                Status = excuses.Contains(childId) ? Data.Entities.AttendanceStatus.Excused : Data.Entities.AttendanceStatus.Present,
-                RecordedAt = DateTime.UtcNow
-            });
+                _context.AttendanceRecords.Add(new AttendanceRecord
+                {
+                    Id = Guid.NewGuid(),
+                    TrainingEventId = trainingEventId,
+                    ChildId = childId,
+                    Status = excuses.Contains(childId) ? Data.Entities.AttendanceStatus.Excused : Data.Entities.AttendanceStatus.Present,
+                    RecordedAt = DateTime.UtcNow
+                });
+            }
         }
+
+        if (setLocked)
+            training.IsLocked = true;
 
         await _context.SaveChangesAsync();
     }

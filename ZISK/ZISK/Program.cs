@@ -88,6 +88,8 @@ builder.Services.AddScoped<DatabaseInitializer>();
 builder.Services.AddScoped<UsernameGenerator>();
 builder.Services.AddScoped<EmailConfirmationCodeService>();
 builder.Services.AddHostedService<ChildUpgradeService>();
+builder.Services.AddHostedService<TrainingSeriesGeneratorService>();
+builder.Services.AddHostedService<AttendanceAutoCloseService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<ForwardAuthHeaderHandler>();
 

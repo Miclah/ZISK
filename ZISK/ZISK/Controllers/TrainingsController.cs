@@ -66,6 +66,20 @@ public class TrainingsController : ControllerBase
         catch (UnauthorizedAccessException) { return Forbid(); }
     }
 
+    [HttpPost("{id:guid}/cancel")]
+    [Authorize(Roles = "Admin,Coach")]
+    public async Task<IActionResult> CancelTraining(Guid id, [FromBody] CancelTrainingRequest request)
+    {
+        try
+        {
+            await _trainingService.CancelTrainingAsync(id, request, User);
+            return NoContent();
+        }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
+    }
+
     [HttpPut("{id:guid}/lock")]
     [Authorize(Roles = "Admin,Coach")]
     public async Task<IActionResult> LockTraining(Guid id)

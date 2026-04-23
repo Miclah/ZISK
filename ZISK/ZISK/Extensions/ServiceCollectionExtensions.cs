@@ -21,6 +21,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITrainingSeriesService, TrainingSeriesService>();
         services.AddScoped<IParentInvitationService, ParentInvitationService>();
         services.AddScoped<ChildUpgradeWorker>();
+        services.AddScoped<TrainingSeriesGeneratorWorker>();
+        services.AddScoped<AttendanceAutoCloseWorker>();
         return services;
     }
 

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using ZISK.Data;
 using ZISK.Data.Entities;
@@ -14,12 +15,21 @@ public class TrainingService : ITrainingService
     private readonly ApplicationDbContext _context;
     private readonly ITeamAccessService _teamAccessService;
     private readonly IAuditService _auditService;
+    private readonly IEmailSender _emailSender;
+    private readonly ILogger<TrainingService> _logger;
 
-    public TrainingService(ApplicationDbContext context, ITeamAccessService teamAccessService, IAuditService auditService)
+    public TrainingService(
+        ApplicationDbContext context,
+        ITeamAccessService teamAccessService,
+        IAuditService auditService,
+        IEmailSender emailSender,
+        ILogger<TrainingService> logger)
     {
         _context = context;
         _teamAccessService = teamAccessService;
         _auditService = auditService;
+        _emailSender = emailSender;
+        _logger = logger;
     }
 
     public async Task<List<TrainingEventDto>> GetTrainingsAsync(Guid? teamId, DateTime? from, DateTime? to, ClaimsPrincipal user)
@@ -38,7 +48,8 @@ public class TrainingService : ITrainingService
             .OrderByDescending(t => t.StartTime)
             .Select(t => new TrainingEventDto(
                 t.Id, t.TeamId, t.Team.Name, t.Title, t.StartTime, t.EndTime,
-                t.Location, (TrainingType)(int)t.Type, t.CoachNote, t.IsLocked))
+                t.Location, (TrainingType)(int)t.Type, t.CoachNote, t.IsLocked,
+                t.IsCancelled, t.CancelledReason))
             .ToListAsync();
     }
 
@@ -87,6 +98,7 @@ public class TrainingService : ITrainingService
             training.Id, training.TeamId, training.Team.Name, training.Title,
             training.StartTime, training.EndTime, training.Location,
             (TrainingType)(int)training.Type, training.CoachNote, training.IsLocked,
+            training.IsCancelled, training.CancelledReason,
             training.CreatedAt, attendance
         );
     }
@@ -129,7 +141,8 @@ public class TrainingService : ITrainingService
         return new TrainingEventDto(
             training.Id, training.TeamId, team.Name, training.Title,
             training.StartTime, training.EndTime, training.Location,
-            (TrainingType)(int)training.Type, training.CoachNote, training.IsLocked
+            (TrainingType)(int)training.Type, training.CoachNote, training.IsLocked,
+            training.IsCancelled, training.CancelledReason
         );
     }
 
@@ -161,6 +174,60 @@ public class TrainingService : ITrainingService
 
         await _context.SaveChangesAsync();
         _auditService.Log("Update", "Training", training.Id.ToString(), user, new { training.Title, training.StartTime, training.IsLocked });
+    }
+
+    public async Task CancelTrainingAsync(Guid id, CancelTrainingRequest request, ClaimsPrincipal user)
+    {
+        var training = await _context.TrainingEvents
+            .Include(t => t.Team)
+            .FirstOrDefaultAsync(t => t.Id == id)
+            ?? throw new KeyNotFoundException();
+
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
+        if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(training.TeamId))
+            throw new UnauthorizedAccessException();
+
+        training.IsCancelled = true;
+        training.CancelledReason = request.Reason;
+        await _context.SaveChangesAsync();
+        _auditService.Log("Cancel", "Training", training.Id.ToString(), user, new { training.Title, training.StartTime, request.Reason });
+
+        var members = await _context.TeamMembers
+            .Include(tm => tm.User)
+            .Where(tm => tm.TeamId == training.TeamId)
+            .ToListAsync();
+
+        var memberIds = members.Select(m => m.UserId).ToList();
+        var parentLinks = await _context.ParentChildren
+            .Include(pc => pc.Parent)
+            .Where(pc => memberIds.Contains(pc.ChildId))
+            .ToListAsync();
+
+        var emails = members
+            .Select(m => m.User.Email)
+            .Concat(parentLinks.Select(pc => pc.Parent.Email))
+            .Where(e => !string.IsNullOrEmpty(e))
+            .Distinct()
+            .ToList();
+
+        var html = $"""
+            <h2>Tréning zrušený</h2>
+            <p>Tréning <strong>{training.Title}</strong> (tím: {training.Team.Name}) plánovaný na
+            <strong>{training.StartTime:dd.MM.yyyy HH:mm}</strong> bol zrušený.</p>
+            <p><strong>Dôvod:</strong> {request.Reason}</p>
+            """;
+
+        foreach (var email in emails)
+        {
+            try
+            {
+                await _emailSender.SendEmailAsync(email!, "Tréning zrušený – ZISK", html);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send cancellation email to {Email}", email);
+            }
+        }
     }
 
     public async Task LockTrainingAsync(Guid id, ClaimsPrincipal user)
