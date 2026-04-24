@@ -35,7 +35,7 @@
         </MudAlert>
     }
 
-    <MudAppBar Elevation="0" Fixed="true" Style="border-bottom: 1px solid var(--zisk-appbar-border);">
+    <MudAppBar Elevation="0" Fixed="true" Style="background: var(--zisk-gradient-primary); border-bottom: 1px solid var(--zisk-border-on-dark);">
         <MudIconButton Icon="@Icons.Material.Rounded.Menu"
                        Color="Color.Inherit"
                        Edge="Edge.Start"
@@ -128,7 +128,7 @@
                Breakpoint="Breakpoint.Md"
                Variant="DrawerVariant.Responsive"
                Anchor="Anchor.Left"
-               Style="border-right: 1px solid var(--zisk-drawer-border);">
+               Style="border-right: 1px solid var(--zisk-border-default);">
         <MudDrawerContainer>
             <NavMenu />
         </MudDrawerContainer>
@@ -185,7 +185,7 @@
     private string? _coachTeamName;
     private List<PendingInvitationDto> _pendingInvitations = new();
 
-    private string MainContentStyle => "background: var(--zisk-app-bg); min-height: 100vh;";
+    private string MainContentStyle => "background: var(--zisk-bg); min-height: 100vh;";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

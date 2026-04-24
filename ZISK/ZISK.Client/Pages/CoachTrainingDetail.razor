@@ -10,6 +10,7 @@
 
 <PageTitle>Detail tréningu</PageTitle>
 
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
 @if (_isLoading)
 {
     <MudStack Spacing="3">
@@ -54,7 +55,7 @@ else
                     </MudStack>
 
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                        <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(player)">@GetStatusText(player)</MudChip>
+                        <MudChip T="string" Size="Size.Small" Class="@GetStatusChipClass(player)">@GetStatusText(player)</MudChip>
 
                         @if (player.HasExcuse && !string.IsNullOrWhiteSpace(player.ExcuseReason))
                         {
@@ -89,6 +90,7 @@ else
         }
     </MudList>
 }
+</MudContainer>
 
 <MudDialog @bind-Visible="_excuseDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true })">
     <TitleContent><MudText Typo="Typo.h6">Dôvod ospravedlnenia</MudText></TitleContent>
@@ -198,6 +200,19 @@ else
             return Color.Error;
 
         return DateTime.Now >= (_training?.StartTime ?? DateTime.MaxValue).AddMinutes(10) ? Color.Success : Color.Info;
+    }
+
+    private string GetStatusChipClass(TrainingAttendanceDto player)
+    {
+        if (player.HasExcuse)
+            return "attendance-chip-excused";
+
+        if (player.Status == AttendanceStatus.Absent)
+            return "attendance-chip-absent";
+
+        return DateTime.Now >= (_training?.StartTime ?? DateTime.MaxValue).AddMinutes(10)
+            ? "attendance-chip-present"
+            : string.Empty;
     }
 
     private string GetStatusText(TrainingAttendanceDto player)

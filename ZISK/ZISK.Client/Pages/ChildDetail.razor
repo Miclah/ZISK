@@ -135,7 +135,7 @@
                             <MudTd>@context.Date.ToString("dd.MM.yyyy")</MudTd>
                             <MudTd>@context.TrainingName</MudTd>
                             <MudTd>
-                                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+                                <MudChip T="string" Size="Size.Small" Class="@GetStatusChipClass(context.Status)">
                                     @GetStatusText(context.Status)
                                 </MudChip>
                             </MudTd>
@@ -369,6 +369,14 @@
         AttendanceStatus.Absent => Color.Error,
         AttendanceStatus.Excused => Color.Warning,
         _ => Color.Default
+    };
+
+    private string GetStatusChipClass(AttendanceStatus status) => status switch
+    {
+        AttendanceStatus.Present => "attendance-chip-present",
+        AttendanceStatus.Absent => "attendance-chip-absent",
+        AttendanceStatus.Excused => "attendance-chip-excused",
+        _ => string.Empty
     };
 
     private string GetStatusText(AttendanceStatus status) => status switch

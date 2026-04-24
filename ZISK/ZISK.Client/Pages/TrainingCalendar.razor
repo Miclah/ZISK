@@ -13,6 +13,7 @@
 
 <PageTitle>Kalendár tréningov</PageTitle>
 
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3" Wrap="Wrap.Wrap">
     <MudText Typo="Typo.h5">Kalendár tréningov</MudText>
 
@@ -59,6 +60,7 @@
 {
     <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="500px" Class="mt-1" />
 }
+</MudContainer>
 
 @code {
     private CalendarView _view = CalendarView.Month;
@@ -73,8 +75,7 @@
     private List<TeamDto> _myTeams = [];
 
     private RenderFragment<TrainingCalendarItem> _itemTemplate => item =>
-        @<div class="training-chip @(item.IsCancelled ? "training-chip--cancelled" : "")"
-              style="background:@TypeColor(item.Type); color:#fff; padding:2px 6px; border-radius:4px; font-size:0.75rem; cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+        @<div class="training-chip @TypeChipClass(item.Type) @(item.IsCancelled ? "training-chip--cancelled" : "")">
             @item.Text@(item.IsCancelled ? " ⊘" : "")
         </div>;
 
@@ -157,13 +158,13 @@
         if (_lastRange != null) _ = LoadItemsAsync(_lastRange);
     }
 
-    private static string TypeColor(TrainingType type) => type switch
+    private static string TypeChipClass(TrainingType type) => type switch
     {
-        TrainingType.Technical => "#2563EB",
-        TrainingType.Conditioning => "#F97316",
-        TrainingType.Match => "#DC2626",
-        TrainingType.Recovery => "#059669",
-        _ => "#6B7280"
+        TrainingType.Technical => "training-chip--technical",
+        TrainingType.Conditioning => "training-chip--conditioning",
+        TrainingType.Match => "training-chip--match",
+        TrainingType.Recovery => "training-chip--recovery",
+        _ => "training-chip--other"
     };
 
     public class TrainingCalendarItem : CalendarItem

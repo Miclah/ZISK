@@ -12,6 +12,7 @@
 
 <PageTitle>Dochádzka</PageTitle>
 
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
 <MudText Typo="Typo.h4" Class="mb-4">Označenie dochádzky</MudText>
 
 <MudPaper Class="pa-4 mb-4" Elevation="2">
@@ -50,20 +51,20 @@
 }
 else if (_selectedTraining != null)
 {
-    <MudTable Items="@_selectedTraining.Attendance" Hover="true">
+    <MudTable Items="@_selectedTraining.Attendance" Hover="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
             <MudTh>Meno</MudTh>
             <MudTh>Stav</MudTh>
             <MudTh>Akcie</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd>@context.ChildName</MudTd>
-            <MudTd>
-                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+            <MudTd DataLabel="Meno">@context.ChildName</MudTd>
+            <MudTd DataLabel="Stav">
+                <MudChip T="string" Size="Size.Small" Class="@GetStatusChipClass(context.Status)">
                     @GetStatusText(context.Status)
                 </MudChip>
             </MudTd>
-            <MudTd>
+            <MudTd DataLabel="Akcie">
                 <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
                     <MudTooltip Text="Prítomný"><MudButton Color="Color.Success" OnClick="@(() => MarkStatus(context.ChildId, AttendanceStatus.Present))">P</MudButton></MudTooltip>
                     <MudTooltip Text="Neprítomný"><MudButton Color="Color.Error" OnClick="@(() => MarkStatus(context.ChildId, AttendanceStatus.Absent))">N</MudButton></MudTooltip>
@@ -77,6 +78,7 @@ else
 {
     <MudAlert Severity="Severity.Info">Vyberte tím a tréning</MudAlert>
 }
+</MudContainer>
 
 @code {
     private bool _isLoading = false;
@@ -165,6 +167,14 @@ else
         AttendanceStatus.Absent => Color.Error,
         AttendanceStatus.Excused => Color.Warning,
         _ => Color.Default
+    };
+
+    private string GetStatusChipClass(AttendanceStatus status) => status switch
+    {
+        AttendanceStatus.Present => "attendance-chip-present",
+        AttendanceStatus.Absent => "attendance-chip-absent",
+        AttendanceStatus.Excused => "attendance-chip-excused",
+        _ => string.Empty
     };
 
     private string GetStatusText(AttendanceStatus status) => status switch

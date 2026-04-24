@@ -4,10 +4,10 @@
 
 @attribute [Authorize]
 
-<PageTitle>Auth</PageTitle>
+<PageTitle>Overenie</PageTitle>
 
-<h1>You are authenticated</h1>
+<h1>Ste prihlásený</h1>
 
 <AuthorizeView>
-    Hello @context.User.Identity?.Name!
+    Vitajte, @context.User.Identity?.Name!
 </AuthorizeView>

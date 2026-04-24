@@ -59,6 +59,7 @@ public class ExcuseService : IExcuseService
         return items.Select(ar => new ExcuseListDto(
             ar.Id,
             ar.TrainingEventId,
+            ar.ChildId,
             $"{ar.Child.FirstName} {ar.Child.LastName}",
             teamMap.TryGetValue(ar.ChildId, out var tn) ? tn : "Bez tímu",
             ar.DateFrom,
@@ -254,6 +255,7 @@ public class ExcuseService : IExcuseService
         return items.Select(ar => new ExcuseListDto(
             ar.Id,
             ar.TrainingEventId,
+            ar.ChildId,
             $"{ar.Child.FirstName} {ar.Child.LastName}",
             teamMap.TryGetValue(ar.ChildId, out var tn) ? tn : "Bez tímu",
             ar.DateFrom,

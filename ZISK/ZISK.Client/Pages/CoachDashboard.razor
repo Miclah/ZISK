@@ -12,7 +12,8 @@
 
 <PageTitle>Nástenka trénera</PageTitle>
 
-<MudText Typo="Typo.h5" Class="mb-3">Dnešok</MudText>
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h5" Class="mb-3">Dnešok</MudText>
 
 @if (_isLoading)
 {
@@ -92,6 +93,7 @@ else
         </MudCardContent>
     </MudCard>
 }
+</MudContainer>
 
 @code {
     private bool _isLoading = true;

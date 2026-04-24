@@ -8,6 +8,7 @@
 
 <PageTitle>Správa tréningov</PageTitle>
 
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
 <MudText Typo="Typo.h4" Class="mb-4">Správa tréningov</MudText>
 
 <MudTabs Elevation="1" Rounded="true" PanelClass="pa-3">
@@ -28,7 +29,7 @@
         }
         else
         {
-            <MudTable Items="@_trainings" Hover="true">
+            <MudTable Items="@_trainings" Hover="true" Breakpoint="Breakpoint.Sm">
                 <HeaderContent>
                     <MudTh>Dátum</MudTh>
                     <MudTh>Názov</MudTh>
@@ -37,13 +38,13 @@
                     <MudTh>Akcie</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd>@context.StartTime.ToString("dd.MM.yyyy HH:mm")</MudTd>
-                    <MudTd>@context.Title</MudTd>
-                    <MudTd>@context.TeamName</MudTd>
-                    <MudTd>
+                    <MudTd DataLabel="Dátum">@context.StartTime.ToString("dd.MM.yyyy HH:mm")</MudTd>
+                    <MudTd DataLabel="Názov">@context.Title</MudTd>
+                    <MudTd DataLabel="Tím">@context.TeamName</MudTd>
+                    <MudTd DataLabel="Typ">
                         <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.Type)">@GetTypeText(context.Type)</MudChip>
                     </MudTd>
-                    <MudTd>
+                    <MudTd DataLabel="Akcie">
                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OpenDialog(context))" />
                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => Delete(context.Id))" />
                     </MudTd>
@@ -56,6 +57,7 @@
         <TrainingSeriesManager IsAdmin="true" />
     </MudTabPanel>
 </MudTabs>
+</MudContainer>
 
 <MudDialog @bind-Visible="_dialogVisible" Options="new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true }">
     <TitleContent>@(_editingId.HasValue ? "Upraviť tréning" : "Nový tréning")</TitleContent>

@@ -8,6 +8,7 @@
 
 <PageTitle>Správa sezón</PageTitle>
 
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
 <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 px-0" />
 
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
@@ -36,7 +37,7 @@ else if (_seasons.Count == 0)
 }
 else
 {
-    <MudTable Items="_seasons" Hover="true" Striped="true" Dense="true">
+    <MudTable Items="_seasons" Hover="true" Striped="true" Dense="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
             <MudTh>Názov</MudTh>
             <MudTh>Od</MudTh>
@@ -45,10 +46,10 @@ else
             <MudTh></MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd>@context.Name</MudTd>
-            <MudTd>@context.StartDate.ToString("d.M.yyyy")</MudTd>
-            <MudTd>@context.EndDate.ToString("d.M.yyyy")</MudTd>
-            <MudTd>
+            <MudTd DataLabel="Názov">@context.Name</MudTd>
+            <MudTd DataLabel="Od">@context.StartDate.ToString("d.M.yyyy")</MudTd>
+            <MudTd DataLabel="Do">@context.EndDate.ToString("d.M.yyyy")</MudTd>
+            <MudTd DataLabel="Stav">
                 @if (context.IsActive)
                 {
                     <MudChip T="string" Color="Color.Success" Size="Size.Small">Aktívna</MudChip>
@@ -58,7 +59,7 @@ else
                     <MudChip T="string" Color="Color.Default" Size="Size.Small">Neaktívna</MudChip>
                 }
             </MudTd>
-            <MudTd>
+            <MudTd DataLabel="Akcie">
                 <MudStack Row="true" Spacing="1">
                     @if (!context.IsActive)
                     {
@@ -77,6 +78,7 @@ else
         </RowTemplate>
     </MudTable>
 }
+</MudContainer>
 
 @* Create / Edit dialog *@
 <MudDialog @bind-Visible="_dialogOpen">

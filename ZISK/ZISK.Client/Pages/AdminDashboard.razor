@@ -11,6 +11,7 @@
 
 <PageTitle>Nástenka administrátora</PageTitle>
 
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
 <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 px-0" />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
@@ -154,6 +155,7 @@ else if (_dashboardStats != null)
         </MudItem>
     </MudGrid>
 }
+</MudContainer>
 
 @code {
     private bool _isLoading = true;

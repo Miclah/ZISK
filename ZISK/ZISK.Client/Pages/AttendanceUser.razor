@@ -145,7 +145,7 @@
                                 <MudTd DataLabel="Dieťa">@context.ChildName</MudTd>
                                 <MudTd DataLabel="Tréning">@context.TrainingName</MudTd>
                                 <MudTd DataLabel="Stav">
-                                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+                                    <MudChip T="string" Size="Size.Small" Class="@GetStatusChipClass(context.Status)">
                                         @GetStatusText(context.Status)
                                     </MudChip>
                                 </MudTd>
@@ -172,7 +172,7 @@
                                 <MudStack Spacing="1">
                                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                                         <MudText Typo="Typo.subtitle2">@item.TrainingName</MudText>
-                                        <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(item.Status)">
+                                        <MudChip T="string" Size="Size.Small" Class="@GetStatusChipClass(item.Status)">
                                             @GetStatusText(item.Status)
                                         </MudChip>
                                     </MudStack>
@@ -307,6 +307,14 @@
         AttendanceStatus.Absent => Color.Error,
         AttendanceStatus.Excused => Color.Warning,
         _ => Color.Default
+    };
+
+    private string GetStatusChipClass(AttendanceStatus status) => status switch
+    {
+        AttendanceStatus.Present => "attendance-chip-present",
+        AttendanceStatus.Absent => "attendance-chip-absent",
+        AttendanceStatus.Excused => "attendance-chip-excused",
+        _ => string.Empty
     };
 
     private string GetStatusText(AttendanceStatus status) => status switch

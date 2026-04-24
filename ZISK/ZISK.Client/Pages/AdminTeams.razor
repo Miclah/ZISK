@@ -12,6 +12,7 @@
 
 <PageTitle>Správa tímov</PageTitle>
 
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
 <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 px-0" />
 
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
@@ -96,6 +97,7 @@ else
         }
     </MudGrid>
 }
+</MudContainer>
 
 <MudDialog @bind-Visible="_editDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
     <TitleContent>

@@ -87,6 +87,7 @@ public class AttendanceService : IAttendanceService
             query = query.Where(ar => ar.TrainingEvent.StartTime <= to.Value);
 
         return await query
+            .Include(ar => ar.Child)
             .OrderByDescending(ar => ar.TrainingEvent.StartTime)
             .Select(ar => new UserAttendanceDto(
                 ar.Id,
@@ -95,7 +96,9 @@ public class AttendanceService : IAttendanceService
                 ar.TrainingEvent.StartTime,
                 (AttendanceStatus)(int)ar.Status,
                 ar.Note,
-                ar.CoachComment
+                ar.CoachComment,
+                ar.ChildId,
+                ar.Child.FirstName + " " + ar.Child.LastName
             ))
             .ToListAsync();
     }

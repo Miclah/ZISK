@@ -12,9 +12,10 @@
 
 <PageTitle>Upraviť oznam</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Upraviť oznam</MudText>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Upraviť oznam</MudText>
 
-@if (_isLoading)
+    @if (_isLoading)
 {
     <MudProgressCircular Indeterminate="true" />
 }
@@ -24,7 +25,7 @@ else if (_announcement == null)
 }
 else
 {
-    <MudPaper Class="pa-4" Elevation="2" MaxWidth="800px">
+    <MudPaper Class="pa-4" Elevation="2">
         <EditForm Model="@_model" OnValidSubmit="Submit">
             <DataAnnotationsValidator />
             <MudStack Spacing="3">
@@ -80,6 +81,7 @@ else
         </EditForm>
     </MudPaper>
 }
+</MudContainer>
 
 @code {
     [Parameter] public Guid Id { get; set; }

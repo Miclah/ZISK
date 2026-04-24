@@ -8,6 +8,7 @@
 
 <PageTitle>Správa ospravedlneniek</PageTitle>
 
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
 <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 px-0" />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
@@ -39,7 +40,7 @@ else if (!_excuses.Any())
 }
 else
 {
-    <MudTable Items="@_excuses" Hover="true" Elevation="3" Striped="true">
+    <MudTable Items="@_excuses" Hover="true" Elevation="3" Striped="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
             <MudTh>Dieťa</MudTh>
             <MudTh>Tím</MudTh>
@@ -68,6 +69,7 @@ else
         </NoRecordsContent>
     </MudTable>
 }
+</MudContainer>
 
 @code {
     private bool _isLoading = true;
