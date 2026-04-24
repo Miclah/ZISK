@@ -21,14 +21,10 @@
                                       Variant="Variant.Outlined"
                                       InputType="InputType.Email"
                                       Placeholder="rodic@email.sk" />
-                        <MudButton Color="Color.Primary" Variant="Variant.Filled" ButtonType="ButtonType.Submit"
-                                   Disabled="@_isSendingEmail" Class="mt-2">
-                            @if (_isSendingEmail)
-                            {
-                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                            }
+                        <LoadingButton Color="Color.Primary" Variant="Variant.Filled" ButtonType="ButtonType.Submit"
+                                       Loading="@_isSendingEmail" Class="mt-2" LoadingText="Odosielam...">
                             Odoslať pozvánku
-                        </MudButton>
+                        </LoadingButton>
                     </EditForm>
                     @if (_emailSent)
                     {
@@ -41,13 +37,10 @@
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
                         Vygenerujte jednorazový kód a zdieľajte ho priamo druhému rodičovi. Kód je platný 24 hodín.
                     </MudText>
-                    <MudButton Color="Color.Secondary" Variant="Variant.Filled" OnClick="GenerateCode" Disabled="@_isGeneratingCode">
-                        @if (_isGeneratingCode)
-                        {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                        }
+                    <LoadingButton Color="Color.Secondary" Variant="Variant.Filled" OnClick="GenerateCode"
+                                   Loading="@_isGeneratingCode" LoadingText="Generujem...">
                         Vygenerovať kód
-                    </MudButton>
+                    </LoadingButton>
                     @if (_generatedCode is not null)
                     {
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">

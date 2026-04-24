@@ -281,6 +281,30 @@ public partial class AdminUsers
         _selectedParentIds = parentIds.ToHashSet();
     }
 
+    private async Task ConfirmUpgradeToAthlete(UserListDto user)
+    {
+        bool? result = await DialogService.ShowMessageBoxAsync(
+            "Povýšiť na športovca",
+            $"Naozaj chcete povýšiť '{user.FirstName} {user.LastName}' z roly Dieťa na Športovca?",
+            yesText: "Áno, povýšiť",
+            cancelText: "Zrušiť",
+            options: new DialogOptions { MaxWidth = MaxWidth.Small });
+
+        if (result != true)
+            return;
+
+        try
+        {
+            await UsersApi.UpgradeToAthleteAsync(user.Id);
+            Snackbar.Add("Používateľ bol povýšený na Športovca.", Severity.Success);
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+    }
+
     public class EditUserFormModel
     {
         [Required(ErrorMessage = "Meno je povinné.")]

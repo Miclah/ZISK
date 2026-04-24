@@ -8,39 +8,54 @@
 
 <PageTitle>Správa tréningov</PageTitle>
 
-<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
-    <MudText Typo="Typo.h4">Správa tréningov</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => OpenDialog(null))">Nový tréning</MudButton>
-</MudStack>
+<MudText Typo="Typo.h4" Class="mb-4">Správa tréningov</MudText>
 
-@if (_isLoading)
-{
-    <MudProgressCircular Indeterminate="true" />
-}
-else
-{
-    <MudTable Items="@_trainings" Hover="true">
-        <HeaderContent>
-            <MudTh>Dátum</MudTh>
-            <MudTh>Názov</MudTh>
-            <MudTh>Tím</MudTh>
-            <MudTh>Typ</MudTh>
-            <MudTh>Akcie</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd>@context.StartTime.ToString("dd.MM.yyyy HH:mm")</MudTd>
-            <MudTd>@context.Title</MudTd>
-            <MudTd>@context.TeamName</MudTd>
-            <MudTd>
-                <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.Type)">@GetTypeText(context.Type)</MudChip>
-            </MudTd>
-            <MudTd>
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OpenDialog(context))" />
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => Delete(context.Id))" />
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
-}
+<MudTabs Elevation="1" Rounded="true" PanelClass="pa-3">
+    <MudTabPanel Text="Jednorazové tréningy">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudText Typo="Typo.h6">Tréningy</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => OpenDialog(null))">Nový tréning</MudButton>
+        </MudStack>
+
+        @if (_isLoading)
+        {
+            <MudStack Spacing="2">
+                @for (int i = 0; i < 6; i++)
+                {
+                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="56px" />
+                }
+            </MudStack>
+        }
+        else
+        {
+            <MudTable Items="@_trainings" Hover="true">
+                <HeaderContent>
+                    <MudTh>Dátum</MudTh>
+                    <MudTh>Názov</MudTh>
+                    <MudTh>Tím</MudTh>
+                    <MudTh>Typ</MudTh>
+                    <MudTh>Akcie</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.StartTime.ToString("dd.MM.yyyy HH:mm")</MudTd>
+                    <MudTd>@context.Title</MudTd>
+                    <MudTd>@context.TeamName</MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.Type)">@GetTypeText(context.Type)</MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OpenDialog(context))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => Delete(context.Id))" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="Opakované tréningy">
+        <TrainingSeriesManager IsAdmin="true" />
+    </MudTabPanel>
+</MudTabs>
 
 <MudDialog @bind-Visible="_dialogVisible" Options="new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true }">
     <TitleContent>@(_editingId.HasValue ? "Upraviť tréning" : "Nový tréning")</TitleContent>

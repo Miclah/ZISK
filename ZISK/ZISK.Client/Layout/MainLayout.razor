@@ -9,6 +9,10 @@
 @inject ITeamsApi TeamsApi
 @inject IInvitationsApi InvitationsApi
 @inject ISnackbar Snackbar
+@inject HttpActivityTracker ActivityTracker
+@inject OnlineStatusService OnlineStatus
+@implements IDisposable
+@implements IAsyncDisposable
 
 <MudThemeProvider Theme="AppTheme.SportClubTheme" />
 <MudPopoverProvider />
@@ -18,6 +22,19 @@
 <ErrorBoundary>
     <ChildContent>
 <MudLayout>
+    @if (ActivityTracker.IsActive)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true"
+                           Style="position:fixed;top:64px;left:0;right:0;z-index:2000;height:3px;" />
+    }
+    @if (!OnlineStatus.IsOnline)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" NoIcon="false"
+                  Style="position:fixed;top:64px;left:0;right:0;z-index:1999;border-radius:0;text-align:center;">
+            Aplikácia vyžaduje pripojenie na internet. Skontrolujte prosím svoje sieťové nastavenia.
+        </MudAlert>
+    }
+
     <MudAppBar Elevation="0" Fixed="true" Style="border-bottom: 1px solid var(--zisk-appbar-border);">
         <MudIconButton Icon="@Icons.Material.Rounded.Menu"
                        Color="Color.Inherit"
@@ -170,8 +187,20 @@
 
     private string MainContentStyle => "background: var(--zisk-app-bg); min-height: 100vh;";
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            OnlineStatus.StatusChanged += OnOnlineStatusChanged;
+            await OnlineStatus.InitializeAsync();
+            StateHasChanged();
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
+        ActivityTracker.StateChanged += OnActivityChanged;
+
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         _isCoach = authState.User.IsInRole("Coach");
         _isParentAthlete = authState.User.IsInRole("Parent") || authState.User.IsInRole("Athlete");
@@ -198,6 +227,8 @@
 
     }
 
+    private void OnOnlineStatusChanged() => InvokeAsync(StateHasChanged);
+
     private void DrawerToggle() => _drawerOpen = !_drawerOpen;
 
     private void NavigateToProfile()
@@ -208,6 +239,19 @@
     private void DismissInvitation(PendingInvitationDto inv)
     {
         _pendingInvitations.Remove(inv);
+    }
+
+    private void OnActivityChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        ActivityTracker.StateChanged -= OnActivityChanged;
+        OnlineStatus.StatusChanged -= OnOnlineStatusChanged;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await OnlineStatus.DisposeAsync();
     }
 
     private async Task AcceptInvitation(PendingInvitationDto inv)

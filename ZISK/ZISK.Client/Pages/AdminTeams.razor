@@ -27,7 +27,12 @@
 
 @if (_isLoading)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    <MudStack Spacing="2">
+        @for (int i = 0; i < 5; i++)
+        {
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="56px" />
+        }
+    </MudStack>
 }
 else if (_error != null)
 {
@@ -120,17 +125,13 @@ else
                               Label="Popis"
                               Variant="Variant.Outlined"
                               Lines="3" />
-                <MudButton ButtonType="ButtonType.Submit"
-                           Color="Color.Primary"
-                           Variant="Variant.Filled"
-                           Disabled="_isSaving"
-                           FullWidth="true">
-                    @if (_isSaving)
-                    {
-                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                    }
+                <LoadingButton ButtonType="ButtonType.Submit"
+                              Color="Color.Primary"
+                              Variant="Variant.Filled"
+                              Loading="_isSaving"
+                              FullWidth="true">
                     Uložiť
-                </MudButton>
+                </LoadingButton>
             </MudStack>
         </EditForm>
     </DialogContent>
@@ -146,7 +147,12 @@ else
     <DialogContent>
         @if (_isLoadingRoster)
         {
-            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            <MudStack Spacing="2">
+                @for (int i = 0; i < 4; i++)
+                {
+                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="56px" />
+                }
+            </MudStack>
         }
         else
         {

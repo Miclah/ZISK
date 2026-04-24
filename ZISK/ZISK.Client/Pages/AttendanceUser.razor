@@ -1,5 +1,4 @@
-﻿@page "/dochadzka/prehlad"
-@implements IDisposable
+@page "/dochadzka/prehlad"
 @using ZISK.Client.Components
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Attendance
@@ -9,7 +8,6 @@
 @inject IExcusesApi ExcusesApi
 @inject IChildrenApi ChildrenApi
 @inject ITrainingsApi TrainingsApi
-@inject UserContextService UserContextService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -20,20 +18,37 @@
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
     <MudText Typo="Typo.h4" Class="mb-4">Rozvrh a dochádzka</MudText>
 
+    @if (_childFilterOptions.Count > 1)
+    {
+        <MudPaper Elevation="0" Class="pa-2 mb-3">
+            <MudToggleGroup T="string" @bind-Value="_selectedChildId" Color="Color.Primary" SelectionMode="SelectionMode.SingleSelection" CheckMark="true">
+                @foreach (var opt in _childFilterOptions)
+                {
+                    <MudToggleItem Value="@opt.Key" Text="@opt.Label" />
+                }
+            </MudToggleGroup>
+        </MudPaper>
+    }
+
     <MudTabs Rounded="true" Elevation="1" Class="mb-4">
         <MudTabPanel Text="Nadchádzajúce">
             @if (_isLoading)
             {
-                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                <MudStack Spacing="2">
+                    @for (int i = 0; i < 4; i++)
+                    {
+                        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="72px" />
+                    }
+                </MudStack>
             }
-            else if (!_upcoming.Any())
+            else if (!FilteredUpcoming.Any())
             {
                 <MudAlert Severity="Severity.Info">Žiadne nadchádzajúce tréningy.</MudAlert>
             }
             else
             {
                 <MudStack Spacing="2" Class="pa-2">
-                    @foreach (var item in _upcoming)
+                    @foreach (var item in FilteredUpcoming)
                     {
                         <MudPaper Class="pa-3" Elevation="1">
                             <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
@@ -93,9 +108,14 @@
 
             @if (_isLoading)
             {
-                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                <MudStack Spacing="2">
+                    @for (int i = 0; i < 4; i++)
+                    {
+                        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="72px" />
+                    }
+                </MudStack>
             }
-            else if (!_attendance.Any())
+            else if (!FilteredAttendance.Any())
             {
                 <MudPaper Class="pa-6" Elevation="1">
                     <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Secondary">
@@ -107,9 +127,10 @@
             {
                 <MudHidden Breakpoint="Breakpoint.SmAndDown">
                     <MudPaper Class="pa-4" Elevation="1">
-                        <MudTable Items="@_attendance" Hover="true" Breakpoint="Breakpoint.Sm">
+                        <MudTable Items="@FilteredAttendance" Hover="true" Breakpoint="Breakpoint.Sm">
                             <HeaderContent>
                                 <MudTh>Dátum</MudTh>
+                                <MudTh>Dieťa</MudTh>
                                 <MudTh>Tréning</MudTh>
                                 <MudTh>Stav</MudTh>
                                 <MudTh>Poznámka trénera</MudTh>
@@ -121,6 +142,7 @@
                                         @context.Date.ToString("dddd", new System.Globalization.CultureInfo("sk-SK"))
                                     </MudText>
                                 </MudTd>
+                                <MudTd DataLabel="Dieťa">@context.ChildName</MudTd>
                                 <MudTd DataLabel="Tréning">@context.TrainingName</MudTd>
                                 <MudTd DataLabel="Stav">
                                     <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
@@ -144,7 +166,7 @@
 
                 <MudHidden Breakpoint="Breakpoint.MdAndUp">
                     <MudStack Spacing="2">
-                        @foreach (var item in _attendance)
+                        @foreach (var item in FilteredAttendance)
                         {
                             <MudPaper Class="pa-3" Elevation="1">
                                 <MudStack Spacing="1">
@@ -155,7 +177,7 @@
                                         </MudChip>
                                     </MudStack>
                                     <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                        @item.Date.ToString("dd.MM.yyyy") • @item.Date.ToString("dddd", new System.Globalization.CultureInfo("sk-SK"))
+                                        @item.ChildName • @item.Date.ToString("dd.MM.yyyy") • @item.Date.ToString("dddd", new System.Globalization.CultureInfo("sk-SK"))
                                     </MudText>
                                     <MudText Typo="Typo.body2">@(string.IsNullOrWhiteSpace(item.Note) ? "Bez poznámky trénera" : item.Note)</MudText>
                                     @if (item.Status == AttendanceStatus.Absent)
@@ -178,54 +200,59 @@
 </MudContainer>
 
 @code {
-    private record ContextPerson(ChildDto Person, string ForName);
-    private record UpcomingItem(TrainingEventDto Training, string ForName, string TeamName);
+    private record UpcomingItem(TrainingEventDto Training, string ForName, string TeamName, string ChildId);
+    private record FilterOption(string Key, string Label);
+
+    private const string AllChildrenKey = "all";
 
     private bool _isLoading = true;
-    private bool _disposed;
     private List<UserAttendanceDto> _attendance = new();
     private List<UpcomingItem> _upcoming = new();
+    private List<ChildDto> _children = new();
+    private List<FilterOption> _childFilterOptions = new();
+    private string _selectedChildId = AllChildrenKey;
     private DateTime? _dateFrom = DateTime.Now.AddDays(-30);
     private DateTime? _dateTo = DateTime.Now;
 
+    private IEnumerable<UpcomingItem> FilteredUpcoming =>
+        _selectedChildId == AllChildrenKey
+            ? _upcoming
+            : _upcoming.Where(u => u.ChildId == _selectedChildId);
+
+    private IEnumerable<UserAttendanceDto> FilteredAttendance =>
+        _selectedChildId == AllChildrenKey
+            ? _attendance
+            : _attendance.Where(a => a.ChildId == _selectedChildId);
+
     protected override async Task OnInitializedAsync()
     {
-        UserContextService.Changed += OnContextChanged;
+        _children = await ChildrenApi.GetMyChildrenAsync();
+        BuildFilterOptions();
         await LoadUpcoming();
         await LoadAttendance();
     }
 
-    private async void OnContextChanged()
+    private void BuildFilterOptions()
     {
-        if (_disposed)
+        var realChildren = _children.Where(c => !c.IsOwnProfile).ToList();
+        if (realChildren.Count <= 1)
+        {
+            _childFilterOptions = new();
             return;
+        }
 
-        try
-        {
-            await LoadUpcoming();
-            if (!_disposed)
-                await InvokeAsync(StateHasChanged);
-        }
-        catch
-        {
-        }
+        var options = new List<FilterOption> { new(AllChildrenKey, "Všetky deti") };
+        options.AddRange(realChildren
+            .OrderBy(c => c.LastName).ThenBy(c => c.FirstName)
+            .Select(c => new FilterOption(c.Id, c.FirstName)));
+        _childFilterOptions = options;
     }
 
     private async Task LoadUpcoming()
     {
         try
         {
-            var people = await ChildrenApi.GetMyChildrenAsync();
-            var selected = UserContextService.SelectedOption;
-            var scopedPeople = selected is null || selected.Key == UserContextService.AllKey
-                ? people
-                : people.Where(p => p.Id == selected.ChildId).ToList();
-
-            var contextPeople = scopedPeople
-                .Select(p => new ContextPerson(p, p.IsOwnProfile ? "Seba" : $"{p.FirstName} {p.LastName}"))
-                .ToList();
-
-            var tasks = scopedPeople
+            var tasks = _children
                 .Where(p => p.TeamId.HasValue)
                 .Select(async p => new
                 {
@@ -235,10 +262,10 @@
 
             var results = await Task.WhenAll(tasks);
             _upcoming = results
-                .Where(r => contextPeople.Any(cp => cp.Person.Id == r.Person.Id))
                 .SelectMany(r => r.Trainings.Select(t => new UpcomingItem(t,
-                    contextPeople.First(cp => cp.Person.Id == r.Person.Id).ForName,
-                    r.Person.TeamName ?? "Bez tímu")))
+                    r.Person.IsOwnProfile ? "Seba" : $"{r.Person.FirstName} {r.Person.LastName}",
+                    r.Person.TeamName ?? "Bez tímu",
+                    r.Person.Id)))
                 .OrderBy(x => x.Training.StartTime)
                 .ToList();
         }
@@ -265,10 +292,7 @@
         }
     }
 
-    private int GetCount(AttendanceStatus status)
-    {
-        return _attendance.Count(a => a.Status == status);
-    }
+    private int GetCount(AttendanceStatus status) => FilteredAttendance.Count(a => a.Status == status);
 
     private async Task NavigateToExcuse()
     {
@@ -292,10 +316,4 @@
         AttendanceStatus.Excused => "Ospravedlnený",
         _ => "Neznámy"
     };
-
-    public void Dispose()
-    {
-        _disposed = true;
-        UserContextService.Changed -= OnContextChanged;
-    }
 }

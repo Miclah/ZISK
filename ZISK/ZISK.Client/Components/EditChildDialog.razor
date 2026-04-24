@@ -33,9 +33,9 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Zrušiť</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Disabled="@_isSaving">
-            @(_isSaving ? "Ukladá sa..." : "Uložiť")
-        </MudButton>
+        <LoadingButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Loading="@_isSaving">
+            Uložiť
+        </LoadingButton>
     </DialogActions>
 </MudDialog>
 

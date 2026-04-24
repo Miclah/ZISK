@@ -80,13 +80,11 @@
 
     <DialogActions>
         <MudButton OnClick="Cancel">Zrušiť</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitForm" Disabled="@(_isSubmitting || _isChild || !_children.Any())">
-            @if (_isSubmitting)
-            {
-                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-            }
+        <LoadingButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitForm"
+                       Loading="_isSubmitting" Disabled="@(_isChild || !_children.Any())"
+                       LoadingText="Odosielam...">
             Odoslať
-        </MudButton>
+        </LoadingButton>
     </DialogActions>
 </MudDialog>
 

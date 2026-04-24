@@ -21,12 +21,12 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Späť</MudButton>
-        <MudButton Color="Color.Error" Variant="Variant.Filled"
-                   Disabled="_isSubmitting || string.IsNullOrWhiteSpace(_reason)"
-                   OnClick="Confirm">
-            @if (_isSubmitting) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /> }
+        <LoadingButton Color="Color.Error" Variant="Variant.Filled"
+                       Loading="_isSubmitting"
+                       Disabled="string.IsNullOrWhiteSpace(_reason)"
+                       OnClick="Confirm" LoadingText="Ruším...">
             Zrušiť tréning
-        </MudButton>
+        </LoadingButton>
     </DialogActions>
 </MudDialog>
 

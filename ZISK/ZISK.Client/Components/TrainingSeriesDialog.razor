@@ -78,9 +78,9 @@
                                   For="@(() => _model.CoachNote)"
                                   Label="Poznámka trénera" Variant="Variant.Outlined" Lines="3" />
 
-                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" FullWidth="true" Disabled="@_saving">
+                    <LoadingButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" FullWidth="true" Loading="@_saving">
                         @(ExistingSeries is null ? "Vytvoriť sériu" : "Uložiť zmeny")
-                    </MudButton>
+                    </LoadingButton>
                 </MudStack>
             </EditForm>
         }

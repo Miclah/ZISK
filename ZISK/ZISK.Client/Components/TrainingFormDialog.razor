@@ -39,12 +39,11 @@
                 <MudTextField @bind-Value="_model.Title" For="@(() => _model.Title)"
                               Label="Názov (voliteľné)" Variant="Variant.Outlined"
                               Placeholder="Automaticky podľa typu" />
-                <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary"
-                           Variant="Variant.Filled" FullWidth="true"
-                           Disabled="_isSaving">
-                    @if (_isSaving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /> }
+                <LoadingButton ButtonType="ButtonType.Submit" Color="Color.Primary"
+                              Variant="Variant.Filled" FullWidth="true"
+                              Loading="_isSaving">
                     Uložiť
-                </MudButton>
+                </LoadingButton>
             </MudStack>
         </EditForm>
     </DialogContent>

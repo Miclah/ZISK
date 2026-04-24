@@ -43,7 +43,12 @@
 
 @if (_isLoading)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    <MudStack Spacing="2">
+        @for (int i = 0; i < 8; i++)
+        {
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="56px" />
+        }
+    </MudStack>
 }
 else if (_error != null)
 {
@@ -70,6 +75,14 @@ else
                 <MudTd>@(string.IsNullOrWhiteSpace(context.PhoneNumber) ? "-" : context.PhoneNumber)</MudTd>
                 <MudTd>@(string.IsNullOrWhiteSpace(context.TeamName) ? "Nepriradený" : context.TeamName)</MudTd>
                 <MudTd Style="text-align:right">
+                    @if (context.Role == "Child")
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward"
+                                       Color="Color.Warning"
+                                       Size="Size.Small"
+                                       Title="Povýšiť na športovca"
+                                       OnClick="() => ConfirmUpgradeToAthlete(context)" />
+                    }
                     <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                    Color="Color.Primary"
                                    Size="Size.Small"
@@ -112,6 +125,14 @@ else
                                 </MudText>
                             </MudStack>
                             <MudStack Row="true" Justify="Justify.FlexEnd">
+                                @if (user.Role == "Child")
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward"
+                                                   Color="Color.Warning"
+                                                   Size="Size.Small"
+                                                   Title="Povýšiť na športovca"
+                                                   OnClick="() => ConfirmUpgradeToAthlete(user)" />
+                                }
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                                Color="Color.Primary"
                                                Size="Size.Small"
@@ -208,17 +229,13 @@ else
                 }
 
                 <MudItem xs="12">
-                    <MudButton ButtonType="ButtonType.Submit"
-                               Color="Color.Primary"
-                               Variant="Variant.Filled"
-                               Disabled="_isSaving"
-                               FullWidth="true">
-                        @if (_isSaving)
-                        {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                        }
+                    <LoadingButton ButtonType="ButtonType.Submit"
+                                  Color="Color.Primary"
+                                  Variant="Variant.Filled"
+                                  Loading="_isSaving"
+                                  FullWidth="true">
                         Uložiť
-                    </MudButton>
+                    </LoadingButton>
                 </MudItem>
             </MudGrid>
         </EditForm>
