@@ -1,0 +1,116 @@
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Trainings
+@using ZISK.Shared.Enums
+@inject ITrainingsApi TrainingsApi
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        @if (Training is null)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            <MudStack Spacing="2">
+                @if (Training.IsCancelled)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true">
+                        Tréning je zrušený@(string.IsNullOrEmpty(Training.CancelledReason) ? "." : $": {Training.CancelledReason}")
+                    </MudAlert>
+                }
+
+                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Rounded.Event" Color="Color.Primary" Size="Size.Small" />
+                    <MudText Typo="Typo.body1">@Training.StartTime.ToString("dd.MM.yyyy HH:mm") – @Training.EndTime.ToString("HH:mm")</MudText>
+                </MudStack>
+
+                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Rounded.Groups" Color="Color.Primary" Size="Size.Small" />
+                    <MudText Typo="Typo.body2">@Training.TeamName</MudText>
+                </MudStack>
+
+                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Rounded.FitnessCenter" Color="Color.Primary" Size="Size.Small" />
+                    <MudChip T="string" Size="Size.Small" Style="@($"background:{TypeColor(Training.Type)};color:#fff;")">
+                        @GetTypeText(Training.Type)
+                    </MudChip>
+                    @if (Training.IsLocked)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning">Uzamknutý</MudChip>
+                    }
+                </MudStack>
+
+                @if (!string.IsNullOrWhiteSpace(Training.Location))
+                {
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@Icons.Material.Rounded.Place" Color="Color.Primary" Size="Size.Small" />
+                        <MudText Typo="Typo.body2">@Training.Location</MudText>
+                    </MudStack>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Training.CoachNote))
+                {
+                    <MudPaper Elevation="0" Class="pa-2" Style="background:var(--mud-palette-background-grey);">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Poznámka trénera</MudText>
+                        <MudText Typo="Typo.body2">@Training.CoachNote</MudText>
+                    </MudPaper>
+                }
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <AuthorizeView Roles="Admin,Coach">
+            <Authorized>
+                @if (Training is not null && !Training.IsCancelled)
+                {
+                    <MudButton Color="Color.Error" Variant="Variant.Outlined" Size="Size.Small"
+                               OnClick="OpenCancelDialog">Zrušiť tréning</MudButton>
+                }
+            </Authorized>
+        </AuthorizeView>
+        <MudButton OnClick="Close">Zavrieť</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public TrainingEventDto? Training { get; set; }
+
+    private async Task OpenCancelDialog()
+    {
+        if (Training is null) return;
+        var parameters = new DialogParameters<CancelTrainingDialog>
+        {
+            { x => x.TrainingId, Training.Id },
+            { x => x.TrainingTitle, Training.Title }
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<CancelTrainingDialog>("Zrušiť tréning", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+            MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private void Close() => MudDialog.Cancel();
+
+    private static string TypeColor(TrainingType type) => type switch
+    {
+        TrainingType.Technical => "#2563EB",
+        TrainingType.Conditioning => "#F97316",
+        TrainingType.Match => "#DC2626",
+        TrainingType.Recovery => "#059669",
+        _ => "#6B7280"
+    };
+
+    private static string GetTypeText(TrainingType type) => type switch
+    {
+        TrainingType.Conditioning => "Kondičný",
+        TrainingType.Technical => "Technický",
+        TrainingType.Match => "Herný",
+        TrainingType.Recovery => "Regeneračný",
+        _ => "Iný"
+    };
+}

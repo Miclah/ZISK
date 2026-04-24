@@ -1,0 +1,62 @@
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Trainings
+@inject ITrainingsApi TrainingsApi
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.body2">
+                Naozaj chcete zrušiť tréning <strong>@TrainingTitle</strong>?
+                Členom tímu bude odoslaný e-mail s oznámením.
+            </MudText>
+            <MudTextField @bind-Value="_reason"
+                          Label="Dôvod zrušenia"
+                          Variant="Variant.Outlined"
+                          Lines="3"
+                          Required="true"
+                          RequiredError="Dôvod je povinný."
+                          MaxLength="500" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Späť</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled"
+                   Disabled="_isSubmitting || string.IsNullOrWhiteSpace(_reason)"
+                   OnClick="Confirm">
+            @if (_isSubmitting) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /> }
+            Zrušiť tréning
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid TrainingId { get; set; }
+    [Parameter] public string TrainingTitle { get; set; } = "";
+
+    private string _reason = "";
+    private bool _isSubmitting;
+
+    private async Task Confirm()
+    {
+        if (string.IsNullOrWhiteSpace(_reason)) return;
+        _isSubmitting = true;
+        try
+        {
+            await TrainingsApi.CancelTrainingAsync(TrainingId, new CancelTrainingRequest(_reason));
+            Snackbar.Add("Tréning bol zrušený.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

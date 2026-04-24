@@ -1,0 +1,167 @@
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Trainings
+@using ZISK.Shared.DTOs.Teams
+@using ZISK.Shared.Enums
+@inject ITrainingsApi TrainingsApi
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <EditForm Model="@_model" OnValidSubmit="Save">
+            <DataAnnotationsValidator />
+            <MudStack Spacing="2">
+                @if (Teams.Count > 1)
+                {
+                    <MudSelect T="Guid?" @bind-Value="_teamId" Label="Tím" Variant="Variant.Outlined" Required="true">
+                        @foreach (var t in Teams)
+                        {
+                            <MudSelectItem Value="@((Guid?)t.Id)">@t.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                <MudDatePicker @bind-Date="_model.Date" For="@(() => _model.Date)"
+                               Label="Dátum" Variant="Variant.Outlined" />
+                <MudTimePicker @bind-Time="_model.From" For="@(() => _model.From)"
+                               Label="Čas od" Variant="Variant.Outlined" />
+                <MudTimePicker @bind-Time="_model.To" For="@(() => _model.To)"
+                               Label="Čas do" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_model.Location" For="@(() => _model.Location)"
+                              Label="Miesto" Variant="Variant.Outlined" />
+                <MudSelect T="TrainingType" @bind-Value="_model.Type" Label="Typ tréningu" Variant="Variant.Outlined">
+                    <MudSelectItem Value="TrainingType.Conditioning">Kondičný</MudSelectItem>
+                    <MudSelectItem Value="TrainingType.Technical">Technický</MudSelectItem>
+                    <MudSelectItem Value="TrainingType.Match">Herný / Zápas</MudSelectItem>
+                    <MudSelectItem Value="TrainingType.Recovery">Regeneračný</MudSelectItem>
+                    <MudSelectItem Value="TrainingType.Other">Iný</MudSelectItem>
+                </MudSelect>
+                <MudTextField @bind-Value="_model.CoachNote" For="@(() => _model.CoachNote)"
+                              Label="Poznámka trénera" Variant="Variant.Outlined" Lines="2" />
+                <MudTextField @bind-Value="_model.Title" For="@(() => _model.Title)"
+                              Label="Názov (voliteľné)" Variant="Variant.Outlined"
+                              Placeholder="Automaticky podľa typu" />
+                <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary"
+                           Variant="Variant.Filled" FullWidth="true"
+                           Disabled="_isSaving">
+                    @if (_isSaving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /> }
+                    Uložiť
+                </MudButton>
+            </MudStack>
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Cancel()">Zrušiť</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public List<TeamDto> Teams { get; set; } = [];
+    [Parameter] public Guid? DefaultTeamId { get; set; }
+    [Parameter] public DateTime? DefaultStart { get; set; }
+    [Parameter] public TrainingEventDto? Existing { get; set; }
+
+    private Guid? _teamId;
+    private bool _isSaving;
+    private FormModel _model = new();
+
+    protected override void OnParametersSet()
+    {
+        _teamId = DefaultTeamId ?? Teams.FirstOrDefault()?.Id;
+        if (Existing is not null)
+        {
+            _teamId = Existing.TeamId;
+            _model = new FormModel
+            {
+                Date = Existing.StartTime.Date,
+                From = Existing.StartTime.TimeOfDay,
+                To = Existing.EndTime.TimeOfDay,
+                Location = Existing.Location,
+                Type = Existing.Type,
+                CoachNote = Existing.CoachNote,
+                Title = Existing.Title
+            };
+        }
+        else
+        {
+            var start = DefaultStart ?? DateTime.Today.AddHours(17);
+            _model = new FormModel
+            {
+                Date = start.Date,
+                From = start.TimeOfDay,
+                To = start.AddHours(1.5).TimeOfDay,
+                Type = TrainingType.Conditioning
+            };
+        }
+    }
+
+    private async Task Save()
+    {
+        if (_teamId is null) return;
+        _isSaving = true;
+        try
+        {
+            var start = _model.Date!.Value.Date.Add(_model.From!.Value);
+            var end = _model.Date!.Value.Date.Add(_model.To!.Value);
+            var title = string.IsNullOrWhiteSpace(_model.Title)
+                ? DefaultTitle(_model.Type)
+                : _model.Title;
+
+            if (Existing is null)
+            {
+                await TrainingsApi.CreateTrainingAsync(new CreateTrainingEventRequest(
+                    _teamId.Value, title, start, end,
+                    NullIfEmpty(_model.Location), _model.Type, NullIfEmpty(_model.CoachNote)));
+            }
+            else
+            {
+                await TrainingsApi.UpdateTrainingAsync(Existing.Id, new UpdateTrainingEventRequest(
+                    title, start, end,
+                    NullIfEmpty(_model.Location), _model.Type,
+                    NullIfEmpty(_model.CoachNote), Existing.IsLocked));
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri ukladaní: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private static string DefaultTitle(TrainingType t) => t switch
+    {
+        TrainingType.Match => "Zápas",
+        TrainingType.Recovery => "Regenerácia",
+        TrainingType.Technical => "Technický tréning",
+        _ => "Kondičný tréning"
+    };
+
+    private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    private class FormModel
+    {
+        [Required(ErrorMessage = "Dátum je povinný.")]
+        public DateTime? Date { get; set; }
+
+        [Required(ErrorMessage = "Čas začiatku je povinný.")]
+        public TimeSpan? From { get; set; }
+
+        [Required(ErrorMessage = "Čas konca je povinný.")]
+        public TimeSpan? To { get; set; }
+
+        [StringLength(200)]
+        public string? Location { get; set; }
+
+        public TrainingType Type { get; set; } = TrainingType.Conditioning;
+
+        [StringLength(1000)]
+        public string? CoachNote { get; set; }
+
+        [StringLength(200)]
+        public string? Title { get; set; }
+    }
+}

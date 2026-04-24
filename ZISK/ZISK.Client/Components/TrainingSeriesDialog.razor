@@ -1,0 +1,251 @@
+@using System.ComponentModel.DataAnnotations
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Trainings
+@using ZISK.Shared.DTOs.Teams
+@using ZISK.Shared.DTOs.Seasons
+@using ZISK.Shared.Enums
+@inject ITrainingSeriesApi TrainingSeriesApi
+@inject ITeamsApi TeamsApi
+@inject ISeasonsApi SeasonsApi
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else
+        {
+            <EditForm Model="@_model" OnValidSubmit="SubmitAsync">
+                <DataAnnotationsValidator />
+                <MudStack Spacing="3">
+                    <MudTextField @bind-Value="_model.Title"
+                                  For="@(() => _model.Title)"
+                                  Label="Názov" Variant="Variant.Outlined" />
+
+                    <MudSelect T="Guid?" @bind-Value="_model.TeamId"
+                               For="@(() => _model.TeamId)"
+                               Label="Tím" Variant="Variant.Outlined">
+                        @foreach (var team in _teams)
+                        {
+                            <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudSelect T="Guid?" @bind-Value="_model.SeasonId"
+                               For="@(() => _model.SeasonId)"
+                               Label="Sezóna" Variant="Variant.Outlined">
+                        @foreach (var season in _seasons)
+                        {
+                            <MudSelectItem Value="@((Guid?)season.Id)">@season.Name (@season.StartDate – @season.EndDate)</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Dni v týždni (aspoň jeden)</MudText>
+                    <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1">
+                        @foreach (var day in _dayOptions)
+                        {
+                            <MudCheckBox @bind-Value="day.IsChecked" Label="@day.Label" Dense="true" />
+                        }
+                    </MudStack>
+                    @if (_daysError)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Error">Musíte vybrať aspoň jeden deň.</MudText>
+                    }
+
+                    <MudTimePicker @bind-Time="_model.StartTime"
+                                   For="@(() => _model.StartTime)"
+                                   Label="Začiatok" Variant="Variant.Outlined" AmPm="false" />
+
+                    <MudTimePicker @bind-Time="_model.EndTime"
+                                   For="@(() => _model.EndTime)"
+                                   Label="Koniec" Variant="Variant.Outlined" AmPm="false" />
+
+                    <MudTextField @bind-Value="_model.Location"
+                                  For="@(() => _model.Location)"
+                                  Label="Miesto" Variant="Variant.Outlined" />
+
+                    <MudSelect T="TrainingType" @bind-Value="_model.Type" Label="Typ tréningu" Variant="Variant.Outlined">
+                        <MudSelectItem Value="TrainingType.Conditioning">Kondičný</MudSelectItem>
+                        <MudSelectItem Value="TrainingType.Technical">Technický</MudSelectItem>
+                        <MudSelectItem Value="TrainingType.Match">Herný</MudSelectItem>
+                        <MudSelectItem Value="TrainingType.Recovery">Regeneračný</MudSelectItem>
+                        <MudSelectItem Value="TrainingType.Other">Iný</MudSelectItem>
+                    </MudSelect>
+
+                    <MudTextField @bind-Value="_model.CoachNote"
+                                  For="@(() => _model.CoachNote)"
+                                  Label="Poznámka trénera" Variant="Variant.Outlined" Lines="3" />
+
+                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" FullWidth="true" Disabled="@_saving">
+                        @(ExistingSeries is null ? "Vytvoriť sériu" : "Uložiť zmeny")
+                    </MudButton>
+                </MudStack>
+            </EditForm>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Zrušiť</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public bool IsAdmin { get; set; }
+    [Parameter] public Guid? TeamIdFilter { get; set; }
+    [Parameter] public TrainingSeriesDto? ExistingSeries { get; set; }
+
+    private bool _isLoading = true;
+    private bool _saving;
+    private bool _daysError;
+    private List<TeamDto> _teams = [];
+    private List<SeasonDto> _seasons = [];
+    private SeriesFormModel _model = new();
+
+    private class DayOption
+    {
+        public int Flag { get; init; }
+        public string Label { get; init; } = string.Empty;
+        public bool IsChecked { get; set; }
+    }
+
+    private readonly DayOption[] _dayOptions =
+    [
+        new() { Flag = 1, Label = "Po" },
+        new() { Flag = 2, Label = "Ut" },
+        new() { Flag = 4, Label = "St" },
+        new() { Flag = 8, Label = "Št" },
+        new() { Flag = 16, Label = "Pi" },
+        new() { Flag = 32, Label = "So" },
+        new() { Flag = 64, Label = "Ne" }
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _teams = await TeamsApi.GetTeamsAsync(true);
+            _seasons = await SeasonsApi.GetSeasonsAsync();
+
+            if (ExistingSeries != null)
+            {
+                _model = new SeriesFormModel
+                {
+                    Title = ExistingSeries.Title,
+                    TeamId = ExistingSeries.TeamId,
+                    SeasonId = ExistingSeries.SeasonId,
+                    StartTime = ExistingSeries.StartTime.ToTimeSpan(),
+                    EndTime = ExistingSeries.EndTime.ToTimeSpan(),
+                    Location = ExistingSeries.Location,
+                    Type = Enum.TryParse<TrainingType>(ExistingSeries.Type, out var t) ? t : TrainingType.Other,
+                    CoachNote = ExistingSeries.CoachNote
+                };
+                foreach (var day in _dayOptions)
+                    day.IsChecked = (ExistingSeries.DaysOfWeek & day.Flag) != 0;
+            }
+            else
+            {
+                _model.TeamId = TeamIdFilter ?? _teams.FirstOrDefault()?.Id;
+                _model.SeasonId = _seasons.FirstOrDefault(s => s.IsActive)?.Id ?? _seasons.FirstOrDefault()?.Id;
+                _model.StartTime = new TimeSpan(17, 0, 0);
+                _model.EndTime = new TimeSpan(18, 30, 0);
+            }
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        var daysOfWeek = _dayOptions.Where(d => d.IsChecked).Sum(d => d.Flag);
+        if (daysOfWeek == 0) { _daysError = true; return; }
+        _daysError = false;
+        _saving = true;
+
+        try
+        {
+            var startTime = TimeOnly.FromTimeSpan(_model.StartTime!.Value);
+            var endTime = TimeOnly.FromTimeSpan(_model.EndTime!.Value);
+
+            if (ExistingSeries is null)
+            {
+                var request = new CreateTrainingSeriesRequest(
+                    _model.TeamId!.Value,
+                    _model.SeasonId!.Value,
+                    _model.Title,
+                    daysOfWeek,
+                    startTime,
+                    endTime,
+                    string.IsNullOrWhiteSpace(_model.Location) ? null : _model.Location,
+                    _model.Type.ToString(),
+                    string.IsNullOrWhiteSpace(_model.CoachNote) ? null : _model.CoachNote);
+
+                var created = await TrainingSeriesApi.CreateSeriesAsync(request);
+
+                // Auto-generate instances for the next 14 days
+                var today = DateOnly.FromDateTime(DateTime.Today);
+                await TrainingSeriesApi.GenerateInstancesAsync(created.Id,
+                    new GenerateInstancesRequest(today, today.AddDays(14)));
+
+                Snackbar.Add("Séria vytvorená a tréningy vygenerované.", Severity.Success);
+            }
+            else
+            {
+                var request = new UpdateTrainingSeriesRequest(
+                    _model.Title,
+                    daysOfWeek,
+                    startTime,
+                    endTime,
+                    string.IsNullOrWhiteSpace(_model.Location) ? null : _model.Location,
+                    _model.Type.ToString(),
+                    string.IsNullOrWhiteSpace(_model.CoachNote) ? null : _model.CoachNote,
+                    IsActive: true);
+
+                await TrainingSeriesApi.UpdateSeriesAsync(ExistingSeries.Id, request);
+                Snackbar.Add("Séria aktualizovaná.", Severity.Success);
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private class SeriesFormModel
+    {
+        [Required(ErrorMessage = "Názov je povinný.")]
+        [StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2–200 znakov.")]
+        public string Title { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Tím je povinný.")]
+        public Guid? TeamId { get; set; }
+
+        [Required(ErrorMessage = "Sezóna je povinná.")]
+        public Guid? SeasonId { get; set; }
+
+        [Required(ErrorMessage = "Čas začiatku je povinný.")]
+        public TimeSpan? StartTime { get; set; }
+
+        [Required(ErrorMessage = "Čas konca je povinný.")]
+        public TimeSpan? EndTime { get; set; }
+
+        [StringLength(200, ErrorMessage = "Miesto môže mať max 200 znakov.")]
+        public string? Location { get; set; }
+
+        public TrainingType Type { get; set; } = TrainingType.Conditioning;
+
+        [StringLength(1000, ErrorMessage = "Poznámka môže mať max 1000 znakov.")]
+        public string? CoachNote { get; set; }
+    }
+}

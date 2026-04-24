@@ -2,13 +2,13 @@
 @using ZISK.Client.Layout
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Teams
+@using ZISK.Shared.DTOs.Invitations
 @using System.Security.Claims
-@using Refit
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ITeamsApi TeamsApi
-@inject IChildrenApi ChildrenApi
-@inject UserContextService UserContextService
+@inject IInvitationsApi InvitationsApi
+@inject ISnackbar Snackbar
 
 <MudThemeProvider Theme="AppTheme.SportClubTheme" />
 <MudPopoverProvider />
@@ -36,23 +36,6 @@
                 </MudChip>
             }
         </MudStack>
-
-        @if (_showContextSwitcher)
-        {
-            <MudSelect T="string"
-                       Value="@_selectedContextKey"
-                       ValueChanged="OnContextChanged"
-                       Label="Kontext"
-                       Variant="Variant.Outlined"
-                       Dense="true"
-                       Margin="Margin.Dense"
-                       Class="ml-2 appbar-context-select">
-                @foreach (var option in UserContextService.Options)
-                {
-                    <MudSelectItem Value="@option.Key">@option.Label</MudSelectItem>
-                }
-            </MudSelect>
-        }
 
         <MudSpacer />
 
@@ -136,6 +119,21 @@
 
     <MudMainContent Class="pa-6" Style="@MainContentStyle">
         <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
+            @if (_pendingInvitations.Any())
+            {
+                <MudStack Spacing="1" Class="mb-3">
+                    @foreach (var inv in _pendingInvitations)
+                    {
+                        <MudAlert Severity="Severity.Info" ShowCloseIcon="true" CloseIconClicked="@(() => DismissInvitation(inv))">
+                            Máte čakajúcu pozvánku na priradenie k dieťaťu <strong>@inv.ChildName</strong> od <strong>@inv.InitiatorName</strong>.
+                            <MudButton Size="Size.Small" Color="Color.Info" Variant="Variant.Filled" Class="ml-2"
+                                       OnClick="@(() => AcceptInvitation(inv))">
+                                Prijať
+                            </MudButton>
+                        </MudAlert>
+                    }
+                </MudStack>
+            }
             <ErrorBoundary>
                 <ChildContent>
                     @Body
@@ -168,8 +166,7 @@
     private bool _isCoach;
     private bool _isParentAthlete;
     private string? _coachTeamName;
-    private bool _showContextSwitcher;
-    private string _selectedContextKey = UserContextService.AllKey;
+    private List<PendingInvitationDto> _pendingInvitations = new();
 
     private string MainContentStyle => "background: var(--zisk-app-bg); min-height: 100vh;";
 
@@ -192,44 +189,13 @@
             }
         }
 
-        if (_isParentAthlete)
+        // Load pending email invitations for this user
+        try
         {
-            try
-            {
-                var children = await ChildrenApi.GetMyChildrenAsync();
-                var options = new List<UserContextOption>();
-
-                if (children.Count > 1)
-                {
-                    options.Add(new UserContextOption(UserContextService.AllKey, "Všetci", null, null, false));
-                }
-
-                foreach (var person in children.OrderBy(c => c.LastName).ThenBy(c => c.FirstName))
-                {
-                    var label = person.IsOwnProfile
-                        ? $"Moje tréningy ({person.FirstName})"
-                        : $"{person.FirstName} {person.LastName}";
-                    options.Add(new UserContextOption(person.Id.ToString(), label, person.Id, person.TeamId, person.IsOwnProfile));
-                }
-
-                if (!options.Any())
-                {
-                    options.Add(new UserContextOption(UserContextService.AllKey, "Všetci", null, null, false));
-                }
-
-                UserContextService.SetOptions(options);
-                _selectedContextKey = UserContextService.SelectedKey;
-                _showContextSwitcher = UserContextService.Options.Count > 1 && !string.IsNullOrWhiteSpace(_selectedContextKey);
-            }
-            catch (ApiException ex) when (ex.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
-            {
-                _showContextSwitcher = false;
-            }
-            catch
-            {
-                _showContextSwitcher = false;
-            }
+            _pendingInvitations = await InvitationsApi.GetPendingAsync();
         }
+        catch { }
+
     }
 
     private void DrawerToggle() => _drawerOpen = !_drawerOpen;
@@ -239,12 +205,22 @@
         NavigationManager.NavigateTo("/profil");
     }
 
-    private void OnContextChanged(string value)
+    private void DismissInvitation(PendingInvitationDto inv)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return;
+        _pendingInvitations.Remove(inv);
+    }
 
-        _selectedContextKey = value;
-        UserContextService.SetSelected(value);
+    private async Task AcceptInvitation(PendingInvitationDto inv)
+    {
+        try
+        {
+            await InvitationsApi.AcceptAsync(inv.Token);
+            _pendingInvitations.Remove(inv);
+            Snackbar.Add($"Úspešne prepojené s dieťaťom {inv.ChildName}!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
     }
 }
