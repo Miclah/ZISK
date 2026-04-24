@@ -1,0 +1,176 @@
+@page "/kalendar"
+@using ZISK.Client.Services
+@using ZISK.Client.Components
+@using ZISK.Shared.DTOs.Trainings
+@using ZISK.Shared.DTOs.Teams
+@using ZISK.Shared.Enums
+@attribute [Authorize]
+@inject ITrainingsApi TrainingsApi
+@inject ITeamsApi TeamsApi
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+<PageTitle>Kalendár tréningov</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3" Wrap="Wrap.Wrap">
+    <MudText Typo="Typo.h5">Kalendár tréningov</MudText>
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <AuthorizeView Roles="Parent">
+            <Authorized>
+                @if (_contextOptions.Count > 1)
+                {
+                    <MudSelect T="string" Value="@_selectedContext" ValueChanged="OnContextChanged"
+                               Label="Zobraziť za" Variant="Variant.Outlined" Dense="true" Style="min-width:180px">
+                        @foreach (var opt in _contextOptions)
+                        {
+                            <MudSelectItem Value="@opt.Key">@opt.Label</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="Admin,Coach">
+            <Authorized>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Rounded.Add"
+                           OnClick="OpenCreateDialog">
+                    Pridať tréning
+                </MudButton>
+            </Authorized>
+        </AuthorizeView>
+    </MudStack>
+</MudStack>
+
+<MudPaper Elevation="1" Class="pa-0">
+    <MudCalendar T="TrainingCalendarItem"
+                 @bind-View="_view"
+                 Items="_items"
+                 DateRangeChanged="OnDateRangeChangedAsync"
+                 ItemClicked="OnItemClickedAsync"
+                 ShowTodayButton="true"
+                 MonthCellMinHeight="80"
+                 ItemTemplate="_itemTemplate" />
+</MudPaper>
+
+@if (_isLoading)
+{
+    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="500px" Class="mt-1" />
+}
+
+@code {
+    private CalendarView _view = CalendarView.Month;
+    private List<TrainingCalendarItem> _items = [];
+    private bool _isLoading;
+    private DateRange? _lastRange;
+
+    private List<(string Key, string Label)> _contextOptions = [];
+    private string _selectedContext = "all";
+
+    private Guid? _editingTeamId;
+    private List<TeamDto> _myTeams = [];
+
+    private RenderFragment<TrainingCalendarItem> _itemTemplate => item =>
+        @<div class="training-chip @(item.IsCancelled ? "training-chip--cancelled" : "")"
+              style="background:@TypeColor(item.Type); color:#fff; padding:2px 6px; border-radius:4px; font-size:0.75rem; cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            @item.Text@(item.IsCancelled ? " ⊘" : "")
+        </div>;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _myTeams = await TeamsApi.GetTeamsAsync(true);
+        _editingTeamId = _myTeams.FirstOrDefault()?.Id;
+    }
+
+    private async Task OnDateRangeChangedAsync(DateRange range)
+    {
+        _lastRange = range;
+        await LoadItemsAsync(range);
+    }
+
+    private async Task LoadItemsAsync(DateRange range)
+    {
+        _isLoading = true;
+        StateHasChanged();
+        try
+        {
+            var from = range.Start ?? DateTime.Today.AddMonths(-1);
+            var to = range.End ?? DateTime.Today.AddMonths(2);
+            var trainings = await TrainingsApi.GetTrainingsAsync(null, from, to);
+
+            _items = trainings
+                .Select(t => new TrainingCalendarItem
+                {
+                    Start = t.StartTime,
+                    End = t.EndTime,
+                    Text = t.Title,
+                    TrainingId = t.Id,
+                    TrainingDto = t,
+                    Type = t.Type,
+                    IsCancelled = t.IsCancelled
+                })
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri načítaní tréningov: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task OnItemClickedAsync(TrainingCalendarItem item)
+    {
+        var parameters = new DialogParameters<TrainingDetailDialog>
+        {
+            { x => x.Training, item.TrainingDto }
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<TrainingDetailDialog>("Detail tréningu", parameters, options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled && _lastRange != null)
+            await LoadItemsAsync(_lastRange);
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<TrainingFormDialog>
+        {
+            { x => x.Teams, _myTeams },
+            { x => x.DefaultTeamId, _editingTeamId },
+            { x => x.DefaultStart, DateTime.Now.Date.AddHours(17) }
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<TrainingFormDialog>("Pridať tréning", parameters, options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled && _lastRange != null)
+            await LoadItemsAsync(_lastRange);
+    }
+
+    private void OnContextChanged(string key)
+    {
+        _selectedContext = key;
+        if (_lastRange != null) _ = LoadItemsAsync(_lastRange);
+    }
+
+    private static string TypeColor(TrainingType type) => type switch
+    {
+        TrainingType.Technical => "#2563EB",
+        TrainingType.Conditioning => "#F97316",
+        TrainingType.Match => "#DC2626",
+        TrainingType.Recovery => "#059669",
+        _ => "#6B7280"
+    };
+
+    public class TrainingCalendarItem : CalendarItem
+    {
+        public Guid TrainingId { get; init; }
+        public TrainingType Type { get; init; }
+        public bool IsCancelled { get; init; }
+        public TrainingEventDto TrainingDto { get; init; } = null!;
+    }
+}

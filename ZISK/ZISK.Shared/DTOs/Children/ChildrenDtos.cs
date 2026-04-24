@@ -23,3 +23,21 @@ public record ParentDto(
     DateTime JoinedAt,
     bool IsPrimary
 );
+
+public record UpdateChildRequest(
+    [Required][MaxLength(100)] string FirstName,
+    [Required][MaxLength(100)] string LastName,
+    [MaxLength(300)] string? Bydlisko,
+    [Required] DateOnly DateOfBirth,
+    Guid? TeamId
+);
+
+public record ChildDetailDto(
+    string Id,
+    string FirstName,
+    string LastName,
+    DateOnly? DateOfBirth,
+    string? Bydlisko,
+    Guid? TeamId,
+    string? TeamName
+);

@@ -23,7 +23,9 @@ public record UserAttendanceDto(
     DateTime Date,
     AttendanceStatus Status,
     string? Note,
-    string? CoachComment
+    string? CoachComment,
+    string ChildId,
+    string ChildName
 );
 
 public record AttendanceStatsDto(

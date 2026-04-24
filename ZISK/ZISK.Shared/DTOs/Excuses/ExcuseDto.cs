@@ -20,6 +20,7 @@ public record ExcuseDto(
 public record ExcuseListDto(
     Guid Id,
     Guid? TrainingEventId,
+    string ChildId,
     string ChildName,
     string TeamName,
     DateTime? DateFrom,

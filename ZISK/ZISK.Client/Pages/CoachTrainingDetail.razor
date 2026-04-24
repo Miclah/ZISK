@@ -12,7 +12,16 @@
 
 @if (_isLoading)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    <MudStack Spacing="3">
+        <MudSkeleton SkeletonType="SkeletonType.Text" Width="60%" Height="40px" />
+        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="120px" />
+        <MudStack Spacing="2">
+            @for (int i = 0; i < 5; i++)
+            {
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="56px" />
+            }
+        </MudStack>
+    </MudStack>
 }
 else if (_training is null)
 {

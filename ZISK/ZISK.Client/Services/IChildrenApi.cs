@@ -14,6 +14,12 @@ public interface IChildrenApi
     [Post("/api/children")]
     Task<ChildDto> CreateAsync([Body] CreateChildRequest request);
 
+    [Get("/api/children/{childId}")]
+    Task<ChildDetailDto> GetDetailAsync(string childId);
+
+    [Put("/api/children/{childId}")]
+    Task<ChildDetailDto> UpdateAsync(string childId, [Body] UpdateChildRequest request);
+
     [Get("/api/children/{childId}/parents")]
     Task<List<ParentDto>> GetParentsAsync(string childId);
 
@@ -21,5 +27,4 @@ public interface IChildrenApi
     Task RemoveParentAsync(string childId, string parentUserId);
 }
 
-public record ChildDto(string Id, string FirstName, string LastName, Guid? TeamId, string? TeamName, bool IsOwnProfile);
-public record ParentDto(string UserId, string FirstName, string LastName, string Email, DateTime JoinedAt, bool IsPrimary);
+public record ChildDto(string Id, string FirstName, string LastName, Guid? TeamId, string? TeamName, bool IsOwnProfile, DateOnly? DateOfBirth = null);

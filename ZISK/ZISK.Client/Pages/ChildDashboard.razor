@@ -1,10 +1,13 @@
 @page "/dieta"
 @using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Attendance
 @using ZISK.Shared.DTOs.Trainings
 @using ZISK.Shared.DTOs.Announcements
+@using ZISK.Shared.Enums
 @inject IChildrenApi ChildrenApi
 @inject ITrainingsApi TrainingsApi
 @inject IAnnouncementsApi AnnouncementsApi
+@inject IAttendanceApi AttendanceApi
 @inject ISnackbar Snackbar
 @attribute [Authorize(Roles = "Child")]
 
@@ -15,10 +18,45 @@
 
     @if (_isLoading)
     {
-        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        <MudGrid Spacing="3" Class="mb-4">
+            @for (int i = 0; i < 3; i++)
+            {
+                <MudItem xs="12" sm="4">
+                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="120px" />
+                </MudItem>
+            }
+        </MudGrid>
+        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="200px" />
     }
     else
     {
+        <MudCard Elevation="2" Class="mb-4">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Class="mb-2">Môj profil</MudText>
+                @if (_profile is null)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Profil nie je dostupný.</MudText>
+                }
+                else
+                {
+                    <MudGrid>
+                        <MudItem xs="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Meno</MudText>
+                            <MudText Typo="Typo.body2">@_profile.FirstName @_profile.LastName</MudText>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Dátum narodenia</MudText>
+                            <MudText Typo="Typo.body2">@(_profile.DateOfBirth?.ToString("dd.MM.yyyy") ?? "-")</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Tím</MudText>
+                            <MudText Typo="Typo.body2">@(_profile.TeamName ?? "Bez tímu")</MudText>
+                        </MudItem>
+                    </MudGrid>
+                }
+            </MudCardContent>
+        </MudCard>
+
         <MudCard Elevation="2" Class="mb-4">
             <MudCardContent>
                 <MudText Typo="Typo.h6" Class="mb-2">Môj najbližší tréning</MudText>
@@ -33,6 +71,59 @@
                         <MudText Typo="Typo.body2" Color="Color.Secondary">@_nextTraining.StartTime.ToString("dd.MM.yyyy HH:mm") - @_nextTraining.EndTime.ToString("HH:mm")</MudText>
                         <MudText Typo="Typo.body2" Color="Color.Secondary">Miesto: @(_nextTraining.Location ?? "Neuvedené")</MudText>
                     </MudStack>
+                }
+            </MudCardContent>
+        </MudCard>
+
+        <MudCard Elevation="2" Class="mb-4">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Class="mb-2">Moja dochádzka</MudText>
+                @if (_stats is not null)
+                {
+                    <MudGrid Class="mb-3">
+                        <MudItem xs="4">
+                            <MudPaper Elevation="0" Class="pa-2 text-center">
+                                <MudText Typo="Typo.h6" Color="Color.Success">@_stats.Present</MudText>
+                                <MudText Typo="Typo.caption">Prítomný</MudText>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="4">
+                            <MudPaper Elevation="0" Class="pa-2 text-center">
+                                <MudText Typo="Typo.h6" Color="Color.Error">@_stats.Absent</MudText>
+                                <MudText Typo="Typo.caption">Neprítomný</MudText>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="4">
+                            <MudPaper Elevation="0" Class="pa-2 text-center">
+                                <MudText Typo="Typo.h6" Color="Color.Warning">@_stats.Excused</MudText>
+                                <MudText Typo="Typo.caption">Ospravedlnený</MudText>
+                            </MudPaper>
+                        </MudItem>
+                    </MudGrid>
+                }
+
+                @if (!_recentAttendance.Any())
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Zatiaľ žiadne záznamy.</MudText>
+                }
+                else
+                {
+                    <MudTable Items="@_recentAttendance" Dense="true" Hover="true">
+                        <HeaderContent>
+                            <MudTh>Dátum</MudTh>
+                            <MudTh>Tréning</MudTh>
+                            <MudTh>Stav</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.Date.ToString("dd.MM.yyyy")</MudTd>
+                            <MudTd>@context.TrainingName</MudTd>
+                            <MudTd>
+                                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+                                    @GetStatusText(context.Status)
+                                </MudChip>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
                 }
             </MudCardContent>
         </MudCard>
@@ -63,10 +154,11 @@
 
 @code {
     private bool _isLoading = true;
-    private Guid? _teamId;
+    private ChildDto? _profile;
     private TrainingEventDto? _nextTraining;
-    private List<TrainingEventDto> _upcomingTrainings = [];
-    private List<AnnouncementListDto> _announcements = [];
+    private List<AnnouncementListDto> _announcements = new();
+    private List<UserAttendanceDto> _recentAttendance = new();
+    private AttendanceStatsDto? _stats;
 
     protected override async Task OnInitializedAsync()
     {
@@ -74,21 +166,30 @@
         {
             _isLoading = true;
             var profiles = await ChildrenApi.GetMyChildrenAsync();
-            var profile = profiles.FirstOrDefault();
-            if (profile?.TeamId is null)
-                return;
+            _profile = profiles.FirstOrDefault();
 
-            _teamId = profile.TeamId;
+            var seasonStart = new DateTime(DateTime.Now.Year, DateTime.Now.Month >= 8 ? 8 : 1, 1);
 
-            var trainingsTask = TrainingsApi.GetTrainingsAsync(_teamId, DateTime.Now, DateTime.Now.AddMonths(1));
-            var announcementsTask = AnnouncementsApi.GetAnnouncementsAsync(_teamId, null);
-            await Task.WhenAll(trainingsTask, announcementsTask);
+            if (_profile?.TeamId is not null)
+            {
+                var trainings = await TrainingsApi.GetTrainingsAsync(_profile.TeamId, DateTime.Now, DateTime.Now.AddMonths(1));
+                _nextTraining = trainings.OrderBy(t => t.StartTime).FirstOrDefault();
+                _announcements = (await AnnouncementsApi.GetAnnouncementsAsync(_profile.TeamId, null))
+                    .OrderByDescending(a => a.PublishDate).ToList();
+            }
 
-            _upcomingTrainings = (await trainingsTask).OrderBy(t => t.StartTime).ToList();
-            _nextTraining = _upcomingTrainings.FirstOrDefault();
-            _announcements = (await announcementsTask)
-                .OrderByDescending(a => a.PublishDate)
-                .ToList();
+            try
+            {
+                _stats = await AttendanceApi.GetMemberStatsAsync(_profile?.Id ?? string.Empty, seasonStart, DateTime.Now);
+            }
+            catch { }
+
+            try
+            {
+                _recentAttendance = (await AttendanceApi.GetMyAttendanceAsync(seasonStart, DateTime.Now))
+                    .OrderByDescending(a => a.Date).Take(10).ToList();
+            }
+            catch { }
         }
         catch (Exception ex)
         {
@@ -99,4 +200,20 @@
             _isLoading = false;
         }
     }
+
+    private Color GetStatusColor(AttendanceStatus status) => status switch
+    {
+        AttendanceStatus.Present => Color.Success,
+        AttendanceStatus.Absent => Color.Error,
+        AttendanceStatus.Excused => Color.Warning,
+        _ => Color.Default
+    };
+
+    private string GetStatusText(AttendanceStatus status) => status switch
+    {
+        AttendanceStatus.Present => "Prítomný",
+        AttendanceStatus.Absent => "Neprítomný",
+        AttendanceStatus.Excused => "Ospravedlnený",
+        _ => "Neznámy"
+    };
 }

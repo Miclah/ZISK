@@ -16,7 +16,15 @@
 
 @if (_isLoading)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    <MudGrid Spacing="3" Class="mb-4">
+        @for (int i = 0; i < 4; i++)
+        {
+            <MudItem xs="12" sm="6" lg="3">
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="120px" />
+            </MudItem>
+        }
+    </MudGrid>
+    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="200px" />
 }
 else
 {
