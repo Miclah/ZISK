@@ -90,7 +90,7 @@
         var options = new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
         var dialog = await DialogService.ShowAsync<CancelTrainingDialog>("Zrušiť tréning", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
             MudDialog.Close(DialogResult.Ok(true));
     }
 
@@ -99,10 +99,10 @@
     private static string TypeColor(TrainingType type) => type switch
     {
         TrainingType.Technical => "#2563EB",
-        TrainingType.Conditioning => "#F97316",
+        TrainingType.Conditioning => "#D97706",
         TrainingType.Match => "#DC2626",
-        TrainingType.Recovery => "#059669",
-        _ => "#6B7280"
+        TrainingType.Recovery => "#16A34A",
+        _ => "#64748B"
     };
 
     private static string GetTypeText(TrainingType type) => type switch

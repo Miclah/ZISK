@@ -14,8 +14,6 @@
 <PageTitle>Ospravedlnenky</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
-    <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 px-0" />
-
     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
             <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" Color="Color.Primary" />
@@ -184,13 +182,7 @@
             ? _excuses
             : _excuses.Where(e => e.ChildId == _selectedChildId);
 
-    private List<BreadcrumbItem> _breadcrumbs = new()
-    {
-        new BreadcrumbItem("Domov", href: "/domov"),
-        new BreadcrumbItem("Ospravedlnenky", href: null, disabled: true)
-    };
-
-    protected override async Task OnInitializedAsync()
+protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         _canCreateExcuse = !authState.User.IsInRole("Child");
@@ -283,7 +275,7 @@
         var dialog = await DialogService.ShowAsync<AddExcuseDialog>("Nová ospravedlnenka", options);
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadExcuses();
         }
@@ -307,7 +299,7 @@
         var dialog = await DialogService.ShowAsync<EditExcuseDialog>("Upraviť ospravedlnenku", parameters, options);
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadExcuses();
         }

@@ -11,8 +11,7 @@
 
 <PageTitle>Nástenka administrátora</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-<MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 px-0" />
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
     <MudIcon Icon="@Icons.Material.Filled.Dashboard" Size="Size.Large" Color="Color.Primary" />
@@ -141,13 +140,13 @@ else if (_dashboardStats != null)
             <MudPaper Class="pa-5" Elevation="2" Style="height: 100%;">
                 <MudText Typo="Typo.h6" Class="mb-2">Rýchle akcie</MudText>
                 <MudList T="string" Dense="true" Clickable="true">
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.PersonAdd" OnClick='() => NavigateTo("/admin/pouzivatelia")'>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.PersonAdd" OnClick='() => NavigateTo("/admin/pouzivatelia?action=create")'>
                         Pridať používateľa
                     </MudListItem>
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.GroupAdd" OnClick='() => NavigateTo("/admin/timy")'>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.GroupAdd" OnClick='() => NavigateTo("/admin/timy?action=create")'>
                         Vytvoriť nový tím
                     </MudListItem>
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.Campaign" OnClick='() => NavigateTo("/admin/systemove-oznamy")'>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Campaign" OnClick='() => NavigateTo("/admin/systemove-oznamy?action=create")'>
                         Zverejniť globálny oznam
                     </MudListItem>
                 </MudList>
@@ -164,13 +163,7 @@ else if (_dashboardStats != null)
     private List<UserListDto> _latestUsers = new();
     private int _coachCount;
 
-    private List<BreadcrumbItem> _breadcrumbs = new()
-    {
-        new BreadcrumbItem("Domov", href: "/"),
-        new BreadcrumbItem("Administrácia", href: null, disabled: true)
-    };
-
-    protected override async Task OnInitializedAsync()
+protected override async Task OnInitializedAsync()
     {
         await LoadDashboardData();
     }

@@ -8,12 +8,12 @@
 @inject IChildrenApi ChildrenApi
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject NavigationManager NavigationManager
 @attribute [Authorize(Roles = "Admin")]
 
 <PageTitle>Správa tímov</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-<MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 px-0" />
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
@@ -137,9 +137,6 @@ else
             </MudStack>
         </EditForm>
     </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="() => _editDialogVisible = false">Zrušiť</MudButton>
-    </DialogActions>
 </MudDialog>
 
 <MudDialog @bind-Visible="_rosterDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true })">
@@ -160,43 +157,46 @@ else
         {
             <MudGrid>
                 <MudItem xs="12" md="6">
-                    <MudPaper Class="pa-4" Elevation="1" Style="height: 400px; display: flex; flex-direction: column;">
+                    <MudPaper Class="pa-4" Elevation="1" Style="height: 400px; display: grid; grid-template-rows: auto auto 1fr; overflow: hidden;">
                         <MudText Typo="Typo.subtitle1" Class="mb-2">Dostupní / v iných tímoch</MudText>
-                        <MudTextField @bind-Value="_rosterSearch" Label="Hľadať" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-3" />
-                        <div style="flex-grow: 1; overflow-y: auto;">
-                            <MudList T="ChildDto" Dense="true">
-                                @foreach (var child in _availableChildren.Where(c => string.IsNullOrEmpty(_rosterSearch) || $"{c.FirstName} {c.LastName}".Contains(_rosterSearch, StringComparison.OrdinalIgnoreCase)))
-                                {
-                                    <MudListItem OnClick="() => AddChildToTeam(child)" T="ChildDto">
-                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                                            <MudText>@child.FirstName @child.LastName</MudText>
-                                            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" Color="Color.Primary" />
-                                        </MudStack>
-                                    </MudListItem>
-                                }
-                            </MudList>
+                        <MudTextField @bind-Value="_rosterSearch" Label="Hľadať" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-2" />
+                        <div style="overflow-y: auto; min-height: 0;">
+                            @{
+                                var filtered = _availableChildren.Where(c => string.IsNullOrEmpty(_rosterSearch) || $"{c.FirstName} {c.LastName}".Contains(_rosterSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+                            }
+                            @if (!filtered.Any())
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-2">Žiadni dostupní hráči</MudText>
+                            }
+                            @foreach (var child in filtered)
+                            {
+                                <MudButton FullWidth="true" Variant="Variant.Text" Color="Color.Default"
+                                           OnClick="() => AddChildToTeam(child)"
+                                           Style="justify-content: space-between; text-transform: none; height: 40px; padding: 0 8px;">
+                                    <MudText Typo="Typo.body2">@child.FirstName @child.LastName</MudText>
+                                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" Color="Color.Primary" />
+                                </MudButton>
+                            }
                         </div>
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="12" md="6">
-                    <MudPaper Class="pa-4 flex-column d-flex" Elevation="1" Style="height: 400px;">
-                        <MudText Typo="Typo.subtitle1" Class="mb-2">Aktuálna súpiska tímu</MudText>
-                        <div style="flex-grow: 1; overflow-y: auto;">
-                            <MudList T="TeamMemberDto" Dense="true">
-                                @if (!_rosterMembers.Any())
-                                {
-                                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="p-2">Tím je momentálne prázdny</MudText>
-                                }
-                                @foreach (var member in _rosterMembers)
-                                {
-                                    <MudListItem OnClick="() => RemoveChildFromTeam(member)" T="TeamMemberDto">
-                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                                            <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Color="Color.Error" />
-                                            <MudText>@member.FirstName @member.LastName</MudText>
-                                        </MudStack>
-                                    </MudListItem>
-                                }
-                            </MudList>
+                    <MudPaper Class="pa-4" Elevation="1" Style="height: 400px; display: grid; grid-template-rows: auto 1fr; overflow: hidden;">
+                        <MudText Typo="Typo.subtitle1" Class="mb-2">Aktuálna súpiska tímu (@_rosterMembers.Count)</MudText>
+                        <div style="overflow-y: auto; min-height: 0;">
+                            @if (!_rosterMembers.Any())
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-2">Tím je momentálne prázdny</MudText>
+                            }
+                            @foreach (var member in _rosterMembers)
+                            {
+                                <MudButton FullWidth="true" Variant="Variant.Text" Color="Color.Default"
+                                           OnClick="() => RemoveChildFromTeam(member)"
+                                           Style="justify-content: space-between; text-transform: none; height: 40px; padding: 0 8px;">
+                                    <MudText Typo="Typo.body2">@member.FirstName @member.LastName</MudText>
+                                    <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Color="Color.Error" />
+                                </MudButton>
+                            }
                         </div>
                     </MudPaper>
                 </MudItem>
@@ -227,16 +227,11 @@ else
     private List<ChildDto> _availableChildren = new();
     private List<ChildDto> _allChildren = new();
 
-    private List<BreadcrumbItem> _breadcrumbs = new()
-    {
-        new BreadcrumbItem("Domov", href: "/"),
-        new BreadcrumbItem("Administrácia", href: "/admin"),
-        new BreadcrumbItem("Správa tímov", href: null, disabled: true)
-    };
-
-    protected override async Task OnInitializedAsync()
+protected override async Task OnInitializedAsync()
     {
         await LoadData();
+        if (NavigationManager.Uri.Contains("action=create", StringComparison.OrdinalIgnoreCase))
+            OpenCreateDialog();
     }
 
     private async Task LoadData()

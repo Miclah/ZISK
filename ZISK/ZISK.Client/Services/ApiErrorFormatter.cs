@@ -8,6 +8,12 @@ public static class ApiErrorFormatter
 {
     public static string ToUserMessage(Exception exception, string fallback = "Nastala neočakávaná chyba.")
     {
+        if (exception is HttpRequestException)
+            return "Nepodarilo sa spojiť so serverom. Skontrolujte pripojenie a skúste znova.";
+
+        if (exception is TaskCanceledException)
+            return "Požiadavka bola prerušená. Skúste znova.";
+
         if (exception is ApiException apiException)
         {
             var contentMessage = ParseApiContent(apiException.Content);

@@ -8,8 +8,7 @@
 
 <PageTitle>Správa ospravedlneniek</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-<MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 px-0" />
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
     <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" Color="Color.Warning" />
@@ -76,14 +75,7 @@ else
     private string? _error;
     private List<ExcuseListDto> _excuses = new();
 
-    private List<BreadcrumbItem> _breadcrumbs = new()
-    {
-        new BreadcrumbItem("Domov", href: "/"),
-        new BreadcrumbItem("Administrácia", href: "/admin"),
-        new BreadcrumbItem("Ospravedlnenky", href: null, disabled: true)
-    };
-
-    protected override async Task OnInitializedAsync()
+protected override async Task OnInitializedAsync()
     {
         await LoadExcuses();
     }

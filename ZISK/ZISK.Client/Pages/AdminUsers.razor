@@ -7,8 +7,7 @@
 
 <PageTitle>Správa používateľov</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-<MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 px-0" />
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
@@ -106,26 +105,24 @@ else
             <MudStack Spacing="2">
                 @foreach (var user in FilteredUsers)
                 {
-                    <MudPaper Class="pa-3" Elevation="1">
-                        <MudStack Spacing="1">
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                <MudAvatar Size="Size.Medium" Color="@GetRoleColor(user.Role)">
+                    <MudPaper Class="pa-3" Elevation="1" Style="@($"border-left: 3px solid {GetRoleBorderColor(user.Role)};")">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="flex: 1; min-width: 0;">
+                                <MudAvatar Size="Size.Small" Color="@GetRoleColor(user.Role)" Style="flex-shrink: 0;">
                                     @GetUserInitials(user)
                                 </MudAvatar>
-                                <MudStack Spacing="0">
-                                    <MudText Typo="Typo.subtitle2">@user.FirstName @user.LastName</MudText>
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                        @(string.IsNullOrWhiteSpace(user.TeamName) ? "Nepriradený" : user.TeamName)
-                                    </MudText>
+                                <MudStack Spacing="0" Style="min-width: 0;">
+                                    <MudText Typo="Typo.subtitle2" Style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">@user.FirstName @user.LastName</MudText>
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                        <MudChip T="string" Size="Size.Small" Color="@GetRoleColor(user.Role)" Class="ma-0" Style="height: 18px; font-size: 11px;">@GetRoleText(user.Role)</MudChip>
+                                        @if (!string.IsNullOrWhiteSpace(user.TeamName))
+                                        {
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@user.TeamName</MudText>
+                                        }
+                                    </MudStack>
                                 </MudStack>
                             </MudStack>
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                <MudChip T="string" Size="Size.Small" Color="@GetRoleColor(user.Role)">@GetRoleText(user.Role)</MudChip>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                    Telefón: @(string.IsNullOrWhiteSpace(user.PhoneNumber) ? "-" : user.PhoneNumber)
-                                </MudText>
-                            </MudStack>
-                            <MudStack Row="true" Justify="Justify.FlexEnd">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="0" Style="flex-shrink: 0;">
                                 @if (user.Role == "Child")
                                 {
                                     <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward"
@@ -178,12 +175,14 @@ else
                 <MudItem xs="12" md="6">
                     <MudTextField @bind-Value="_editModel.Phone"
                                   For="@(() => _editModel.Phone)"
-                                  Label="Telefón" Variant="Variant.Outlined" />
+                                  Label="Telefón" Variant="Variant.Outlined"
+                                  Placeholder="+421 905 123 456" />
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudTextField @bind-Value="_editModel.RodneCislo"
                                   For="@(() => _editModel.RodneCislo)"
-                                  Label="Rodné číslo" Variant="Variant.Outlined" />
+                                  Label="Rodné číslo" Variant="Variant.Outlined"
+                                  Placeholder="991231/1234" />
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudDatePicker @bind-Date="_editModel.DateOfBirth"
@@ -203,14 +202,15 @@ else
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_editModel.Bydlisko"
                                   For="@(() => _editModel.Bydlisko)"
-                                  Label="Bydlisko" Variant="Variant.Outlined" Lines="2" />
+                                  Label="Bydlisko" Variant="Variant.Outlined" Lines="2"
+                                  Placeholder="Hlavná 1, 010 01 Žilina" />
                 </MudItem>
 
                 @if (_editModel.Role == "Child")
                 {
                     <MudItem xs="12">
                         <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
-                            Pri role Dieťa prepojte profil s minimálne jedným rodičom.
+                            Dieťa musí mať 1–2 rodičov.
                         </MudAlert>
                         <MudTextField @bind-Value="_parentSearch" Label="Hľadať rodiča" Variant="Variant.Outlined"
                                       Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-2" />
@@ -221,7 +221,8 @@ else
                                    Variant="Variant.Outlined"
                                    MultiSelection="true"
                                    SelectAll="true"
-                                   SelectAllText="Vybrať všetkých">
+                                   SelectAllText="Vybrať všetkých"
+                                   MultiSelectionTextFunc="@(ids => string.Join(", ", ids.Select(id => _parents.FirstOrDefault(p => p.Id == id)?.FullName ?? id)))">
                             @foreach (var parent in FilteredParents)
                             {
                                 <MudSelectItem Value="@parent.Id">@parent.FullName</MudSelectItem>
@@ -242,7 +243,4 @@ else
             </MudGrid>
         </EditForm>
     </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="CloseEditDialog">Zrušiť</MudButton>
-    </DialogActions>
 </MudDialog>

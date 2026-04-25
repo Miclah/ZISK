@@ -10,12 +10,14 @@
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.FirstName"
                                   Label="Meno"
+                                  Placeholder="Ján"
                                   For="@(() => Model.FirstName)"
                                   Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.LastName"
                                   Label="Priezvisko"
+                                  Placeholder="Novák"
                                   For="@(() => Model.LastName)"
                                   Variant="Variant.Outlined" />
                 </MudItem>
@@ -23,12 +25,14 @@
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.PhoneNumber"
                                   Label="Telefón"
+                                  Placeholder="+421 905 123 456"
                                   For="@(() => Model.PhoneNumber)"
                                   Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.Email"
                                   Label="Email"
+                                  Placeholder="jan.novak@email.com"
                                   For="@(() => Model.Email)"
                                   Variant="Variant.Outlined"
                                   InputType="InputType.Email" />
@@ -57,12 +61,14 @@
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.RodneCislo"
                                   Label="Rodné číslo"
+                                  Placeholder="991231/1234"
                                   For="@(() => Model.RodneCislo)"
                                   Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.Bydlisko"
                                   Label="Bydlisko"
+                                  Placeholder="Hlavná 1, 010 01 Žilina"
                                   For="@(() => Model.Bydlisko)"
                                   Variant="Variant.Outlined" />
                 </MudItem>
@@ -83,9 +89,6 @@
         </EditForm>
     </DialogContent>
 
-    <DialogActions>
-        <MudButton OnClick="Cancel">Zrušiť</MudButton>
-    </DialogActions>
 </MudDialog>
 
 @code {
@@ -127,7 +130,7 @@
         public string Role { get; set; } = "Parent";
 
         [Required(ErrorMessage = "Rodné číslo je povinné.")]
-        [StringLength(20, ErrorMessage = "Rodné číslo môže mať max 20 znakov.")]
+        [RegularExpression(@"^\d{6}[/]?\d{3,4}$", ErrorMessage = "Formát: 991231/1234")]
         public string? RodneCislo { get; set; }
 
         [StringLength(300, ErrorMessage = "Bydlisko môže mať max 300 znakov.")]

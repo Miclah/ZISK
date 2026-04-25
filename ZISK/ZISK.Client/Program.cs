@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -5,9 +6,20 @@ using MudBlazor.Services;
 using Refit;
 using ZISK.Client.Services;
 
+var slovakCulture = new CultureInfo("sk-SK");
+CultureInfo.DefaultThreadCurrentCulture = slovakCulture;
+CultureInfo.DefaultThreadCurrentUICulture = slovakCulture;
+CultureInfo.CurrentCulture = slovakCulture;
+CultureInfo.CurrentUICulture = slovakCulture;
+
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
-builder.Services.AddMudServices();
+builder.Services.AddMudServices(config =>
+{
+    config.SnackbarConfiguration.VisibleStateDuration = 1000;
+    config.SnackbarConfiguration.ShowTransitionDuration = 100;
+    config.SnackbarConfiguration.HideTransitionDuration = 300;
+});
 builder.Services.AddAuthorizationCore();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddAuthenticationStateDeserialization();
@@ -57,6 +69,10 @@ builder.Services.AddRefitClient<IChildrenApi>(refitSettings)
     .AddHttpMessageHandler<LoadingHttpMessageHandler>();
 
 builder.Services.AddRefitClient<IUsersApi>(refitSettings)
+    .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
+    .AddHttpMessageHandler<LoadingHttpMessageHandler>();
+
+builder.Services.AddRefitClient<IMeApi>(refitSettings)
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
     .AddHttpMessageHandler<LoadingHttpMessageHandler>();
 

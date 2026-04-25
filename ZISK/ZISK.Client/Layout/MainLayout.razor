@@ -58,66 +58,23 @@
 
         <AuthorizeView>
             <Authorized Context="authContext">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                    <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="NavigateToProfile" Class="px-2 py-1">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                            <MudAvatar Size="Size.Small" Class="appbar-user-avatar">
-                                @(authContext.User.FindFirst(ClaimTypes.GivenName)?.Value?.Length > 0
-                                    ? authContext.User.FindFirst(ClaimTypes.GivenName)!.Value[0].ToString().ToUpper()
-                                    : "?")
-                            </MudAvatar>
-                            <MudStack Spacing="0" Class="ml-2 d-none d-sm-flex" Style="text-align: left;">
-                                <MudText Typo="Typo.body2" Class="appbar-user-name">
-                                    @authContext.User.FindFirst(ClaimTypes.GivenName)?.Value @authContext.User.FindFirst(ClaimTypes.Surname)?.Value
-                                </MudText>
-                                <MudText Typo="Typo.caption" Class="appbar-user-role">
-                                    @authContext.User.FindFirst(ClaimTypes.Role)?.Value
-                                </MudText>
-                            </MudStack>
+                <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="NavigateToProfile" Class="px-2 py-1">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudAvatar Size="Size.Small" Class="appbar-user-avatar">
+                            @(authContext.User.FindFirst(ClaimTypes.GivenName)?.Value?.Length > 0
+                                ? authContext.User.FindFirst(ClaimTypes.GivenName)!.Value[0].ToString().ToUpper()
+                                : "?")
+                        </MudAvatar>
+                        <MudStack Spacing="0" Class="ml-2 d-none d-sm-flex" Style="text-align: left;">
+                            <MudText Typo="Typo.body2" Class="appbar-user-name">
+                                @authContext.User.FindFirst(ClaimTypes.GivenName)?.Value @authContext.User.FindFirst(ClaimTypes.Surname)?.Value
+                            </MudText>
+                            <MudText Typo="Typo.caption" Class="appbar-user-role">
+                                @authContext.User.FindFirst(ClaimTypes.Role)?.Value
+                            </MudText>
                         </MudStack>
-                    </MudButton>
-
-                    <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Icon="@Icons.Material.Rounded.KeyboardArrowDown">
-                    <ChildContent>
-                        <div style="min-width: 280px; padding: 0;">
-                            <div class="user-menu-header">
-                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
-                                    <MudAvatar Size="Size.Large" Class="user-menu-avatar">
-                                        @(authContext.User.FindFirst(ClaimTypes.GivenName)?.Value?.Length > 0
-                                            ? authContext.User.FindFirst(ClaimTypes.GivenName)!.Value[0].ToString().ToUpper()
-                                            : "?")
-                                    </MudAvatar>
-                                    <MudStack Spacing="0">
-                                        <MudText Typo="Typo.subtitle1" Style="font-weight: 700; color: white; line-height: 1.3;">
-                                            @authContext.User.FindFirst(ClaimTypes.GivenName)?.Value @authContext.User.FindFirst(ClaimTypes.Surname)?.Value
-                                        </MudText>
-                                        <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.65);">
-                                            @authContext.User.FindFirst(ClaimTypes.Email)?.Value
-                                        </MudText>
-                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="appbar-team-chip" Style="margin-top: 4px;">
-                                            @authContext.User.FindFirst(ClaimTypes.Role)?.Value
-                                        </MudChip>
-                                    </MudStack>
-                                </MudStack>
-                            </div>
-                            <div style="padding: 0.5rem;">
-                                <MudMenuItem Icon="@Icons.Material.Rounded.Person"
-                                             OnClick="NavigateToProfile"
-                                             Style="border-radius: 8px;">
-                                    Zobraziť profil
-                                </MudMenuItem>
-                                <MudDivider Class="my-1" />
-                                <MudMenuItem Icon="@Icons.Material.Rounded.Logout"
-                                             Href="/logout"
-                                             ForceLoad="true"
-                                             Style="border-radius: 8px; color: var(--zisk-logout-color);">
-                                    Odhlásiť sa
-                                </MudMenuItem>
-                            </div>
-                        </div>
-                    </ChildContent>
-                    </MudMenu>
-                </MudStack>
+                    </MudStack>
+                </MudButton>
             </Authorized>
         </AuthorizeView>
     </MudAppBar>
@@ -134,7 +91,7 @@
         </MudDrawerContainer>
     </MudDrawer>
 
-    <MudMainContent Class="pa-6" Style="@MainContentStyle">
+    <MudMainContent Class="px-6 pb-6" Style="@MainContentStyle">
         <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
             @if (_pendingInvitations.Any())
             {
@@ -153,7 +110,9 @@
             }
             <ErrorBoundary>
                 <ChildContent>
-                    @Body
+                    <div class="route-transition" @key="_routeKey">
+                        @Body
+                    </div>
                 </ChildContent>
                 <ErrorContent>
                     <MudPaper Class="pa-4" Elevation="2">
@@ -184,6 +143,7 @@
     private bool _isParentAthlete;
     private string? _coachTeamName;
     private List<PendingInvitationDto> _pendingInvitations = new();
+    private string _routeKey = string.Empty;
 
     private string MainContentStyle => "background: var(--zisk-bg); min-height: 100vh;";
 
@@ -200,6 +160,8 @@
     protected override async Task OnInitializedAsync()
     {
         ActivityTracker.StateChanged += OnActivityChanged;
+        NavigationManager.LocationChanged += OnLocationChanged;
+        _routeKey = NavigationManager.Uri;
 
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         _isCoach = authState.User.IsInRole("Coach");
@@ -243,10 +205,17 @@
 
     private void OnActivityChanged() => InvokeAsync(StateHasChanged);
 
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        _routeKey = e.Location;
+        InvokeAsync(StateHasChanged);
+    }
+
     public void Dispose()
     {
         ActivityTracker.StateChanged -= OnActivityChanged;
         OnlineStatus.StatusChanged -= OnOnlineStatusChanged;
+        NavigationManager.LocationChanged -= OnLocationChanged;
     }
 
     public async ValueTask DisposeAsync()
