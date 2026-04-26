@@ -120,12 +120,15 @@ public class UserService : IUserService
             }
 
             // Get parents via ParentChildren
-            parents = await _context.ParentChildren
+            var parentRows = await _context.ParentChildren
                 .Include(pc => pc.Parent)
                 .Where(pc => pc.ChildId == id)
-                .Select(p => new ParentOptionDto(p.ParentId, $"{p.Parent.FirstName} {p.Parent.LastName}"))
-                .OrderBy(p => p.FullName)
+                .Select(p => new { p.ParentId, p.Parent.FirstName, p.Parent.LastName })
                 .ToListAsync();
+            parents = parentRows
+                .Select(p => new ParentOptionDto(p.ParentId, $"{p.FirstName} {p.LastName}"))
+                .OrderBy(p => p.FullName)
+                .ToList();
         }
 
         return new UserDto(

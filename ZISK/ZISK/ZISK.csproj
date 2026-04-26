@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>aspnet-ZISK-0f639f72-1611-4f94-b4b5-4d1810ea966c</UserSecretsId>
+    <NoWarn>$(NoWarn);CS8669;MUD0002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

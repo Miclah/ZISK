@@ -12,10 +12,10 @@ public class AuditService : IAuditService
         _logger = logger;
     }
 
-    public void Log(string action, string entity, string entityId, ClaimsPrincipal user, object? details = null)
+    public void Log(string action, string entity, string entityId, ClaimsPrincipal? user, object? details = null)
     {
-        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
-        var role = user.FindFirstValue(ClaimTypes.Role) ?? "unknown";
+        var userId = user?.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
+        var role = user?.FindFirstValue(ClaimTypes.Role) ?? "unknown";
         var payload = details is null ? string.Empty : JsonSerializer.Serialize(details);
 
         _logger.LogInformation(

@@ -478,7 +478,7 @@
                 FirstName = _model.FirstName.Trim(),
                 LastName = _model.LastName.Trim(),
                 PhoneNumber = string.IsNullOrWhiteSpace(_model.PhoneNumber) ? null : _model.PhoneNumber,
-                RodneCislo = _model.RodneCislo.Trim(),
+                RodneCislo = _model.RodneCislo?.Trim() ?? string.Empty,
                 Bydlisko = _model.Bydlisko.Trim(),
                 DateOfBirth = _model.DateOfBirth.HasValue ? DateOnly.FromDateTime(_model.DateOfBirth.Value) : null,
                 EmailConfirmed = false,

@@ -141,7 +141,7 @@ public class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSender
             <p><strong>{initiator.FirstName} {initiator.LastName}</strong> vás pozýva, aby ste sa stali rodičom/opatrovníkom dieťaťa <strong>{childName}</strong> v systéme ZISK.</p>
             <p style="text-align: center; margin: 30px 0;">
                 <a href="{acceptUrl}"
-                   style="background-color: #4F46E5; color: white; padding: 12px 30px;
+                   style="background-color: #1E3A5F; color: white; padding: 12px 30px;
                           text-decoration: none; border-radius: 6px; font-weight: bold;
                           display: inline-block;">
                     Prijať pozvánku
@@ -150,7 +150,7 @@ public class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSender
             <p style="color: #666; font-size: 13px;">
                 Ak toto nie ste vy, tento email ignorujte.<br/>
                 Ak tlačidlo nefunguje, skopírujte tento odkaz do prehliadača:<br/>
-                <a href="{acceptUrl}" style="color: #4F46E5;">{acceptUrl}</a>
+                <a href="{acceptUrl}" style="color: #1E3A5F;">{acceptUrl}</a>
             </p>
             <p style="color: #999; font-size: 12px;">Pozvánka je platná 24 hodín.</p>
             """;
