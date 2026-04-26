@@ -1,0 +1,93 @@
+@using ZISK.Shared.DTOs.Users
+@inject IMeApi MeApi
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Rounded.Email" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Zmena emailu</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <EditForm Model="_model" OnValidSubmit="Submit">
+            <DataAnnotationsValidator />
+            <MudStack Spacing="3" Style="min-width:340px;">
+                @if (!string.IsNullOrWhiteSpace(CurrentEmail))
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                        Súčasný email: <strong>@CurrentEmail</strong>
+                    </MudAlert>
+                }
+                <MudTextField @bind-Value="_model.NewEmail"
+                              For="@(() => _model.NewEmail)"
+                              Label="Nový email"
+                              InputType="InputType.Email"
+                              Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_model.CurrentPassword"
+                              For="@(() => _model.CurrentPassword)"
+                              Label="Súčasné heslo (potvrdenie)"
+                              InputType="InputType.Password"
+                              Variant="Variant.Outlined" />
+            </MudStack>
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_isSubmitting">Zrušiť</MudButton>
+        <LoadingButton Color="Color.Primary" Variant="Variant.Filled"
+                       OnClick="SubmitForm" Loading="_isSubmitting"
+                       LoadingText="Ukladám...">
+            Zmeniť email
+        </LoadingButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public string? CurrentEmail { get; set; }
+
+    private FormModel _model = new();
+    private EditContext? _editContext;
+    private bool _isSubmitting;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitForm()
+    {
+        _editContext ??= new EditContext(_model);
+        if (!_editContext.Validate())
+            return;
+        await Submit();
+    }
+
+    private async Task Submit()
+    {
+        _isSubmitting = true;
+        try
+        {
+            await MeApi.ChangeMyEmailAsync(new ChangeMyEmailRequest(_model.NewEmail.Trim(), _model.CurrentPassword));
+            Snackbar.Add("Email bol zmenený.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    public class FormModel
+    {
+        [Required(ErrorMessage = "Nový email je povinný.")]
+        [EmailAddress(ErrorMessage = "Neplatný formát emailu.")]
+        public string NewEmail { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Súčasné heslo je povinné.")]
+        public string CurrentPassword { get; set; } = string.Empty;
+    }
+}

@@ -23,12 +23,6 @@
                         Match="NavLinkMatch.Prefix">
                 Oznamy
             </MudNavLink>
-
-            <MudNavLink Href="/profil"
-                        Icon="@Icons.Material.Rounded.Person"
-                        Match="NavLinkMatch.Prefix">
-                Môj profil
-            </MudNavLink>
         </AuthorizeView>
 
         <AuthorizeView Roles="Parent,Athlete">
@@ -37,16 +31,10 @@
                 Športovec / Rodič
             </MudText>
 
-            <MudNavLink Href="/dochadzka/prehlad"
+            <MudNavLink Href="/dochadzka"
                         Icon="@Icons.Material.Rounded.EventNote"
                         Match="NavLinkMatch.Prefix">
-                Prehľad dochádzky
-            </MudNavLink>
-
-            <MudNavLink Href="/ospravedlnenky"
-                        Icon="@Icons.Material.Rounded.Description"
-                        Match="NavLinkMatch.Prefix">
-                Ospravedlnenky
+                Dochádzka
             </MudNavLink>
         </AuthorizeView>
 
@@ -99,6 +87,12 @@
                 Môj tím
             </MudNavLink>
 
+            <MudNavLink Href="/coach/treningy"
+                        Icon="@Icons.Material.Rounded.FitnessCenter"
+                        Match="NavLinkMatch.Prefix">
+                Tréningy
+            </MudNavLink>
+
             <MudNavLink Href="/coach/oznamy"
                         Icon="@Icons.Material.Rounded.Announcement"
                         Match="NavLinkMatch.Prefix">
@@ -109,7 +103,7 @@
         <AuthorizeView Roles="Admin">
             <MudDivider Class="my-2 mx-2" Light="true" />
             <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1 nav-section-header">
-                Administrácia
+                Prehľad
             </MudText>
 
             <MudNavLink Href="/admin"
@@ -117,6 +111,17 @@
                         Match="NavLinkMatch.All">
                 Nástenka
             </MudNavLink>
+            <MudNavLink Href="/admin/statistiky"
+                        Icon="@Icons.Material.Rounded.BarChart"
+                        Match="NavLinkMatch.Prefix">
+                Štatistiky
+            </MudNavLink>
+
+            <MudDivider Class="my-2 mx-2" Light="true" />
+            <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1 nav-section-header">
+                Používatelia
+            </MudText>
+
             <MudNavLink Href="/admin/pouzivatelia"
                         Icon="@Icons.Material.Rounded.People"
                         Match="NavLinkMatch.Prefix">
@@ -127,6 +132,33 @@
                         Match="NavLinkMatch.Prefix">
                 Tímy
             </MudNavLink>
+
+            <MudDivider Class="my-2 mx-2" Light="true" />
+            <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1 nav-section-header">
+                Tréningy
+            </MudText>
+
+            <MudNavLink Href="/admin/treningy"
+                        Icon="@Icons.Material.Rounded.FitnessCenter"
+                        Match="NavLinkMatch.Prefix">
+                Tréningy
+            </MudNavLink>
+            <MudNavLink Href="/admin/sezony"
+                        Icon="@Icons.Material.Rounded.CalendarMonth"
+                        Match="NavLinkMatch.Prefix">
+                Sezóny
+            </MudNavLink>
+            <MudNavLink Href="/admin/ospravedlnenky"
+                        Icon="@Icons.Material.Rounded.Description"
+                        Match="NavLinkMatch.Prefix">
+                Ospravedlnenky
+            </MudNavLink>
+
+            <MudDivider Class="my-2 mx-2" Light="true" />
+            <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1 nav-section-header">
+                Komunikácia
+            </MudText>
+
             <MudNavLink Href="/admin/systemove-oznamy"
                         Icon="@Icons.Material.Rounded.Announcement"
                         Match="NavLinkMatch.Prefix">

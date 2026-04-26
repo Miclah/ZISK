@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
+using System.Globalization;
 using System.Threading.RateLimiting;
 using ZISK.Components;
 using ZISK.Components.Account;
@@ -10,6 +11,10 @@ using ZISK.Client.Services;
 using ZISK.Data;
 using ZISK.Extensions;
 using ZISK.Services;
+
+var slovakCulture = new CultureInfo("sk-SK");
+CultureInfo.DefaultThreadCurrentCulture = slovakCulture;
+CultureInfo.DefaultThreadCurrentUICulture = slovakCulture;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,7 +66,8 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddClaimsPrincipalFactory<CustomClaimsPrincipalFactory>()
     .AddSignInManager()
-    .AddDefaultTokenProviders();
+    .AddDefaultTokenProviders()
+    .AddErrorDescriber<SlovakIdentityErrorDescriber>();
 
 builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
     options.TokenLifespan = TimeSpan.FromHours(1));
@@ -122,10 +128,22 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddMudServices();
 builder.Services.AddScoped<UserContextService>();
+builder.Services.AddScoped<OnlineStatusService>();
+builder.Services.AddSingleton<HttpActivityTracker>();
 builder.Services.AddApplicationServices();
 builder.Services.AddRefitClients(builder.Configuration);
 
+builder.Services.Configure<Microsoft.AspNetCore.Builder.RequestLocalizationOptions>(options =>
+{
+    var supported = new[] { slovakCulture };
+    options.DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture(slovakCulture);
+    options.SupportedCultures = supported;
+    options.SupportedUICultures = supported;
+});
+
 var app = builder.Build();
+
+app.UseRequestLocalization();
 
 if (app.Environment.IsDevelopment())
 {

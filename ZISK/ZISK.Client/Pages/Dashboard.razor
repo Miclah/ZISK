@@ -1,5 +1,6 @@
 @page "/domov"
 @using System.Security.Claims
+@using System.Globalization
 @using ZISK.Client.Components
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Announcements
@@ -10,6 +11,7 @@
 @inject IAttendanceApi AttendanceApi
 @inject IChildrenApi ChildrenApi
 @inject ITrainingsApi TrainingsApi
+@inject IExcusesApi ExcusesApi
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -18,236 +20,285 @@
 
 <PageTitle>Nástenka</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    @if (_isLoading)
-    {
-        <MudStack Spacing="3">
-            <MudSkeleton SkeletonType="SkeletonType.Text" Width="40%" Height="40px" />
-            <MudGrid Spacing="3">
-                @for (int i = 0; i < 3; i++)
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-2">
+@if (_isLoading)
+{
+    <MudStack Spacing="3">
+        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="180px" />
+        <MudGrid Spacing="3">
+            @for (int i = 0; i < 3; i++)
+            {
+                <MudItem xs="12" sm="6" lg="4">
+                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="240px" />
+                </MudItem>
+            }
+        </MudGrid>
+    </MudStack>
+}
+else
+{
+    <MudPaper Elevation="0" Class="dashboard-hero mb-4">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start" Wrap="Wrap.Wrap" Spacing="3">
+            <MudStack Spacing="0">
+                <h1 class="dashboard-hero__greeting">Vitajte, @_firstName</h1>
+                <div class="dashboard-hero__subtitle">@_dateText</div>
+            </MudStack>
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                @if (_isParent)
                 {
-                    <MudItem xs="12" sm="6" lg="4">
-                        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="220px" />
-                    </MudItem>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                               StartIcon="@Icons.Material.Rounded.PersonAdd" OnClick="OpenAddChildDialog">
+                        Pridať dieťa
+                    </MudButton>
                 }
-            </MudGrid>
-        </MudStack>
-    }
-    else if (_isParent)
-    {
-        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
-            <MudText Typo="Typo.h4">Moja rodina</MudText>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd"
-                       OnClick="OpenAddChildDialog">
-                Pridať dieťa
-            </MudButton>
-        </MudStack>
-
-        @if (!_children.Any())
-        {
-            <MudPaper Class="pa-8 text-center" Elevation="1">
-                <MudIcon Icon="@Icons.Material.Filled.ChildCare" Size="Size.Large" Color="Color.Secondary" Class="mb-3" />
-                <MudText Typo="Typo.h6" Class="mb-2">Zatiaľ žiadne dieťa</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-                    Pridajte prvé dieťa alebo prijmite pozvánku od iného rodiča.
-                </MudText>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.PersonAdd"
-                           OnClick="OpenAddChildDialog">
-                    Pridať dieťa
+                <MudButton Variant="Variant.Outlined" Color="Color.Inherit"
+                           Style="border-color: rgba(255,255,255,0.4); color: #fff;"
+                           StartIcon="@Icons.Material.Rounded.Description"
+                           OnClick="OpenAddExcuseDialog">
+                    Nová ospravedlnenka
                 </MudButton>
-            </MudPaper>
-        }
-        else
-        {
-            <MudGrid Spacing="3" Class="mb-4">
-                @foreach (var card in _childCards)
-                {
-                    <MudItem xs="12" sm="6" lg="@(_childCards.Count >= 3 ? 4 : 6)">
-                        <MudCard Elevation="2" Class="h-100">
-                            <MudCardHeader>
-                                <CardHeaderContent>
-                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                        <MudAvatar Color="Color.Primary" Size="Size.Medium">
-                                            @((card.Child.FirstName.Length > 0 ? card.Child.FirstName[0] : '?').ToString().ToUpper())
-                                        </MudAvatar>
-                                        <MudStack Spacing="0">
-                                            <MudText Typo="Typo.subtitle1" Style="font-weight:600;">
-                                                @card.Child.FirstName @card.Child.LastName
-                                            </MudText>
-                                            @if (card.Age.HasValue)
-                                            {
-                                                <MudText Typo="Typo.caption" Color="Color.Secondary">@card.Age rokov</MudText>
-                                            }
-                                        </MudStack>
-                                    </MudStack>
-                                </CardHeaderContent>
-                            </MudCardHeader>
-                            <MudCardContent>
-                                <MudStack Spacing="2">
-                                    @if (!string.IsNullOrWhiteSpace(card.Child.TeamName))
-                                    {
-                                        <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Icon="@Icons.Material.Filled.Group">
-                                            @card.Child.TeamName
-                                        </MudChip>
-                                    }
-                                    else
-                                    {
-                                        <MudChip T="string" Size="Size.Small" Color="Color.Default">Bez tímu</MudChip>
-                                    }
+            </MudStack>
+        </MudStack>
 
-                                    <MudDivider />
+        <MudGrid Spacing="2" Class="mt-4">
+            <MudItem xs="6" sm="3">
+                <div class="dashboard-kpi">
+                    <div class="dashboard-kpi__value">@_kpiTrainingsThisWeek</div>
+                    <div class="dashboard-kpi__label">Tréningy tento týždeň</div>
+                </div>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <div class="dashboard-kpi">
+                    <div class="dashboard-kpi__value">@_kpiPendingExcuses</div>
+                    <div class="dashboard-kpi__label">Aktívne ospravedlnenky</div>
+                </div>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <div class="dashboard-kpi">
+                    <div class="dashboard-kpi__value">@_kpiRecentAnnouncements</div>
+                    <div class="dashboard-kpi__label">Nové oznamy (7 dní)</div>
+                </div>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <div class="dashboard-kpi">
+                    <div class="dashboard-kpi__value">@(_isParent ? _children.Count(c => !c.IsOwnProfile) : 1)</div>
+                    <div class="dashboard-kpi__label">@(_isParent ? "Detí v rodine" : "Profil")</div>
+                </div>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
 
-                                    <MudStack Spacing="0">
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Najbližší tréning</MudText>
-                                        @if (card.NextTraining is null)
-                                        {
-                                            <MudText Typo="Typo.body2">Žiadne plánované tréningy</MudText>
-                                        }
-                                        else
-                                        {
-                                            <MudText Typo="Typo.body2" Style="font-weight:500;">
-                                                @card.NextTraining.StartTime.ToString("dd.MM. HH:mm")
-                                            </MudText>
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                                @(card.NextTraining.Location ?? "Bez miesta") — @card.NextTraining.Title
-                                            </MudText>
-                                        }
-                                    </MudStack>
-
-                                    <MudStack Spacing="0">
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Dochádzka tento mesiac</MudText>
-                                        <MudText Typo="Typo.body2">
-                                            @card.MonthlyPresent z @card.MonthlyTotal tréningov
-                                        </MudText>
-                                    </MudStack>
-
-                                    <MudStack Spacing="0">
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Nové oznamy (7 dní)</MudText>
-                                        <MudText Typo="Typo.body2">@card.RecentAnnouncementCount</MudText>
-                                    </MudStack>
-                                </MudStack>
-                            </MudCardContent>
-                            <MudCardActions>
-                                <MudButton Variant="Variant.Text" Color="Color.Primary" FullWidth="true"
-                                           OnClick="@(() => NavigationManager.NavigateTo($"/dieta/{card.Child.Id}"))">
-                                    Zobraziť detaily
-                                </MudButton>
-                            </MudCardActions>
-                        </MudCard>
-                    </MudItem>
-                }
-            </MudGrid>
-
-            <MudText Typo="Typo.h6" Class="mb-3">Nadchádzajúce tréningy (14 dní)</MudText>
-            @if (!_upcomingMerged.Any())
+    <MudGrid Spacing="3">
+        <MudItem xs="12" lg="8">
+            @if (_isParent)
             {
-                <MudPaper Class="pa-4 mb-4" Elevation="1">
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne nadchádzajúce tréningy.</MudText>
-                </MudPaper>
-            }
-            else
-            {
-                <MudStack Spacing="2" Class="mb-4">
-                    @foreach (var item in _upcomingMerged)
-                    {
-                        <MudPaper Class="pa-3" Elevation="1">
-                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                <MudStack Spacing="0">
-                                    <MudText Typo="Typo.body1">@item.Training.Title</MudText>
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                        @item.Training.StartTime.ToString("dd.MM.yyyy HH:mm") — @(item.Training.Location ?? "Bez miesta")
-                                    </MudText>
-                                </MudStack>
-                                <MudChip T="string" Size="Size.Small" Color="Color.Info">@item.ChildName</MudChip>
-                            </MudStack>
-                        </MudPaper>
-                    }
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                    <MudText Typo="Typo.h6">Moja rodina</MudText>
                 </MudStack>
-            }
 
-            <MudText Typo="Typo.h6" Class="mb-3">Aktívne oznamy</MudText>
-            @if (!_announcements.Any())
-            {
-                <MudPaper Class="pa-4" Elevation="1">
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne aktívne oznamy.</MudText>
-                </MudPaper>
-            }
-            else
-            {
-                <MudStack Spacing="2">
-                    @foreach (var announcement in _announcements)
-                    {
-                        <MudPaper Class="pa-3" Elevation="1" Style="@GetAnnouncementStyle(announcement)">
-                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
-                                <MudStack Spacing="0">
-                                    <MudText Typo="Typo.subtitle2">@announcement.Title</MudText>
-                                    <MudText Typo="Typo.body2" Color="Color.Default">@announcement.ContentPreview</MudText>
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@announcement.PublishDate.ToString("dd.MM.yyyy HH:mm")</MudText>
-                                </MudStack>
-                                <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(announcement.Priority)">@GetPriorityText(announcement.Priority)</MudChip>
-                            </MudStack>
-                        </MudPaper>
-                    }
-                </MudStack>
-            }
-        }
-    }
-    else
-    {
-        @* Athlete view — simpler, single-person dashboard *@
-        <MudText Typo="Typo.h4" Class="mb-4">Nástenka</MudText>
-
-        <MudCard Elevation="2" Class="mb-4">
-            <MudCardContent>
-                <MudText Typo="Typo.h6" Class="mb-2">Najbližší tréning</MudText>
-                @if (_athleteNextTraining is null)
+                @if (!_childCards.Any())
                 {
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadny nadchádzajúci tréning.</MudText>
+                    <MudPaper Class="card-standard empty-state" Elevation="0">
+                        <MudIcon Icon="@Icons.Material.Rounded.ChildCare" Class="empty-state__icon" />
+                        <div class="empty-state__title">Zatiaľ žiadne dieťa</div>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Pridajte prvé dieťa alebo prijmite pozvánku od iného rodiča.
+                        </MudText>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2"
+                                   StartIcon="@Icons.Material.Rounded.PersonAdd"
+                                   OnClick="OpenAddChildDialog">
+                            Pridať dieťa
+                        </MudButton>
+                    </MudPaper>
                 }
                 else
                 {
-                    <MudStack Spacing="1">
-                        <MudText Typo="Typo.body1" Style="font-weight:600;">@_athleteNextTraining.Title</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">
-                            @_athleteNextTraining.StartTime.ToString("dd.MM.yyyy HH:mm") - @_athleteNextTraining.EndTime.ToString("HH:mm")
-                        </MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Miesto: @(_athleteNextTraining.Location ?? "Neuvedené")</MudText>
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-2"
-                                   OnClick='() => NavigationManager.NavigateTo("/rozvrh")'>
-                            Zobraziť rozvrh
+                    <MudGrid Spacing="3">
+                        @foreach (var card in _childCards)
+                        {
+                            <MudItem xs="12" sm="6" xl="@(_childCards.Count >= 3 ? 4 : 6)">
+                                <MudPaper Class="card-standard card-hover h-100 pa-4" Elevation="0">
+                                    <MudStack Spacing="3">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                            <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                                                @((card.Child.FirstName.Length > 0 ? card.Child.FirstName[0] : '?').ToString().ToUpper())
+                                            </MudAvatar>
+                                            <MudStack Spacing="0">
+                                                <MudText Typo="Typo.subtitle1" Style="font-weight:600;">
+                                                    @card.Child.FirstName @card.Child.LastName
+                                                </MudText>
+                                                @if (card.Age.HasValue)
+                                                {
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@card.Age rokov</MudText>
+                                                }
+                                            </MudStack>
+                                        </MudStack>
+
+                                        @if (!string.IsNullOrWhiteSpace(card.Child.TeamName))
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Icon="@Icons.Material.Rounded.Group">
+                                                @card.Child.TeamName
+                                            </MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Default">Bez tímu</MudChip>
+                                        }
+
+                                        <MudDivider />
+
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Najbližší tréning</MudText>
+                                            @if (card.NextTraining is null)
+                                            {
+                                                <MudText Typo="Typo.body2">Žiadne plánované tréningy</MudText>
+                                            }
+                                            else
+                                            {
+                                                <MudText Typo="Typo.body2" Style="font-weight:500;">
+                                                    @card.NextTraining.StartTime.ToString("dd.MM. HH:mm")
+                                                </MudText>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                    @(card.NextTraining.Location ?? "Bez miesta") — @card.NextTraining.Title
+                                                </MudText>
+                                            }
+                                        </MudStack>
+
+                                        <MudStack Row="true" Spacing="4">
+                                            <MudStack Spacing="0">
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">Dochádzka tento mesiac</MudText>
+                                                <MudText Typo="Typo.body2" Style="font-weight:500;">
+                                                    @card.MonthlyPresent / @card.MonthlyTotal
+                                                </MudText>
+                                            </MudStack>
+                                            <MudStack Spacing="0">
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">Nové oznamy</MudText>
+                                                <MudText Typo="Typo.body2" Style="font-weight:500;">@card.RecentAnnouncementCount</MudText>
+                                            </MudStack>
+                                        </MudStack>
+
+                                        <MudButton Variant="Variant.Text" Color="Color.Primary" FullWidth="true"
+                                                   EndIcon="@Icons.Material.Rounded.ChevronRight"
+                                                   OnClick="@(() => NavigationManager.NavigateTo($"/dieta/{card.Child.Id}"))">
+                                            Zobraziť detaily
+                                        </MudButton>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                }
+            }
+            else
+            {
+                <MudText Typo="Typo.h6" Class="mb-3">Najbližší tréning</MudText>
+                <MudPaper Class="card-standard pa-4" Elevation="0">
+                    @if (_athleteNextTraining is null)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadny nadchádzajúci tréning.</MudText>
+                    }
+                    else
+                    {
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.h6">@_athleteNextTraining.Title</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @_athleteNextTraining.StartTime.ToString("dd.MM.yyyy HH:mm") – @_athleteNextTraining.EndTime.ToString("HH:mm")
+                            </MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                Miesto: @(_athleteNextTraining.Location ?? "Neuvedené")
+                            </MudText>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" FullWidth="false"
+                                       StartIcon="@Icons.Material.Rounded.CalendarMonth"
+                                       OnClick='() => NavigationManager.NavigateTo("/kalendar")'>
+                                Zobraziť kalendár
+                            </MudButton>
+                        </MudStack>
+                    }
+                </MudPaper>
+            }
+        </MudItem>
+
+        <MudItem xs="12" lg="4">
+            <MudStack Spacing="3">
+                <MudPaper Class="card-standard pa-4" Elevation="0">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Najbližšie tréningy</MudText>
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                   EndIcon="@Icons.Material.Rounded.ChevronRight"
+                                   OnClick='() => NavigationManager.NavigateTo("/kalendar")'>
+                            Kalendár
                         </MudButton>
                     </MudStack>
-                }
-            </MudCardContent>
-        </MudCard>
 
-        <MudText Typo="Typo.h6" Class="mb-3">Oznamy</MudText>
-        @if (!_announcements.Any())
-        {
-            <MudPaper Class="pa-4" Elevation="1">
-                <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne nové oznamy.</MudText>
-            </MudPaper>
-        }
-        else
-        {
-            <MudStack Spacing="2">
-                @foreach (var announcement in _announcements)
-                {
-                    <MudPaper Class="pa-3" Elevation="1" Style="@GetAnnouncementStyle(announcement)">
-                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
-                            <MudStack Spacing="0">
-                                <MudText Typo="Typo.subtitle2">@announcement.Title</MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Default">@announcement.ContentPreview</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">@announcement.PublishDate.ToString("dd.MM.yyyy HH:mm")</MudText>
-                            </MudStack>
-                            <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(announcement.Priority)">@GetPriorityText(announcement.Priority)</MudChip>
+                    @if (!_upcomingMerged.Any())
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne nadchádzajúce tréningy.</MudText>
+                    }
+                    else
+                    {
+                        <MudStack Spacing="2">
+                            @foreach (var item in _upcomingMerged.Take(5))
+                            {
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.body2" Style="font-weight:500;">@item.Training.Title</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @item.Training.StartTime.ToString("dd.MM. HH:mm")
+                                            @if (!string.IsNullOrWhiteSpace(item.Training.Location))
+                                            {
+                                                <span> · @item.Training.Location</span>
+                                            }
+                                        </MudText>
+                                    </MudStack>
+                                    @if (_isParent)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Info">@item.ChildName</MudChip>
+                                    }
+                                </MudStack>
+                                <MudDivider />
+                            }
                         </MudStack>
-                    </MudPaper>
-                }
+                    }
+                </MudPaper>
+
+                <MudPaper Class="card-standard pa-4" Elevation="0">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Aktívne oznamy</MudText>
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                   EndIcon="@Icons.Material.Rounded.ChevronRight"
+                                   OnClick='() => NavigationManager.NavigateTo("/oznamy")'>
+                            Všetky
+                        </MudButton>
+                    </MudStack>
+
+                    @if (!_announcements.Any())
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne aktívne oznamy.</MudText>
+                    }
+                    else
+                    {
+                        <MudStack Spacing="2">
+                            @foreach (var announcement in _announcements.Take(5))
+                            {
+                                <div style="@GetAnnouncementStyle(announcement); padding: 8px 12px;">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start" Spacing="1">
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.body2" Style="font-weight:600;">@announcement.Title</MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                @announcement.PublishDate.ToString("dd.MM.yyyy")
+                                            </MudText>
+                                        </MudStack>
+                                        <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(announcement.Priority)">@GetPriorityText(announcement.Priority)</MudChip>
+                                    </MudStack>
+                                </div>
+                            }
+                        </MudStack>
+                    }
+                </MudPaper>
             </MudStack>
-        }
-    }
+        </MudItem>
+    </MudGrid>
+}
 </MudContainer>
 
 @code {
@@ -256,16 +307,27 @@
 
     private bool _isLoading = true;
     private bool _isParent;
+    private string _firstName = "";
+    private string _dateText = "";
     private List<ChildDto> _children = new();
     private List<ChildCard> _childCards = new();
     private List<UpcomingItem> _upcomingMerged = new();
     private List<AnnouncementListDto> _announcements = new();
     private TrainingEventDto? _athleteNextTraining;
 
+    private int _kpiTrainingsThisWeek;
+    private int _kpiPendingExcuses;
+    private int _kpiRecentAnnouncements;
+
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthStateProvider.GetAuthenticationStateAsync();
         _isParent = state.User.IsInRole("Parent");
+        _firstName = state.User.FindFirst(ClaimTypes.GivenName)?.Value ?? "";
+
+        var sk = new CultureInfo("sk-SK");
+        _dateText = char.ToUpper(DateTime.Now.ToString("dddd", sk)[0]) + DateTime.Now.ToString("dddd", sk).Substring(1) + ", " + DateTime.Now.ToString("d. MMMM yyyy", sk);
+
         await LoadData();
     }
 
@@ -284,6 +346,12 @@
             {
                 await LoadAthleteView();
             }
+
+            try
+            {
+                _kpiPendingExcuses = await ExcusesApi.GetPendingCountAsync();
+            }
+            catch { _kpiPendingExcuses = 0; }
         }
         catch (Exception ex)
         {
@@ -300,6 +368,7 @@
         var now = DateTime.Now;
         var monthStart = new DateTime(now.Year, now.Month, 1);
         var horizonEnd = now.AddDays(14);
+        var weekEnd = now.AddDays(7);
 
         var allAnnouncements = await AnnouncementsApi.GetAnnouncementsAsync(null, null);
         var childTeamNames = _children
@@ -311,10 +380,14 @@
             .Where(a => string.IsNullOrEmpty(a.TargetTeamName) || childTeamNames.Contains(a.TargetTeamName))
             .OrderByDescending(a => a.Priority)
             .ThenByDescending(a => a.PublishDate)
-            .Take(5)
+            .Take(8)
             .ToList();
 
         var recentThreshold = now.AddDays(-7);
+        _kpiRecentAnnouncements = allAnnouncements.Count(a =>
+            (string.IsNullOrEmpty(a.TargetTeamName) || childTeamNames.Contains(a.TargetTeamName))
+            && a.PublishDate >= recentThreshold);
+
         var cards = new List<ChildCard>();
         var mergedUpcoming = new List<UpcomingItem>();
 
@@ -359,24 +432,37 @@
             .OrderBy(u => u.Training.StartTime)
             .Take(10)
             .ToList();
+
+        _kpiTrainingsThisWeek = mergedUpcoming.Count(u => u.Training.StartTime <= weekEnd);
     }
 
     private async Task LoadAthleteView()
     {
+        var now = DateTime.Now;
+        var weekEnd = now.AddDays(7);
         var self = _children.FirstOrDefault();
         if (self?.TeamId is null)
         {
             _athleteNextTraining = null;
             _announcements = new();
+            _kpiTrainingsThisWeek = 0;
+            _kpiRecentAnnouncements = 0;
             return;
         }
 
-        var trainingsTask = TrainingsApi.GetTrainingsAsync(self.TeamId, DateTime.Now, DateTime.Now.AddMonths(1));
+        var trainingsTask = TrainingsApi.GetTrainingsAsync(self.TeamId, now, now.AddMonths(1));
         var announcementsTask = AnnouncementsApi.GetAnnouncementsAsync(self.TeamId, null);
         await Task.WhenAll(trainingsTask, announcementsTask);
 
-        _athleteNextTraining = (await trainingsTask).OrderBy(t => t.StartTime).FirstOrDefault();
-        _announcements = (await announcementsTask).OrderByDescending(a => a.PublishDate).Take(5).ToList();
+        var allTrainings = (await trainingsTask).OrderBy(t => t.StartTime).ToList();
+        _athleteNextTraining = allTrainings.FirstOrDefault();
+        _upcomingMerged = allTrainings.Take(10).Select(t => new UpcomingItem(t, self.FirstName)).ToList();
+        _kpiTrainingsThisWeek = allTrainings.Count(t => t.StartTime <= weekEnd);
+
+        var allAnn = (await announcementsTask).OrderByDescending(a => a.PublishDate).ToList();
+        _announcements = allAnn.Take(8).ToList();
+        var threshold = now.AddDays(-7);
+        _kpiRecentAnnouncements = allAnn.Count(a => a.PublishDate >= threshold);
     }
 
     private int? CalculateAge(ChildDto child)
@@ -423,6 +509,16 @@
         var result = await dialog.Result;
 
         if (result is not null && !result.Canceled)
+            await LoadData();
+    }
+
+    private async Task OpenAddExcuseDialog()
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<AddExcuseDialog>("Nová ospravedlnenka", options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
             await LoadData();
     }
 }

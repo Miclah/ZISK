@@ -1,0 +1,9 @@
+<MudStack Spacing="0">
+    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@Label</MudText>
+    <MudText Typo="Typo.body1">@(string.IsNullOrWhiteSpace(Value) ? "—" : Value)</MudText>
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    [Parameter] public string? Value { get; set; }
+}

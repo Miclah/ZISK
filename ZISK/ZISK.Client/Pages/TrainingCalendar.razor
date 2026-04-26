@@ -13,7 +13,7 @@
 
 <PageTitle>Kalendár tréningov</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-2">
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3" Wrap="Wrap.Wrap">
     <MudText Typo="Typo.h5">Kalendár tréningov</MudText>
 
@@ -45,21 +45,94 @@
     </MudStack>
 </MudStack>
 
-<MudPaper Elevation="1" Class="pa-0">
-    <MudCalendar T="TrainingCalendarItem"
-                 @bind-View="_view"
-                 Items="_items"
-                 DateRangeChanged="OnDateRangeChangedAsync"
-                 ItemClicked="OnItemClickedAsync"
-                 ShowTodayButton="true"
-                 MonthCellMinHeight="80"
-                 ItemTemplate="_itemTemplate" />
-</MudPaper>
+<MudGrid Spacing="3">
+    <MudItem xs="12" lg="8" xl="9">
+        <MudPaper Elevation="0" Class="card-standard pa-0">
+            <MudCalendar T="TrainingCalendarItem"
+                         @bind-View="_view"
+                         Items="_items"
+                         DateRangeChanged="OnDateRangeChangedAsync"
+                         ItemClicked="OnItemClickedAsync"
+                         ShowTodayButton="true"
+                         MonthCellMinHeight="100"
+                         ItemTemplate="_itemTemplate" />
+        </MudPaper>
 
-@if (_isLoading)
-{
-    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="500px" Class="mt-1" />
-}
+        @if (_isLoading)
+        {
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="500px" Class="mt-1" />
+        }
+    </MudItem>
+
+    <MudItem xs="12" lg="4" xl="3">
+        <MudHidden Breakpoint="Breakpoint.MdAndDown">
+            <MudStack Spacing="3">
+                <MudPaper Elevation="0" Class="card-standard pa-4">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight:600;" Class="mb-3">Legenda</MudText>
+                    <MudStack Spacing="2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <span class="training-chip training-chip--conditioning" style="display:inline-block;min-width:14px;height:14px;border-radius:50%;"></span>
+                            <MudText Typo="Typo.body2">Kondičný</MudText>
+                        </MudStack>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <span class="training-chip training-chip--technical" style="display:inline-block;min-width:14px;height:14px;border-radius:50%;"></span>
+                            <MudText Typo="Typo.body2">Technický</MudText>
+                        </MudStack>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <span class="training-chip training-chip--match" style="display:inline-block;min-width:14px;height:14px;border-radius:50%;"></span>
+                            <MudText Typo="Typo.body2">Zápas</MudText>
+                        </MudStack>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <span class="training-chip training-chip--recovery" style="display:inline-block;min-width:14px;height:14px;border-radius:50%;"></span>
+                            <MudText Typo="Typo.body2">Regenerácia</MudText>
+                        </MudStack>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <span class="training-chip training-chip--other" style="display:inline-block;min-width:14px;height:14px;border-radius:50%;"></span>
+                            <MudText Typo="Typo.body2">Iné</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudPaper>
+
+                <MudPaper Elevation="0" Class="card-standard pa-4">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight:600;" Class="mb-1">Najbližšie tréningy</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
+                        @_items.Count(i => !i.IsCancelled) v zobrazenom období
+                    </MudText>
+
+                    @{
+                        var upcoming = _items
+                            .Where(i => i.Start >= DateTime.Now && !i.IsCancelled)
+                            .OrderBy(i => i.Start)
+                            .Take(5)
+                            .ToList();
+                    }
+
+                    @if (!upcoming.Any())
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne nadchádzajúce tréningy.</MudText>
+                    }
+                    else
+                    {
+                        <MudStack Spacing="2">
+                            @foreach (var item in upcoming)
+                            {
+                                <div style="cursor:pointer;" @onclick="@(() => OnItemClickedAsync(item))">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.body2" Style="font-weight:500;">@item.Text</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @item.Start.ToString("dd.MM. HH:mm")
+                                        </MudText>
+                                    </MudStack>
+                                    <MudDivider Class="mt-2" />
+                                </div>
+                            }
+                        </MudStack>
+                    }
+                </MudPaper>
+            </MudStack>
+        </MudHidden>
+    </MudItem>
+</MudGrid>
 </MudContainer>
 
 @code {
