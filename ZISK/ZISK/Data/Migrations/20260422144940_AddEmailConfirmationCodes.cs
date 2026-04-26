@@ -57,6 +57,10 @@ namespace ZISK.Data.Migrations
                 type: "uniqueidentifier",
                 nullable: true);
 
+            migrationBuilder.DropPrimaryKey(
+                name: "PK_ParentChildren",
+                table: "ParentChildren");
+
             migrationBuilder.AlterColumn<string>(
                 name: "ChildId",
                 table: "ParentChildren",
@@ -64,6 +68,11 @@ namespace ZISK.Data.Migrations
                 nullable: false,
                 oldClrType: typeof(Guid),
                 oldType: "uniqueidentifier");
+
+            migrationBuilder.AddPrimaryKey(
+                name: "PK_ParentChildren",
+                table: "ParentChildren",
+                columns: new[] { "ParentId", "ChildId" });
 
             migrationBuilder.AlterColumn<string>(
                 name: "ChildId",
@@ -183,7 +192,7 @@ namespace ZISK.Data.Migrations
                         column: x => x.TeamId,
                         principalTable: "Teams",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(

@@ -20,60 +20,140 @@ body {
 }
 
 :root {
-    --zisk-gradient-primary: linear-gradient(135deg, #312E81, #4F46E5);
-    --zisk-training-conditioning: #F97316;
+    /* ========== PRIMARY ========== */
+    --zisk-primary: #1E3A5F;
+    --zisk-primary-hover: #2B4A7A;
+    --zisk-primary-pressed: #15304D;
+    --zisk-primary-ink: #0F172A;
+
+    /* ========== ACCENT ========== */
+    --zisk-accent: #D97706;
+    --zisk-accent-hover: #F59E0B;
+    --zisk-accent-soft: #FEF3C7;
+
+    /* ========== SLATE NEUTRALS ========== */
+    --zisk-slate-50: #F8FAFC;
+    --zisk-slate-100: #F1F5F9;
+    --zisk-slate-200: #E2E8F0;
+    --zisk-slate-300: #CBD5E1;
+    --zisk-slate-400: #94A3B8;
+    --zisk-slate-500: #64748B;
+    --zisk-slate-600: #475569;
+    --zisk-slate-700: #334155;
+    --zisk-slate-800: #1E293B;
+    --zisk-slate-900: #0F172A;
+
+    /* ========== SURFACES ========== */
+    --zisk-bg: #F1F5F9;
+    --zisk-surface: #FFFFFF;
+
+    /* ========== TEXT ========== */
+    --zisk-text-primary: #0F172A;
+    --zisk-text-secondary: #64748B;
+    --zisk-text-tertiary: #94A3B8;
+    --zisk-text-on-dark: #FFFFFF;
+    --zisk-text-on-dark-muted: rgba(255, 255, 255, 0.75);
+    --zisk-text-on-dark-subtle: rgba(255, 255, 255, 0.55);
+
+    /* ========== SEMANTIC ========== */
+    --zisk-success: #16A34A;
+    --zisk-success-tint: #DCFCE7;
+    --zisk-warning: #D97706;
+    --zisk-warning-tint: #FEF3C7;
+    --zisk-error: #DC2626;
+    --zisk-error-tint: #FEE2E2;
+    --zisk-info: #2563EB;
+    --zisk-info-tint: #DBEAFE;
+
+    /* ========== TRAINING TYPES ========== */
+    --zisk-training-conditioning: #D97706;
     --zisk-training-technical: #2563EB;
     --zisk-training-match: #DC2626;
-    --zisk-training-recovery: #059669;
-    --zisk-training-other: #6B7280;
-    --zisk-gradient-accent: linear-gradient(135deg, #F97316, #EA580C);
-    --zisk-app-bg: #F8FAFC;
-    --zisk-appbar-border: rgba(255, 255, 255, 0.08);
-    --zisk-drawer-border: #E2E8F0;
-    --zisk-nav-section-color: #94A3B8;
-    --zisk-nav-section-font-size: 0.65rem;
-    --zisk-logout-color: #DC2626;
+    --zisk-training-recovery: #16A34A;
+    --zisk-training-other: #64748B;
+
+    /* ========== GRADIENTS ========== */
+    --zisk-gradient-primary: linear-gradient(135deg, #0F172A, #1E3A5F);
+    --zisk-gradient-accent: linear-gradient(135deg, #D97706, #B45309);
+
+    /* ========== SHADOWS ========== */
+    --zisk-shadow-subtle: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+    --zisk-shadow-raised: 0 4px 12px rgba(15, 23, 42, 0.1);
+    --zisk-shadow-overlay: 0 10px 24px rgba(15, 23, 42, 0.12);
+    --zisk-shadow-modal: 0 24px 48px rgba(15, 23, 42, 0.2);
+    --zisk-shadow-fab: 0 4px 12px rgba(30, 58, 95, 0.3);
+    --zisk-shadow-focus-primary: 0 0 0 3px rgba(30, 58, 95, 0.25);
+
+    /* ========== BORDERS ========== */
+    --zisk-border-default: #E2E8F0;
+    --zisk-border-emphasis: #CBD5E1;
+    --zisk-border-on-dark: rgba(255, 255, 255, 0.15);
+
+    /* ========== RADIUS ========== */
+    --zisk-radius-sm: 4px;
+    --zisk-radius-md: 8px;
+    --zisk-radius-lg: 12px;
+    --zisk-radius-xl: 16px;
+
+    /* ========== LAYOUT ========== */
+    --zisk-appbar-height: 64px;
+    --zisk-appbar-height-mobile: 56px;
+    --zisk-drawer-width: 280px;
+    --zisk-drawer-mini-width: 72px;
+
+    /* ========== CHIPS (existing overlay patterns) ========== */
     --zisk-chip-overlay: rgba(255, 255, 255, 0.15);
-    --zisk-text-on-dark-muted: rgba(255, 255, 255, 0.55);
+    --zisk-nav-section-color: #94A3B8;
+    --zisk-nav-section-font-size: 0.6875rem;
+    --zisk-logout-color: #DC2626;
 }
 
+/* ============================================================
+   APPBAR / BRAND
+============================================================ */
 .zisk-logo-text {
+    font-family: "Inter", "Segoe UI", Roboto, system-ui, -apple-system, sans-serif;
+    font-size: 18px;
     font-weight: 700;
-    letter-spacing: -0.5px;
+    letter-spacing: -0.02em;
+    color: var(--zisk-text-on-dark);
 }
 
 .appbar-version-chip {
     color: rgba(255, 255, 255, 0.6) !important;
     border-color: rgba(255, 255, 255, 0.2) !important;
-    font-size: 0.65rem !important;
+    font-size: 11px !important;
     height: 20px !important;
 }
 
 .appbar-team-chip {
     background: var(--zisk-chip-overlay) !important;
-    color: white !important;
-    font-size: 0.65rem !important;
-    height: 20px !important;
+    color: var(--zisk-text-on-dark) !important;
+    font-size: 12px !important;
+    height: 22px !important;
+    border-radius: 11px !important;
+    padding: 0 10px !important;
 }
 
 .appbar-context-select {
     max-width: 220px;
     background: rgba(255, 255, 255, 0.06);
-    border-radius: 8px;
+    border-radius: var(--zisk-radius-md);
 }
 
 .appbar-user-avatar {
     background: var(--zisk-gradient-accent) !important;
     width: 32px !important;
     height: 32px !important;
-    font-size: 0.8rem !important;
+    font-size: 13px !important;
     font-weight: 700 !important;
+    color: var(--zisk-text-on-dark) !important;
 }
 
 .appbar-user-name {
     font-weight: 600;
     line-height: 1.2;
-    color: white;
+    color: var(--zisk-text-on-dark);
 }
 
 .appbar-user-role {
@@ -82,75 +162,821 @@ body {
     font-size: 0.7rem;
 }
 
+/* ============================================================
+   USER MENU (avatar dropdown)
+============================================================ */
 .user-menu-header {
     background: var(--zisk-gradient-primary);
-    padding: 1.25rem;
-    border-radius: 4px 4px 0 0;
+    padding: 20px;
+    border-radius: var(--zisk-radius-lg) var(--zisk-radius-lg) 0 0;
+    color: var(--zisk-text-on-dark);
 }
 
 .user-menu-avatar {
     background: var(--zisk-gradient-accent) !important;
-    font-size: 1.1rem !important;
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 18px !important;
     font-weight: 700 !important;
+    color: var(--zisk-text-on-dark) !important;
     border: 2px solid rgba(255, 255, 255, 0.2) !important;
 }
 
+/* ============================================================
+   DRAWER / NAV
+============================================================ */
 .nav-section-header {
     font-weight: 600;
     color: var(--zisk-nav-section-color);
     text-transform: uppercase;
-    letter-spacing: 0.8px;
+    letter-spacing: 0.08em;
     font-size: var(--zisk-nav-section-font-size);
+    padding: 16px 20px 8px;
 }
 
 .nav-copyright {
-    color: #CBD5E1;
-    font-size: 0.65rem;
+    color: var(--zisk-slate-400);
+    font-size: 11px;
+    padding: 20px;
+    border-top: 1px solid var(--zisk-slate-100);
 }
 
-.card-hover {
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+.mud-drawer .mud-nav-link {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--zisk-slate-700);
+    border-left: 3px solid transparent;
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
 }
 
-.card-hover:hover {
-    box-shadow: var(--mud-elevation-4);
-    transform: translateY(-2px);
+.mud-drawer .mud-nav-link .mud-nav-link-icon {
+    color: var(--zisk-slate-500);
+    font-size: 20px;
 }
 
-.admin-team-card {
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+.mud-drawer .mud-nav-link:hover {
+    background: rgba(30, 58, 95, 0.04);
+    color: var(--zisk-primary);
 }
 
-.admin-team-card:hover {
-    box-shadow: var(--mud-elevation-4);
-    transform: translateY(-2px);
+.mud-drawer .mud-nav-link:hover .mud-nav-link-icon {
+    color: var(--zisk-primary);
 }
 
+.mud-drawer .mud-nav-link.active {
+    background: rgba(30, 58, 95, 0.1);
+    color: var(--zisk-primary);
+    border-left-color: var(--zisk-primary);
+}
+
+.mud-drawer .mud-nav-link.active .mud-nav-link-icon {
+    color: var(--zisk-primary);
+}
+
+.mud-drawer .nav-logout,
+.mud-drawer .nav-logout .mud-nav-link-icon {
+    color: var(--zisk-logout-color) !important;
+}
+
+.mud-drawer .nav-logout:hover {
+    background: rgba(220, 38, 38, 0.04) !important;
+}
+
+/* ============================================================
+   CARDS
+============================================================ */
+.card-standard,
+.mud-card.card-standard {
+    background: var(--zisk-surface) !important;
+    border-radius: var(--zisk-radius-lg) !important;
+    padding: 20px;
+    box-shadow: var(--zisk-shadow-subtle) !important;
+    border: none;
+}
+
+.card-hover,
+.admin-team-card,
 .hover-effect {
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    transition: box-shadow 200ms ease, transform 200ms ease;
+    cursor: pointer;
 }
 
+.card-hover:hover,
+.admin-team-card:hover,
 .hover-effect:hover {
-    box-shadow: var(--mud-elevation-4);
+    box-shadow: var(--zisk-shadow-raised) !important;
     transform: translateY(-2px);
 }
 
+.card-featured {
+    border-left: 3px solid var(--zisk-primary) !important;
+    padding-left: 24px !important;
+}
+
+.card-compact {
+    border-radius: var(--zisk-radius-md);
+    padding: 12px 16px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    margin-bottom: 8px;
+    background: var(--zisk-surface);
+}
+
+@media (max-width: 600px) {
+    .card-standard,
+    .mud-card.card-standard {
+        padding: 16px;
+    }
+}
+
+/* ============================================================
+   BUTTONS
+============================================================ */
+.mud-button-root {
+    text-transform: none !important;
+    font-family: "Inter", "Segoe UI", Roboto, system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    border-radius: var(--zisk-radius-md);
+}
+
+.mud-button-filled.mud-button-filled-primary {
+    background-color: var(--zisk-primary);
+    color: var(--zisk-text-on-dark);
+    padding: 8px 20px;
+}
+
+.mud-button-filled.mud-button-filled-primary:hover {
+    background-color: var(--zisk-primary-hover);
+}
+
+.mud-button-filled.mud-button-filled-primary:active {
+    background-color: var(--zisk-primary-pressed);
+}
+
+.mud-button-filled.mud-button-filled-primary.mud-disabled,
+.mud-button-filled.mud-button-filled-primary:disabled {
+    background-color: var(--zisk-slate-300) !important;
+    color: var(--zisk-text-on-dark) !important;
+}
+
+.mud-button-filled.mud-button-filled-primary:focus-visible {
+    box-shadow: var(--zisk-shadow-focus-primary);
+}
+
+.mud-button-outlined.mud-button-outlined-primary {
+    background-color: transparent;
+    color: var(--zisk-primary);
+    border: 1px solid var(--zisk-primary);
+    padding: 8px 20px;
+}
+
+.mud-button-outlined.mud-button-outlined-primary:hover {
+    background-color: rgba(30, 58, 95, 0.06);
+}
+
+.mud-button-outlined.mud-button-outlined-primary:active {
+    background-color: rgba(30, 58, 95, 0.12);
+}
+
+.mud-button-text.mud-button-text-primary {
+    background-color: transparent;
+    color: var(--zisk-primary);
+    padding: 6px 12px;
+}
+
+.mud-button-text.mud-button-text-primary:hover {
+    background-color: rgba(30, 58, 95, 0.06);
+}
+
+.mud-button-filled.mud-button-filled-error {
+    background-color: var(--zisk-error);
+    color: var(--zisk-text-on-dark);
+}
+
+.mud-button-filled.mud-button-filled-error:hover {
+    background-color: #B91C1C;
+}
+
+/* FAB */
+.mud-fab.mud-fab-primary {
+    background: var(--zisk-primary) !important;
+    color: var(--zisk-text-on-dark) !important;
+    box-shadow: var(--zisk-shadow-fab) !important;
+    width: 56px;
+    height: 56px;
+}
+
+.mud-fab.mud-fab-primary:hover {
+    background: var(--zisk-primary-hover) !important;
+    box-shadow: 0 6px 16px rgba(30, 58, 95, 0.4) !important;
+}
+
+@media (max-width: 600px) {
+    .mud-fab.mud-fab-primary {
+        width: 48px;
+        height: 48px;
+    }
+}
+
+/* Icon Button */
+.mud-icon-button-default {
+    color: var(--zisk-slate-500);
+    border-radius: var(--zisk-radius-md);
+}
+
+.mud-icon-button-default:hover {
+    background-color: rgba(30, 58, 95, 0.06);
+    color: var(--zisk-primary);
+}
+
+/* ============================================================
+   TRAINING CHIPS
+============================================================ */
 .training-chip {
-    border-radius: 4px;
-    padding: 2px 6px;
-    font-size: 0.75rem;
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: var(--zisk-radius-sm);
+    font-family: "Inter", "Segoe UI", Roboto, system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--zisk-text-on-dark);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     cursor: pointer;
+    line-height: 1.4;
 }
+
+.training-chip--conditioning { background-color: var(--zisk-training-conditioning); }
+.training-chip--technical    { background-color: var(--zisk-training-technical); }
+.training-chip--match        { background-color: var(--zisk-training-match); }
+.training-chip--recovery     { background-color: var(--zisk-training-recovery); }
+.training-chip--other        { background-color: var(--zisk-training-other); }
 
 .training-chip--cancelled {
+    opacity: 0.55;
     text-decoration: line-through;
-    opacity: 0.65;
-    position: relative;
 }
 
+.training-chip--locked::before {
+    content: "🔒";
+    font-size: 12px;
+    margin-right: 4px;
+}
+
+/* ============================================================
+   ATTENDANCE STATUS CHIPS
+============================================================ */
+.attendance-chip-present,
+.mud-chip.attendance-chip-present {
+    background-color: rgba(22, 163, 74, 0.12) !important;
+    color: #15803D !important;
+    border: 1px solid rgba(22, 163, 74, 0.3) !important;
+    border-radius: var(--zisk-radius-sm) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    padding: 2px 8px !important;
+    height: auto !important;
+}
+
+.attendance-chip-absent,
+.mud-chip.attendance-chip-absent {
+    background-color: rgba(220, 38, 38, 0.12) !important;
+    color: #B91C1C !important;
+    border: 1px solid rgba(220, 38, 38, 0.3) !important;
+    border-radius: var(--zisk-radius-sm) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    padding: 2px 8px !important;
+    height: auto !important;
+}
+
+.attendance-chip-excused,
+.mud-chip.attendance-chip-excused {
+    background-color: rgba(217, 119, 6, 0.12) !important;
+    color: #B45309 !important;
+    border: 1px solid rgba(217, 119, 6, 0.3) !important;
+    border-radius: var(--zisk-radius-sm) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    padding: 2px 8px !important;
+    height: auto !important;
+}
+
+/* ============================================================
+   ROLE CHIPS
+============================================================ */
+.role-chip,
+.mud-chip.role-chip {
+    border-radius: var(--zisk-radius-sm) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    padding: 2px 10px !important;
+    height: auto !important;
+}
+
+.role-chip--admin {
+    background-color: rgba(30, 58, 95, 0.1) !important;
+    color: var(--zisk-primary) !important;
+}
+
+.role-chip--coach {
+    background-color: rgba(37, 99, 235, 0.1) !important;
+    color: #1E40AF !important;
+}
+
+.role-chip--parent,
+.role-chip--athlete,
+.role-chip--child {
+    background-color: rgba(100, 116, 139, 0.1) !important;
+    color: var(--zisk-slate-600) !important;
+}
+
+/* ============================================================
+   INPUTS / FORMS
+============================================================ */
+.mud-input-outlined-border {
+    border-radius: var(--zisk-radius-md) !important;
+    border-color: var(--zisk-slate-300);
+}
+
+.mud-input-outlined:hover .mud-input-outlined-border {
+    border-color: var(--zisk-slate-400);
+}
+
+.mud-input.mud-input-outlined.mud-input-focused .mud-input-outlined-border {
+    border-color: var(--zisk-primary) !important;
+    border-width: 2px;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.15);
+}
+
+.mud-input.mud-input-outlined.mud-input-error .mud-input-outlined-border {
+    border-color: var(--zisk-error) !important;
+    border-width: 2px;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+.mud-input.mud-input-outlined.mud-disabled {
+    background-color: var(--zisk-slate-100);
+}
+
+.mud-input-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--zisk-slate-600);
+}
+
+.mud-input-helper-text {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--zisk-slate-500);
+    margin-top: 4px;
+}
+
+.mud-input-helper-text.mud-input-error {
+    color: var(--zisk-error);
+}
+
+/* Checkboxes / Radios */
+.mud-checkbox .mud-icon-root,
+.mud-radio .mud-icon-root {
+    color: var(--zisk-slate-300);
+}
+
+.mud-checkbox.mud-checked .mud-icon-root,
+.mud-radio.mud-checked .mud-icon-root {
+    color: var(--zisk-primary);
+}
+
+/* Switch */
+.mud-switch .mud-switch-track {
+    background-color: var(--zisk-slate-300);
+    opacity: 1;
+}
+
+.mud-switch.mud-checked .mud-switch-track {
+    background-color: var(--zisk-primary);
+    opacity: 1;
+}
+
+/* ============================================================
+   TABLES
+============================================================ */
+.mud-table-container,
+.mud-table {
+    border-radius: var(--zisk-radius-lg);
+    box-shadow: var(--zisk-shadow-subtle);
+    background: var(--zisk-surface);
+    overflow: hidden;
+}
+
+.mud-table thead .mud-table-cell,
+.mud-table-head .mud-table-cell {
+    background: var(--zisk-slate-50) !important;
+    color: var(--zisk-slate-600) !important;
+    font-family: "Inter", "Segoe UI", Roboto, sans-serif;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--zisk-border-default);
+}
+
+.mud-table tbody .mud-table-cell {
+    background: var(--zisk-surface);
+    color: var(--zisk-text-primary);
+    font-family: "Inter", "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    border-bottom: 1px solid var(--zisk-border-default);
+}
+
+.mud-table.mud-table-striped tbody tr:nth-of-type(even) .mud-table-cell {
+    background: var(--zisk-slate-50);
+}
+
+.mud-table.mud-table-hover tbody tr:hover .mud-table-cell {
+    background: var(--zisk-slate-100) !important;
+}
+
+.mud-table-cell--actions,
+.mud-table .mud-table-cell.actions-cell {
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   DASHBOARD HERO
+============================================================ */
+.dashboard-hero {
+    background: var(--zisk-gradient-primary);
+    border-radius: var(--zisk-radius-xl);
+    padding: 32px 28px;
+    color: var(--zisk-text-on-dark);
+}
+
+.dashboard-hero__greeting {
+    font-family: "Inter", "Segoe UI", Roboto, sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--zisk-text-on-dark);
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+.dashboard-hero__subtitle {
+    font-family: "Inter", "Segoe UI", Roboto, sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.85);
+    margin-top: 6px;
+}
+
+.dashboard-hero__stat-chip {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--zisk-text-on-dark);
+    padding: 4px 10px;
+    border-radius: 14px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.dashboard-kpi {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--zisk-radius-lg);
+    padding: 14px 16px;
+    color: var(--zisk-text-on-dark);
+}
+
+.dashboard-kpi__value {
+    font-family: "Inter", "Segoe UI", Roboto, sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--zisk-text-on-dark);
+}
+
+.dashboard-kpi__label {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.75);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+@media (max-width: 600px) {
+    .dashboard-hero {
+        padding: 24px 16px;
+    }
+    .dashboard-hero__greeting {
+        font-size: 24px;
+    }
+    .dashboard-kpi__value {
+        font-size: 22px;
+    }
+}
+
+/* ============================================================
+   EMPTY STATES
+============================================================ */
+.empty-state {
+    padding: 48px 24px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.empty-state__icon .mud-icon-root,
+.empty-state__icon {
+    font-size: 64px !important;
+    color: var(--zisk-slate-300) !important;
+    margin-bottom: 16px;
+}
+
+.empty-state__title {
+    font-family: "Inter", "Segoe UI", Roboto, sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--zisk-slate-700);
+}
+
+.empty-state__description {
+    font-family: "Inter", "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--zisk-slate-500);
+    max-width: 360px;
+    line-height: 1.55;
+}
+
+.empty-state__action {
+    margin-top: 24px;
+}
+
+/* ============================================================
+   ALERTS & SNACKBARS
+============================================================ */
+.mud-alert {
+    padding: 12px 16px !important;
+    border-radius: var(--zisk-radius-md) !important;
+    border-left-width: 4px !important;
+    border-left-style: solid !important;
+}
+
+.mud-alert.mud-alert-filled-success,
+.mud-alert.mud-alert-outlined-success,
+.mud-alert.mud-alert-text-success {
+    background: var(--zisk-success-tint) !important;
+    border-left-color: var(--zisk-success) !important;
+    color: var(--zisk-slate-700) !important;
+}
+
+.mud-alert.mud-alert-filled-warning,
+.mud-alert.mud-alert-outlined-warning,
+.mud-alert.mud-alert-text-warning {
+    background: var(--zisk-warning-tint) !important;
+    border-left-color: var(--zisk-warning) !important;
+    color: var(--zisk-slate-700) !important;
+}
+
+.mud-alert.mud-alert-filled-error,
+.mud-alert.mud-alert-outlined-error,
+.mud-alert.mud-alert-text-error {
+    background: var(--zisk-error-tint) !important;
+    border-left-color: var(--zisk-error) !important;
+    color: var(--zisk-slate-700) !important;
+}
+
+.mud-alert.mud-alert-filled-info,
+.mud-alert.mud-alert-outlined-info,
+.mud-alert.mud-alert-text-info {
+    background: var(--zisk-info-tint) !important;
+    border-left-color: var(--zisk-info) !important;
+    color: var(--zisk-slate-700) !important;
+}
+
+/* Snackbar (dark surface with semantic border) */
+.mud-snackbar {
+    max-width: min(92vw, 560px) !important;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    background: var(--zisk-slate-900) !important;
+    color: var(--zisk-text-on-dark) !important;
+    border-radius: var(--zisk-radius-md) !important;
+    box-shadow: var(--zisk-shadow-overlay) !important;
+    padding: 12px 16px !important;
+    border-left: 4px solid var(--zisk-slate-500);
+}
+
+.mud-snackbar.mud-alert-filled-success,
+.mud-snackbar-success {
+    border-left-color: var(--zisk-success) !important;
+}
+
+.mud-snackbar.mud-alert-filled-error,
+.mud-snackbar-error {
+    border-left-color: var(--zisk-error) !important;
+}
+
+.mud-snackbar.mud-alert-filled-warning,
+.mud-snackbar-warning {
+    border-left-color: var(--zisk-warning) !important;
+}
+
+.mud-snackbar.mud-alert-filled-info,
+.mud-snackbar-info {
+    border-left-color: var(--zisk-info) !important;
+}
+
+/* ============================================================
+   DIALOGS
+============================================================ */
+.mud-overlay-dialog {
+    background: rgba(15, 23, 42, 0.55) !important;
+}
+
+.mud-dialog {
+    background: var(--zisk-surface) !important;
+    border-radius: var(--zisk-radius-lg) !important;
+    box-shadow: var(--zisk-shadow-modal) !important;
+    border: none !important;
+}
+
+.mud-dialog-title {
+    font-family: "Inter", "Segoe UI", Roboto, sans-serif;
+    font-size: 20px !important;
+    font-weight: 600 !important;
+    color: var(--zisk-text-primary) !important;
+    padding: 20px 24px 0 !important;
+}
+
+.mud-dialog-content {
+    font-family: "Inter", "Segoe UI", Roboto, sans-serif;
+    font-size: 15px !important;
+    font-weight: 400 !important;
+    color: var(--zisk-slate-700) !important;
+    padding: 16px 24px !important;
+}
+
+.mud-dialog-actions {
+    padding: 16px 24px 20px !important;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+@media (max-width: 600px) {
+    .mud-dialog {
+        border-radius: var(--zisk-radius-xl) var(--zisk-radius-xl) 0 0 !important;
+        margin-top: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}
+
+/* ============================================================
+   FOCUS RINGS (keyboard accessibility)
+============================================================ */
+.mud-button-root:focus-visible,
+.mud-icon-button:focus-visible,
+.mud-chip:focus-visible,
+.mud-nav-link:focus-visible,
+.mud-menu-item:focus-visible,
+.mud-list-item:focus-visible,
+.mud-fab:focus-visible,
+.training-chip:focus-visible,
+a:focus-visible {
+    outline: none;
+    box-shadow: var(--zisk-shadow-focus-primary);
+}
+
+.mud-checkbox:focus-within .mud-icon-root,
+.mud-radio:focus-within .mud-icon-root,
+.mud-switch:focus-within .mud-switch-track {
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.15);
+    border-radius: var(--zisk-radius-sm);
+}
+
+/* ============================================================
+   TRANSITIONS & ANIMATIONS (Phase 5)
+============================================================ */
+
+/* Route fade-in: applied to <main> on each route change */
+@keyframes ziskFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.route-transition {
+    animation: ziskFadeIn 150ms ease-in;
+}
+
+/* Button press: smooth background colour change, no transform */
+.mud-button-root,
+.mud-icon-button {
+    transition: background-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+/* Dialog open: fade + scale */
+@keyframes ziskDialogFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.mud-dialog {
+    animation: ziskDialogFadeIn 200ms ease-out;
+}
+
+@keyframes ziskOverlayFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.mud-overlay-dialog {
+    animation: ziskOverlayFadeIn 200ms ease-out;
+}
+
+/* Drawer slide-in (mobile / responsive) */
+@keyframes ziskDrawerSlideIn {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(0); }
+}
+
+.mud-drawer.mud-drawer-anchor-left {
+    transition: transform 250ms ease-out;
+}
+
+.mud-drawer.mud-drawer--open.mud-drawer-anchor-left {
+    animation: ziskDrawerSlideIn 250ms ease-out;
+}
+
+/* Snackbar slide-up + fade */
+@keyframes ziskSnackbarIn {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.mud-snackbar {
+    animation: ziskSnackbarIn 250ms ease-out;
+}
+
+/* Menu / dropdown / popover fade + scale */
+@keyframes ziskMenuFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.mud-popover-open,
+.mud-menu .mud-popover {
+    animation: ziskMenuFadeIn 150ms ease-out;
+    transform-origin: top right;
+}
+
+/* Reduced motion: disable all decorative animations */
+@media (prefers-reduced-motion: reduce) {
+    .route-transition,
+    .mud-dialog,
+    .mud-overlay-dialog,
+    .mud-drawer.mud-drawer--open.mud-drawer-anchor-left,
+    .mud-snackbar,
+    .mud-popover-open,
+    .mud-menu .mud-popover {
+        animation: none !important;
+    }
+
+    .card-hover:hover,
+    .admin-team-card:hover,
+    .hover-effect:hover {
+        transform: none !important;
+    }
+}
+
+/* ============================================================
+   PROFILE / MISC
+============================================================ */
 .profile-data-grid dt,
 .profile-data-grid dd {
     margin-bottom: 0.75rem;

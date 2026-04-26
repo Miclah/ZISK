@@ -139,6 +139,21 @@ Klient komunikuje so serverom asynchrónne pomocou Refit (HTTP client):
 - **Coach (Tréner)** - správa dochádzky, oznamov, schvaľovanie ospravedlneniek
 - **Parent (Rodič)** - prehľad dochádzky, podávanie ospravedlneniek
 
+## Inštalácia ako aplikácia (PWA)
+
+ZISK podporuje inštaláciu ako Progressive Web App na desktop aj mobil.
+
+**Chrome / Edge (desktop):**
+1. Otvorte aplikáciu na `https://...` (v produkcii vyžaduje HTTPS; na `localhost` funguje aj bez neho).
+2. V adresnom riadku kliknite na ikonu **Inštalovať** (alebo menu → *Inštalovať ZISK*).
+3. Po inštalácii sa aplikácia otvorí vo vlastnom okne bez ovládacích prvkov prehliadača.
+
+**Android Chrome (mobil):**
+1. Otvorte aplikáciu v prehliadači.
+2. Menu (tri bodky) → *Pridať na plochu*.
+
+> **Dôležité upozornenie:** Aplikácia vyžaduje **aktívne pripojenie na internet**. Offline režim nie je podporovaný. Bez internetu sa aplikácia nenačíta. Pri strate pripojenia sa zobrazí upozornenie priamo v rozhraní.
+
 ## Autor
 
 Michal - Bakalárska práca 2025/26

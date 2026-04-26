@@ -1,32 +1,39 @@
-﻿@page "/Account/Manage/ResetAuthenticator"
+@page "/Account/Manage/ResetAuthenticator"
 
+@inject IdentityRedirectManager RedirectManager
+
+@code {
+    protected override void OnInitialized()
+        => RedirectManager.RedirectTo("/profil");
+}
+
+@*
 @using Microsoft.AspNetCore.Identity
 @using ZISK.Data
 
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
 @inject IdentityUserAccessor UserAccessor
-@inject IdentityRedirectManager RedirectManager
 @inject ILogger<ResetAuthenticator> Logger
 
-<PageTitle>Reset authenticator key</PageTitle>
+<PageTitle>Resetovať autentifikačný kľúč</PageTitle>
 
 <StatusMessage />
-<h3>Reset authenticator key</h3>
+<h3>Resetovať autentifikačný kľúč</h3>
 <div class="alert alert-warning" role="alert">
     <p>
         <span class="glyphicon glyphicon-warning-sign"></span>
-        <strong>If you reset your authenticator key your authenticator app will not work until you reconfigure it.</strong>
+        <strong>Ak resetujete svoj autentifikačný kľúč, aplikácia autentifikátora nebude fungovať, kým ju znova nenakonfigurujete.</strong>
     </p>
     <p>
-        This process disables 2FA until you verify your authenticator app.
-        If you do not complete your authenticator app configuration you may lose access to your account.
+        Tento proces vypne 2FA, kým neoveríte svoju aplikáciu autentifikátora.
+        Ak nedokončíte konfiguráciu aplikácie autentifikátora, môžete stratiť prístup k svojmu účtu.
     </p>
 </div>
 <div>
     <form @formname="reset-authenticator" @onsubmit="OnSubmitAsync" method="post">
         <AntiforgeryToken />
-        <button class="btn btn-danger" type="submit">Reset authenticator key</button>
+        <button class="btn btn-danger" type="submit">Resetovať autentifikačný kľúč</button>
     </form>
 </div>
 
@@ -46,7 +53,8 @@
 
         RedirectManager.RedirectToWithStatus(
             "Account/Manage/EnableAuthenticator",
-            "Your authenticator app key has been reset, you will need to configure your authenticator app using the new key.",
+            "Autentifikačný kľúč bol resetovaný. Budete musieť znova nakonfigurovať aplikáciu autentifikátora pomocou nového kľúča.",
             HttpContext);
     }
 }
+*@
