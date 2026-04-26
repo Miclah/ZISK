@@ -1,4 +1,4 @@
-﻿@page "/Account/Manage/Email"
+@page "/Account/Manage/Email"
 
 @using System.ComponentModel.DataAnnotations
 @using System.Text
@@ -15,45 +15,47 @@
 
 <PageTitle>Spravovať email</PageTitle>
 
-<MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 700; color: #3730A3;">Zdrojový email</MudText>
+<MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4" Style="font-weight: 700;">Zmena emailu</MudText>
 
-<StatusMessage Message="@message"/>
-<div class="row">
-    <div class="col-md-8 col-lg-6">
-        <form @onsubmit="OnSendEmailVerificationAsync" @formname="send-verification" id="send-verification-form" method="post">
-            <AntiforgeryToken />
-        </form>
-        <EditForm Model="Input" FormName="change-email" OnValidSubmit="OnValidSubmitAsync" method="post">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger mb-3" role="alert" />
+<StatusMessage Message="@message" />
 
+<form @onsubmit="OnSendEmailVerificationAsync" @formname="send-verification" id="send-verification-form" method="post">
+    <AntiforgeryToken />
+</form>
+
+<EditForm Model="Input" FormName="change-email" OnValidSubmit="OnValidSubmitAsync" method="post">
+    <DataAnnotationsValidator />
+
+    <MudStack Spacing="3" Style="max-width:520px;">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudStaticTextField Value="@(email ?? string.Empty)"
+                                Label="@(isEmailConfirmed ? "Aktuálny email" : "Aktuálny email (neoverený)")"
+                                Variant="Variant.Outlined" Disabled="true" Class="flex-grow-1" />
             @if (isEmailConfirmed)
             {
-                <div class="form-floating mb-4 position-relative">
-                    <input type="text" value="@email" id="email" class="form-control" placeholder="Email" disabled style="background-color: #F8FAFC; border-color: #E2E8F0; padding-right: 2.5rem;" />
-                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" Style="position: absolute; right: 1rem; top: 1.25rem;" />
-                    <label for="email" class="form-label" style="color: #64748B;">Aktuálny email</label>
-                </div>
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Medium" Title="Overený" />
             }
-            else
-            {
-                <div class="form-floating mb-4">
-                    <input type="text" value="@email" id="email" class="form-control" placeholder="Email" disabled style="background-color: #F8FAFC; border-color: #E2E8F0;" />
-                    <label for="email" class="form-label" style="color: #64748B;">Aktuálny email (Neoverený)</label>
-                    <button type="submit" class="mud-button-root mud-button mud-button-text mud-button-text-primary mt-2" form="send-verification-form" style="text-transform: none;">Odoslať overovací email</button>
-                </div>
-            }
+        </MudStack>
 
-            <div class="form-floating mb-4">
-                <InputText @bind-Value="Input.NewEmail" id="Input.NewEmail" class="form-control" autocomplete="email" aria-required="true" placeholder="Nový email" style="border-color: #E2E8F0;" />
-                <label for="Input.NewEmail" class="form-label" style="color: #64748B;">Nová e-mailová adresa</label>
-                <ValidationMessage For="() => Input.NewEmail" class="text-danger" />
-            </div>
+        @if (!isEmailConfirmed)
+        {
+            <MudButton ButtonType="ButtonType.Submit" Form="send-verification-form"
+                       Variant="Variant.Text" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Rounded.MarkEmailRead">
+                Odoslať overovací email
+            </MudButton>
+        }
 
-            <button type="submit" class="mud-button-root mud-button mud-button-filled mud-button-filled-primary mud-button-filled-size-large mud-width-full" style="background-color: #F97316; color: white; font-weight: 600; text-transform: none; border-radius: 8px;">Zmeniť e-mail</button>
-        </EditForm>
-    </div>
-</div>
+        <MudStaticTextField Value="@Input.NewEmail" For="@(() => Input.NewEmail)"
+                            Label="Nová emailová adresa" Variant="Variant.Outlined"
+                            Placeholder="novy@email.sk" InputType="InputType.Email" />
+
+        <MudStaticButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+                         Color="Color.Primary" StartIcon="@Icons.Material.Rounded.Email">
+            Zmeniť email
+        </MudStaticButton>
+    </MudStack>
+</EditForm>
 
 @code {
     private string? message;
@@ -86,14 +88,14 @@
     {
         if (Input.NewEmail is null || Input.NewEmail == email)
         {
-            message = "E-mail je nezmenený.";
+            message = "Email je nezmenený.";
             return;
         }
 
         var existing = await UserManager.FindByEmailAsync(Input.NewEmail);
         if (existing is not null && existing.Id != user.Id)
         {
-            message = "Tento e-mail je už obsadený.";
+            message = "Tento email je už obsadený.";
             return;
         }
 
@@ -106,15 +108,12 @@
 
         await EmailSender.SendEmailChangeLinkAsync(user, Input.NewEmail, HtmlEncoder.Default.Encode(callbackUrl));
 
-        message = "Potvrdzovací odkaz na zmenu e-mailu bol odoslaný. Skontrolujte svoju schránku.";
+        message = "Potvrdzovací odkaz na zmenu emailu bol odoslaný. Skontrolujte svoju schránku.";
     }
 
     private async Task OnSendEmailVerificationAsync()
     {
-        if (email is null)
-        {
-            return;
-        }
+        if (email is null) return;
 
         var userId = await UserManager.GetUserIdAsync(user);
         var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
@@ -130,9 +129,9 @@
 
     private sealed class InputModel
     {
-        [Required]
-        [EmailAddress]
-        [Display(Name = "New email")]
+        [Required(ErrorMessage = "Email je povinný.")]
+        [EmailAddress(ErrorMessage = "Neplatný formát emailu.")]
+        [Display(Name = "Nový email")]
         public string? NewEmail { get; set; }
     }
 }

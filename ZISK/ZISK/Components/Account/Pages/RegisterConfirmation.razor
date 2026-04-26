@@ -7,13 +7,13 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Register confirmation</PageTitle>
+<PageTitle>Potvrdenie registrácie</PageTitle>
 
-<h1>Register confirmation</h1>
+<h1>Potvrdenie registrácie</h1>
 
 <StatusMessage Message="@statusMessage" />
 
-<p role="alert">Please check your email to confirm your account.</p>
+<p role="alert">Skontrolujte si prosím e-mailovú schránku a potvrďte svoj účet.</p>
 
 @code {
     private string? statusMessage;
@@ -39,7 +39,7 @@
         if (user is null)
         {
             HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-            statusMessage = "Error finding user for unspecified email";
+            statusMessage = "Používateľ so zadaným e-mailom sa nenašiel.";
         }
     }
 }

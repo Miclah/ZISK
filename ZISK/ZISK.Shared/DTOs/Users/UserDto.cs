@@ -119,4 +119,29 @@ namespace ZISK.Shared.DTOs.Users
         [StringLength(300, ErrorMessage = "Bydlisko môže mať max 300 znakov.")]
         string? Bydlisko
     );
+
+    public record ChangeMyPasswordRequest(
+        [Required(ErrorMessage = "Súčasné heslo je povinné.")]
+        string CurrentPassword,
+
+        [Required(ErrorMessage = "Nové heslo je povinné.")]
+        [StringLength(100, MinimumLength = 8, ErrorMessage = "Heslo musí mať aspoň 8 znakov.")]
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$",
+            ErrorMessage = "Heslo musí obsahovať aspoň jedno malé písmeno, veľké písmeno a číslicu.")]
+        string NewPassword
+    );
+
+    public record ChangeMyEmailRequest(
+        [Required(ErrorMessage = "Nový email je povinný.")]
+        [EmailAddress(ErrorMessage = "Neplatný formát emailu.")]
+        string NewEmail,
+
+        [Required(ErrorMessage = "Súčasné heslo je povinné.")]
+        string CurrentPassword
+    );
+
+    public record DeleteMyAccountRequest(
+        [Required(ErrorMessage = "Súčasné heslo je povinné.")]
+        string CurrentPassword
+    );
 }

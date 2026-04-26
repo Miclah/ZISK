@@ -84,4 +84,8 @@ builder.Services.AddRefitClient<IInvitationsApi>(refitSettings)
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
     .AddHttpMessageHandler<LoadingHttpMessageHandler>();
 
+builder.Services.AddRefitClient<ISeasonsApi>(refitSettings)
+    .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
+    .AddHttpMessageHandler<LoadingHttpMessageHandler>();
+
 await builder.Build().RunAsync();

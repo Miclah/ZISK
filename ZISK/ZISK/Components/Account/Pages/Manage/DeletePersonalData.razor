@@ -1,4 +1,4 @@
-﻿@page "/Account/Manage/DeletePersonalData"
+@page "/Account/Manage/DeletePersonalData"
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
@@ -10,33 +10,37 @@
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<DeletePersonalData> Logger
 
-<PageTitle>Delete Personal Data</PageTitle>
+<PageTitle>Odstrániť osobné údaje</PageTitle>
+
+<MudText Typo="Typo.h5" Color="Color.Error" Class="mb-4" Style="font-weight: 700;">Odstrániť osobné údaje</MudText>
 
 <StatusMessage Message="@message" />
 
-<h3>Delete Personal Data</h3>
+<MudStack Spacing="3" Style="max-width:520px;">
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+        <strong>Odstránením týchto údajov natrvalo zrušíte svoj účet — túto akciu nie je možné vrátiť späť.</strong>
+    </MudAlert>
 
-<div class="alert alert-warning" role="alert">
-    <p>
-        <strong>Deleting this data will permanently remove your account, and this cannot be recovered.</strong>
-    </p>
-</div>
-
-<div>
     <EditForm Model="Input" FormName="delete-user" OnValidSubmit="OnValidSubmitAsync" method="post">
         <DataAnnotationsValidator />
-        <ValidationSummary class="text-danger" role="alert" />
-        @if (requirePassword)
-        {
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="Please enter your password." />
-                <label for="Input.Password" class="form-label">Password</label>
-                <ValidationMessage For="() => Input.Password" class="text-danger" />
-            </div>
-        }
-        <button class="w-100 btn btn-lg btn-danger" type="submit">Delete data and close my account</button>
+
+        <MudStack Spacing="3">
+            @if (requirePassword)
+            {
+                <MudStaticTextField Value="@Input.Password" For="@(() => Input.Password)"
+                                    Label="Heslo" Variant="Variant.Outlined"
+                                    InputType="InputType.Password"
+                                    Placeholder="Zadajte svoje heslo na potvrdenie" />
+            }
+
+            <MudStaticButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+                             Color="Color.Error" Size="Size.Large"
+                             StartIcon="@Icons.Material.Rounded.DeleteForever">
+                Odstrániť údaje a zrušiť účet
+            </MudStaticButton>
+        </MudStack>
     </EditForm>
-</div>
+</MudStack>
 
 @code {
     private string? message;
@@ -65,7 +69,7 @@
     {
         if (requirePassword && !await UserManager.CheckPasswordAsync(user, Input.Password))
         {
-            message = "Error: Incorrect password.";
+            message = "Chyba: Nesprávne heslo.";
             return;
         }
 

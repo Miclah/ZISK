@@ -10,4 +10,13 @@ public interface IMeApi
 
     [Put("/api/me/contact")]
     Task<MyProfileDto> UpdateMyContactAsync([Body] UpdateMyContactRequest request);
+
+    [Post("/api/me/change-password")]
+    Task ChangeMyPasswordAsync([Body] ChangeMyPasswordRequest request);
+
+    [Post("/api/me/change-email")]
+    Task ChangeMyEmailAsync([Body] ChangeMyEmailRequest request);
+
+    [Delete("/api/me")]
+    Task DeleteMyAccountAsync([Body] DeleteMyAccountRequest request);
 }

@@ -3,17 +3,18 @@
 
 @inject SignInManager<ApplicationUser> SignInManager
 
-<MudNavMenu Bordered="true" Rounded="true" Color="Color.Primary" Class="pa-2 bg-white" Style="border: 1px solid #E2E8F0;">
-    <MudNavLink Href="Account/Manage" Match="NavLinkMatch.All" Icon="@Icons.Material.Rounded.Person">Profil</MudNavLink>
-    <MudNavLink Href="Account/Manage/Email" Icon="@Icons.Material.Rounded.Email">Email</MudNavLink>
-    <MudNavLink Href="Account/Manage/ChangePassword" Icon="@Icons.Material.Rounded.Lock">Heslo</MudNavLink>
-    @if (hasExternalLogins)
-    {
-        <MudNavLink Href="Account/Manage/ExternalLogins" Icon="@Icons.Material.Rounded.Login">Externé prihlásenia</MudNavLink>
-    }
-    <MudNavLink Href="Account/Manage/TwoFactorAuthentication" Icon="@Icons.Material.Rounded.Security">Dvojfázové overenie</MudNavLink>
-    <MudNavLink Href="Account/Manage/PersonalData" Icon="@Icons.Material.Rounded.DataUsage">Osobné údaje</MudNavLink>
-</MudNavMenu>
+<MudPaper Elevation="0" Outlined="true" Class="pa-2">
+    <MudNavMenu Bordered="false" Rounded="true" Color="Color.Primary">
+        <MudNavLink Href="Account/Manage" Match="NavLinkMatch.All" Icon="@Icons.Material.Rounded.Person">Profil</MudNavLink>
+        <MudNavLink Href="Account/Manage/Email" Icon="@Icons.Material.Rounded.Email">Email</MudNavLink>
+        <MudNavLink Href="Account/Manage/ChangePassword" Icon="@Icons.Material.Rounded.Lock">Heslo</MudNavLink>
+        @if (hasExternalLogins)
+        {
+            <MudNavLink Href="Account/Manage/ExternalLogins" Icon="@Icons.Material.Rounded.Login">Externé prihlásenia</MudNavLink>
+        }
+        <MudNavLink Href="Account/Manage/PersonalData" Icon="@Icons.Material.Rounded.DataUsage">Osobné údaje</MudNavLink>
+    </MudNavMenu>
+</MudPaper>
 
 @code {
     private bool hasExternalLogins;
