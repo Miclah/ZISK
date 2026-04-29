@@ -1,40 +1,29 @@
 @page "/dokumenty/gdpr"
+@attribute [ExcludeFromInteractiveRouting]
 @attribute [AllowAnonymous]
+@layout ZISK.Components.Layout.LoginLayout
 
 <PageTitle>Ochrana osobných údajov - ZISK</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="pa-8 my-8">
-    <h1 style="margin-top: 0; color: var(--zisk-text-primary);">Ochrana osobných údajov (GDPR)</h1>
+<div class="document-page">
+    <div class="document-card">
+        <div class="document-brand">
+            <h1>ZISK</h1>
+            <p>Ochrana osobných údajov</p>
+        </div>
 
-    <p>
-        Tento dokument stručne zhrňuje, ako spracúvame osobné údaje našich používateľov
-        v rámci klubového informačného systému ZISK.
-    </p>
+        <div class="document-body">
+            <p>
+                Toto je <strong>placeholder dokument</strong> v testovacej fáze systému.
+                Finálne znenie zásad spracovania osobných údajov v súlade s GDPR pripraví
+                poverená osoba klubu pred ostrým spustením.
+            </p>
+        </div>
 
-    <h2>Aké údaje spracúvame</h2>
-    <ul>
-        <li>meno, priezvisko, dátum narodenia, kontaktné údaje,</li>
-        <li>rodné číslo (povinný údaj pre členskú evidenciu a fakturáciu),</li>
-        <li>adresu bydliska (zadanú ručne alebo pomocou verejnej mapovej služby OpenStreetMap),</li>
-        <li>informácie o vašich tréningoch, účasti a zdravotných obmedzeniach.</li>
-    </ul>
+        <div class="document-footer">
+            <a href="/registracia" class="footer-link">← Späť na registráciu</a>
+        </div>
+    </div>
 
-    <h2>Účel spracovania</h2>
-    <p>
-        Údaje spracúvame výlučne pre potreby klubu — evidenciu členov, organizáciu tréningov,
-        komunikáciu a fakturáciu. Údaje neposkytujeme tretím stranám okrem prípadov,
-        keď to vyžaduje zákon.
-    </p>
-
-    <h2>Vaše práva</h2>
-    <p>
-        Máte právo na prístup k svojim údajom, ich opravu alebo vymazanie.
-        Kontaktujte nás na e-mailovej adrese uvedenej v sekcii Kontakt.
-    </p>
-
-    <p style="color: var(--zisk-text-secondary); font-size: 0.85rem; margin-top: 3rem;">
-        Toto je zjednodušená placeholder verzia dokumentu. Finálnu verziu pripravuje poverená osoba klubu.
-    </p>
-
-    <p><a href="/registracia">Späť na registráciu</a></p>
-</MudContainer>
+    <p class="document-copyright">© 2026 ZISK</p>
+</div>

@@ -1,39 +1,29 @@
 @page "/dokumenty/pravidla"
+@attribute [ExcludeFromInteractiveRouting]
 @attribute [AllowAnonymous]
+@layout ZISK.Components.Layout.LoginLayout
 
 <PageTitle>Pravidlá klubu - ZISK</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="pa-8 my-8">
-    <h1 style="margin-top: 0; color: var(--zisk-text-primary);">Pravidlá klubu</h1>
+<div class="document-page">
+    <div class="document-card">
+        <div class="document-brand">
+            <h1>ZISK</h1>
+            <p>Pravidlá klubu</p>
+        </div>
 
-    <p>
-        Ďakujeme, že ste sa rozhodli stať súčasťou nášho klubu. Nasledujúce pravidlá platia
-        pre všetkých členov a pomáhajú zachovávať férové a priateľské prostredie.
-    </p>
+        <div class="document-body">
+            <p>
+                Toto je <strong>placeholder dokument</strong> v testovacej fáze systému.
+                Finálne znenie pravidiel klubu vypracuje výbor pred ostrým spustením
+                a tento dokument bude doplnený.
+            </p>
+        </div>
 
-    <h2>Účasť na tréningoch</h2>
-    <ul>
-        <li>Prichádzajte včas a pripravení.</li>
-        <li>Neúčasť ohláste vopred cez formulár ospravedlnenia v systéme ZISK.</li>
-        <li>Dodržiavajte pokyny trénerov počas celej doby tréningu.</li>
-    </ul>
+        <div class="document-footer">
+            <a href="/registracia" class="footer-link">← Späť na registráciu</a>
+        </div>
+    </div>
 
-    <h2>Členské údaje</h2>
-    <p>
-        Pre úplnú evidenciu je potrebné poskytnúť platné osobné údaje vrátane rodného čísla.
-        Zmeny v kontaktných údajoch prosíme aktualizovať vo svojom profile.
-    </p>
-
-    <h2>Rešpekt a bezpečnosť</h2>
-    <ul>
-        <li>V klube netolerujeme agresívne, diskriminačné alebo nevhodné správanie.</li>
-        <li>Rešpektujte ostatných členov, trénerov aj hostí.</li>
-        <li>Hláste úrazy a zdravotné komplikácie bezodkladne trénerovi.</li>
-    </ul>
-
-    <p style="color: var(--zisk-text-secondary); font-size: 0.85rem; margin-top: 3rem;">
-        Toto je zjednodušená placeholder verzia dokumentu. Finálne znenie pravidiel vypracuje výbor klubu.
-    </p>
-
-    <p><a href="/registracia">Späť na registráciu</a></p>
-</MudContainer>
+    <p class="document-copyright">© 2026 ZISK</p>
+</div>

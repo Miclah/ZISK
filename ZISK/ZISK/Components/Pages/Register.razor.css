@@ -1,4 +1,4 @@
-.register-wizard-page {
+.register-page {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -6,47 +6,296 @@
     justify-content: center;
     background: linear-gradient(135deg, #0F172A 0%, #15304D 50%, #1E3A5F 100%);
     padding: 1.5rem;
+    font-family: 'Inter', 'Roboto', 'Segoe UI', system-ui, sans-serif;
 }
 
 .register-card {
+    background: #ffffff;
     width: 100%;
     max-width: 640px;
-    padding: 2rem 1.75rem;
     border-radius: 16px;
-    background: #fff;
+    padding: 2.5rem 2.25rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255,255,255,0.05);
+    animation: card-in 0.4s ease-out;
+    box-sizing: border-box;
+}
+
+@keyframes card-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .register-brand {
     text-align: center;
+    margin-bottom: 1.75rem;
+}
+
+.register-brand h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1E293B;
+    margin: 0 0 0.25rem 0;
+    letter-spacing: -0.5px;
+}
+
+.register-brand p {
+    font-size: 0.8rem;
+    color: #94A3B8;
+    margin: 0;
+    font-weight: 400;
+}
+
+.register-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    color: #DC2626;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.25rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.register-alert svg {
+    flex-shrink: 0;
+}
+
+.form-section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #1E3A5F;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 1.5rem 0 0.85rem;
+    padding-bottom: 0.45rem;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.form-section-title:first-of-type {
+    margin-top: 0;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.9rem;
+}
+
+@media (max-width: 520px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+.form-field {
     margin-bottom: 1rem;
 }
 
-.brand-title {
-    font-weight: 700;
-    color: #1E293B;
+.form-field label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.brand-subtitle {
+.form-optional {
     color: #94A3B8;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+::deep .form-field input,
+::deep .form-field select {
+    width: 100%;
+    padding: 0.7rem 0.875rem;
+    font-size: 0.9375rem;
+    color: #1E293B;
+    background: #F8FAFC;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 10px;
+    outline: none;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    box-sizing: border-box;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+::deep .form-field select {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2364748B'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1.25rem;
+    padding-right: 2.25rem;
+    cursor: pointer;
+}
+
+::deep .form-field input:focus,
+::deep .form-field select:focus {
+    border-color: #1E3A5F;
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.15);
+}
+
+::deep .form-field input::placeholder {
+    color: #CBD5E1;
+}
+
+::deep .form-field input.invalid,
+::deep .form-field input.modified.invalid,
+::deep .form-field select.invalid,
+::deep .form-field select.modified.invalid {
+    border-color: #DC2626;
+    background-color: #FFF5F5;
+}
+
+.dob-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.5fr;
+    gap: 0.5rem;
+}
+
+::deep .dob-grid input {
+    text-align: center;
+    background-image: none;
+    padding-right: 0.875rem;
+    -moz-appearance: textfield;
+}
+
+::deep .dob-grid input::-webkit-outer-spin-button,
+::deep .dob-grid input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.form-help {
+    display: block;
+    font-size: 0.75rem;
+    color: #94A3B8;
+    margin-top: 0.35rem;
+    font-weight: 400;
+}
+
+::deep .validation-message {
+    color: #DC2626;
+    font-size: 0.75rem;
+    margin-top: 0.3rem;
+    font-weight: 500;
+    display: block;
+}
+
+.form-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    margin: 0.5rem 0 0.4rem;
+}
+
+::deep .form-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0.15rem 0 0 0;
+    border-radius: 5px;
+    border: 1.5px solid #CBD5E1;
+    cursor: pointer;
+    accent-color: #1E3A5F;
+    flex-shrink: 0;
+}
+
+.form-checkbox label {
+    font-size: 0.875rem;
+    color: #475569;
+    cursor: pointer;
+    user-select: none;
+    margin: 0;
+    text-transform: none;
+    letter-spacing: 0;
+    line-height: 1.45;
+    font-weight: 400;
+}
+
+.form-checkbox label a {
+    color: #1E3A5F;
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+.form-checkbox label a:hover {
+    color: #2B4A7A;
+}
+
+.btn-register {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.85rem 1.5rem;
+    margin-top: 1.5rem;
+    background: linear-gradient(135deg, #0F172A, #1E3A5F);
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    letter-spacing: 0.2px;
+}
+
+.btn-register:hover {
+    background: linear-gradient(135deg, #15304D, #2B4A7A);
+    box-shadow: 0 4px 12px rgba(30, 58, 95, 0.35);
+    transform: translateY(-1px);
+}
+
+.btn-register:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(30, 58, 95, 0.25);
 }
 
 .register-footer {
+    margin-top: 1.75rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #F1F5F9;
     text-align: center;
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid #f1f5f9;
 }
 
-.summary-table th {
-    text-align: left;
+.footer-link {
+    color: #1E3A5F;
+    text-decoration: none;
+    font-size: 0.875rem;
     font-weight: 600;
-    color: #475569;
-    width: 40%;
+    transition: color 0.2s;
+}
+
+.footer-link:hover {
+    color: #2B4A7A;
+    text-decoration: underline;
 }
 
 .register-copyright {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.75rem;
-    margin-top: 1rem;
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.7rem;
+    margin-top: 1.5rem;
     text-align: center;
+}
+
+@media (max-width: 520px) {
+    .register-card {
+        padding: 2rem 1.5rem;
+        border-radius: 12px;
+    }
+
+    .register-brand h1 {
+        font-size: 1.35rem;
+    }
 }
