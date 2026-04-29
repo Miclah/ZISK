@@ -69,9 +69,9 @@
             <div class="form-field">
                 <label>Dátum narodenia</label>
                 <div class="dob-grid">
-                    <InputNumber @bind-Value="Input.BirthDay" min="1" max="31" placeholder="Deň" aria-label="Deň" inputmode="numeric" />
-                    <InputNumber @bind-Value="Input.BirthMonth" min="1" max="12" placeholder="Mesiac" aria-label="Mesiac" inputmode="numeric" />
-                    <InputNumber @bind-Value="Input.BirthYear" min="@_minBirthYear" max="@_maxBirthYear" placeholder="Rok" aria-label="Rok" inputmode="numeric" />
+                    <InputNumber @bind-Value="Input.BirthDay" placeholder="Deň" aria-label="Deň" inputmode="numeric" />
+                    <InputNumber @bind-Value="Input.BirthMonth" placeholder="Mesiac" aria-label="Mesiac" inputmode="numeric" />
+                    <InputNumber @bind-Value="Input.BirthYear" placeholder="Rok" aria-label="Rok" inputmode="numeric" />
                 </div>
                 <small class="form-help">Formát: D / M / RRRR — napr. 15 / 6 / 1990.</small>
                 @if (!string.IsNullOrEmpty(_dateError))
@@ -152,8 +152,6 @@
 @code {
     private string? _globalError;
     private string? _dateError;
-    private readonly int _maxBirthYear = DateTime.Today.AddYears(-18).Year;
-    private readonly int _minBirthYear = DateTime.Today.AddYears(-100).Year;
 
 
     private InputModel? _input;
@@ -173,7 +171,7 @@
         _globalError = null;
         _dateError = null;
 
-        if (Input.BirthDay <= 0 || Input.BirthMonth <= 0 || Input.BirthYear <= 0)
+        if (Input.BirthDay is not { } day || Input.BirthMonth is not { } month || Input.BirthYear is not { } year)
         {
             _dateError = "Vyberte úplný dátum narodenia.";
             return;
@@ -182,7 +180,7 @@
         DateTime dob;
         try
         {
-            dob = new DateTime(Input.BirthYear, Input.BirthMonth, Input.BirthDay);
+            dob = new DateTime(year, month, day);
         }
         catch (ArgumentOutOfRangeException)
         {
@@ -191,9 +189,15 @@
         }
 
         var maxDob = DateTime.Today.AddYears(-18);
+        var minDob = DateTime.Today.AddYears(-100);
         if (dob > maxDob)
         {
             _dateError = "Musíte mať aspoň 18 rokov.";
+            return;
+        }
+        if (dob < minDob)
+        {
+            _dateError = "Skontrolujte rok narodenia.";
             return;
         }
 
@@ -303,9 +307,9 @@
         [Phone(ErrorMessage = "Neplatné telefónne číslo.")]
         public string? PhoneNumber { get; set; }
 
-        public int BirthDay { get; set; }
-        public int BirthMonth { get; set; }
-        public int BirthYear { get; set; }
+        public int? BirthDay { get; set; }
+        public int? BirthMonth { get; set; }
+        public int? BirthYear { get; set; }
 
         [Required(ErrorMessage = "Rodné číslo je povinné.")]
         [StringLength(11, MinimumLength = 9, ErrorMessage = "Rodné číslo musí mať 9 až 11 znakov.")]
