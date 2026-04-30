@@ -512,41 +512,6 @@ namespace ZISK.Migrations
                     b.ToTable("Documents");
                 });
 
-            modelBuilder.Entity("ZISK.Data.Entities.EmailConfirmationCode", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("AttemptCount")
-                        .HasColumnType("int");
-
-                    b.Property<string>("CodeHash")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("UsedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("EmailConfirmationCodes");
-                });
-
             modelBuilder.Entity("ZISK.Data.Entities.ParentInvitation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -990,17 +955,6 @@ namespace ZISK.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("UploadedByUser");
-                });
-
-            modelBuilder.Entity("ZISK.Data.Entities.EmailConfirmationCode", b =>
-                {
-                    b.HasOne("ZISK.Data.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ZISK.Data.Entities.ParentInvitation", b =>

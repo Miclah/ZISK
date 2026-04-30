@@ -92,7 +92,7 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ITeamAccessService, TeamAccessService>();
 builder.Services.AddScoped<DatabaseInitializer>();
 builder.Services.AddScoped<UsernameGenerator>();
-builder.Services.AddScoped<EmailConfirmationCodeService>();
+builder.Services.AddScoped<RegistrationDraftService>();
 builder.Services.AddHostedService<ChildUpgradeService>();
 builder.Services.AddHostedService<TrainingSeriesGeneratorService>();
 builder.Services.AddHostedService<AttendanceAutoCloseService>();
