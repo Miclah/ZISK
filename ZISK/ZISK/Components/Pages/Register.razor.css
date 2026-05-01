@@ -4,18 +4,18 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #0F172A 0%, #15304D 50%, #1E3A5F 100%);
+    background: linear-gradient(135deg, var(--zisk-slate-900) 0%, var(--zisk-primary-pressed) 50%, var(--zisk-primary) 100%);
     padding: 1.5rem;
-    font-family: 'Inter', 'Roboto', 'Segoe UI', system-ui, sans-serif;
+    font-family: 'Inter', 'Segoe UI', 'Roboto', system-ui, sans-serif;
 }
 
 .register-card {
-    background: #ffffff;
+    background: var(--zisk-surface);
     width: 100%;
     max-width: 640px;
-    border-radius: 16px;
+    border-radius: var(--zisk-radius-xl);
     padding: 2.5rem 2.25rem;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255,255,255,0.05);
+    box-shadow: var(--zisk-shadow-modal), 0 0 0 1px rgba(255, 255, 255, 0.05);
     animation: card-in 0.4s ease-out;
     box-sizing: border-box;
 }
@@ -33,14 +33,14 @@
 .register-brand h1 {
     font-size: 1.5rem;
     font-weight: 700;
-    color: #1E293B;
+    color: var(--zisk-text-primary);
     margin: 0 0 0.25rem 0;
     letter-spacing: -0.5px;
 }
 
 .register-brand p {
     font-size: 0.8rem;
-    color: #94A3B8;
+    color: var(--zisk-text-tertiary);
     margin: 0;
     font-weight: 400;
 }
@@ -49,10 +49,10 @@
     display: flex;
     align-items: center;
     gap: 0.625rem;
-    background: #FEF2F2;
+    background: var(--zisk-error-tint);
     border: 1px solid #FECACA;
-    color: #DC2626;
-    border-radius: 10px;
+    color: var(--zisk-error);
+    border-radius: var(--zisk-radius-lg);
     padding: 0.75rem 1rem;
     margin-bottom: 1.25rem;
     font-size: 0.85rem;
@@ -66,12 +66,12 @@
 .form-section-title {
     font-size: 0.75rem;
     font-weight: 700;
-    color: #1E3A5F;
+    color: var(--zisk-primary);
     text-transform: uppercase;
     letter-spacing: 0.6px;
     margin: 1.5rem 0 0.85rem;
     padding-bottom: 0.45rem;
-    border-bottom: 1px solid #E2E8F0;
+    border-bottom: 1px solid var(--zisk-border-default);
 }
 
 .form-section-title:first-of-type {
@@ -98,14 +98,14 @@
     display: block;
     font-size: 0.8rem;
     font-weight: 600;
-    color: #475569;
+    color: var(--zisk-slate-600);
     margin-bottom: 0.4rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .form-optional {
-    color: #94A3B8;
+    color: var(--zisk-text-tertiary);
     font-weight: 500;
     text-transform: none;
     letter-spacing: 0;
@@ -116,10 +116,10 @@
     width: 100%;
     padding: 0.7rem 0.875rem;
     font-size: 0.9375rem;
-    color: #1E293B;
-    background: #F8FAFC;
-    border: 1.5px solid #E2E8F0;
-    border-radius: 10px;
+    color: var(--zisk-text-primary);
+    background: var(--zisk-slate-50);
+    border: 1.5px solid var(--zisk-border-default);
+    border-radius: var(--zisk-radius-lg);
     outline: none;
     transition: all 0.2s ease;
     font-family: inherit;
@@ -139,20 +139,20 @@
 
 ::deep .form-field input:focus,
 ::deep .form-field select:focus {
-    border-color: #1E3A5F;
-    background-color: #fff;
-    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.15);
+    border-color: var(--zisk-primary);
+    background-color: var(--zisk-surface);
+    box-shadow: var(--zisk-shadow-focus-primary);
 }
 
 ::deep .form-field input::placeholder {
-    color: #CBD5E1;
+    color: var(--zisk-slate-300);
 }
 
 ::deep .form-field input.invalid,
 ::deep .form-field input.modified.invalid,
 ::deep .form-field select.invalid,
 ::deep .form-field select.modified.invalid {
-    border-color: #DC2626;
+    border-color: var(--zisk-error);
     background-color: #FFF5F5;
 }
 
@@ -178,13 +178,13 @@
 .form-help {
     display: block;
     font-size: 0.75rem;
-    color: #94A3B8;
+    color: var(--zisk-text-tertiary);
     margin-top: 0.35rem;
     font-weight: 400;
 }
 
 ::deep .validation-message {
-    color: #DC2626;
+    color: var(--zisk-error);
     font-size: 0.75rem;
     margin-top: 0.3rem;
     font-weight: 500;
@@ -203,15 +203,15 @@
     height: 18px;
     margin: 0.15rem 0 0 0;
     border-radius: 5px;
-    border: 1.5px solid #CBD5E1;
+    border: 1.5px solid var(--zisk-slate-300);
     cursor: pointer;
-    accent-color: #1E3A5F;
+    accent-color: var(--zisk-primary);
     flex-shrink: 0;
 }
 
 .form-checkbox label {
     font-size: 0.875rem;
-    color: #475569;
+    color: var(--zisk-slate-600);
     cursor: pointer;
     user-select: none;
     margin: 0;
@@ -222,13 +222,13 @@
 }
 
 .form-checkbox label a {
-    color: #1E3A5F;
+    color: var(--zisk-primary);
     text-decoration: underline;
     font-weight: 600;
 }
 
 .form-checkbox label a:hover {
-    color: #2B4A7A;
+    color: var(--zisk-primary-hover);
 }
 
 .btn-register {
@@ -239,12 +239,12 @@
     width: 100%;
     padding: 0.85rem 1.5rem;
     margin-top: 1.5rem;
-    background: linear-gradient(135deg, #0F172A, #1E3A5F);
-    color: #ffffff;
+    background: var(--zisk-gradient-primary);
+    color: var(--zisk-text-on-dark);
     font-weight: 600;
     font-size: 0.95rem;
     border: none;
-    border-radius: 10px;
+    border-radius: var(--zisk-radius-lg);
     cursor: pointer;
     transition: all 0.2s ease;
     font-family: inherit;
@@ -252,7 +252,7 @@
 }
 
 .btn-register:hover {
-    background: linear-gradient(135deg, #15304D, #2B4A7A);
+    background: linear-gradient(135deg, var(--zisk-primary-pressed), var(--zisk-primary-hover));
     box-shadow: 0 4px 12px rgba(30, 58, 95, 0.35);
     transform: translateY(-1px);
 }
@@ -265,12 +265,12 @@
 .register-footer {
     margin-top: 1.75rem;
     padding-top: 1.5rem;
-    border-top: 1px solid #F1F5F9;
+    border-top: 1px solid var(--zisk-slate-100);
     text-align: center;
 }
 
 .footer-link {
-    color: #1E3A5F;
+    color: var(--zisk-primary);
     text-decoration: none;
     font-size: 0.875rem;
     font-weight: 600;
@@ -278,12 +278,12 @@
 }
 
 .footer-link:hover {
-    color: #2B4A7A;
+    color: var(--zisk-primary-hover);
     text-decoration: underline;
 }
 
 .register-copyright {
-    color: rgba(255, 255, 255, 0.35);
+    color: var(--zisk-text-on-dark-subtle);
     font-size: 0.7rem;
     margin-top: 1.5rem;
     text-align: center;
@@ -292,7 +292,7 @@
 @media (max-width: 520px) {
     .register-card {
         padding: 2rem 1.5rem;
-        border-radius: 12px;
+        border-radius: var(--zisk-radius-lg);
     }
 
     .register-brand h1 {

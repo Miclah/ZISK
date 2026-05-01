@@ -62,7 +62,7 @@ public class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSender
             <p>Ďakujeme za registráciu. Pre aktiváciu vášho účtu potvrďte svoju emailovú adresu kliknutím na tlačidlo nižšie:</p>
             <p style="text-align: center; margin: 30px 0;">
                 <a href="{confirmationLink}" 
-                   style="background-color: #1976d2; color: white; padding: 12px 30px; 
+                   style="background-color: #1E3A5F; color: white; padding: 12px 30px; 
                           text-decoration: none; border-radius: 6px; font-weight: bold;
                           display: inline-block;">
                     Potvrdiť email
@@ -70,7 +70,7 @@ public class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSender
             </p>
             <p style="color: #666; font-size: 13px;">
                 Ak tlačidlo nefunguje, skopírujte tento odkaz do prehliadača:<br/>
-                <a href="{confirmationLink}" style="color: #1976d2;">{confirmationLink}</a>
+                <a href="{confirmationLink}" style="color: #1E3A5F;">{confirmationLink}</a>
             </p>
             """;
 
@@ -103,7 +103,7 @@ public class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSender
             <p>Dostali sme žiadosť o zmenu emailovej adresy vášho účtu na <strong>{newEmail}</strong>. Kliknite na tlačidlo nižšie na potvrdenie:</p>
             <p style="text-align: center; margin: 30px 0;">
                 <a href="{changeLink}"
-                   style="background-color: #1976d2; color: white; padding: 12px 30px;
+                   style="background-color: #1E3A5F; color: white; padding: 12px 30px;
                           text-decoration: none; border-radius: 6px; font-weight: bold;
                           display: inline-block;">
                     Potvrdiť zmenu emailu
@@ -112,7 +112,7 @@ public class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSender
             <p style="color: #666; font-size: 13px;">
                 Ak ste o zmenu emailu nežiadali, tento email ignorujte.<br/>
                 Ak tlačidlo nefunguje, skopírujte tento odkaz do prehliadača:<br/>
-                <a href="{changeLink}" style="color: #1976d2;">{changeLink}</a>
+                <a href="{changeLink}" style="color: #1E3A5F;">{changeLink}</a>
             </p>
             """;
 
@@ -125,7 +125,7 @@ public class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSender
             <h2>Kód pre obnovenie hesla</h2>
             <p>Váš kód pre obnovenie hesla:</p>
             <p style="text-align: center; margin: 30px 0; font-size: 32px; font-weight: bold; 
-                      letter-spacing: 8px; color: #1976d2;">
+                      letter-spacing: 8px; color: #1E3A5F;">
                 {resetCode}
             </p>
             <p style="color: #666; font-size: 13px;">Ak ste o obnovenie hesla nežiadali, tento email ignorujte.</p>
@@ -188,8 +188,8 @@ public class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSender
             <head><meta charset="utf-8" /></head>
             <body style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; 
                          padding: 20px; color: #333;">
-                <div style="border-bottom: 3px solid #1976d2; padding-bottom: 10px; margin-bottom: 20px;">
-                    <h1 style="color: #1976d2; margin: 0;">ZISK</h1>
+                <div style="border-bottom: 3px solid #1E3A5F; padding-bottom: 10px; margin-bottom: 20px;">
+                    <h1 style="color: #1E3A5F; margin: 0;">ZISK</h1>
                 </div>
                 {content}
                 <div style="border-top: 1px solid #e0e0e0; padding-top: 15px; margin-top: 30px; 

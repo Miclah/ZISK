@@ -5,19 +5,21 @@
 @layout ZISK.Components.Layout.LoginLayout
 
 @using System.ComponentModel.DataAnnotations
-@using System.Text
 @using System.Text.Encodings.Web
 @using Microsoft.AspNetCore.Identity
-@using Microsoft.AspNetCore.WebUtilities
+@using Microsoft.EntityFrameworkCore
 @using ZISK.Data
 @using ZISK.Services
 
 @inject UserManager<ApplicationUser> UserManager
-@inject Microsoft.AspNetCore.Identity.UI.Services.IEmailSender EmailSender
+@inject SignInManager<ApplicationUser> SignInManager
 @inject ILogger<Register> Logger
 @inject NavigationManager NavigationManager
 @inject UsernameGenerator UsernameGenerator
-@inject EmailConfirmationCodeService EmailConfirmationCodes
+@* docasne zablokovanie emailu
+@inject Microsoft.AspNetCore.Identity.UI.Services.IEmailSender EmailSender
+@inject RegistrationDraftService Drafts
+*@
 
 <PageTitle>Registrácia - ZISK</PageTitle>
 
@@ -36,7 +38,7 @@
             </div>
         }
 
-        <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
+        <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register" novalidate>
             <DataAnnotationsValidator />
 
             <div class="form-section-title">Osobné údaje</div>
@@ -153,7 +155,6 @@
     private string? _globalError;
     private string? _dateError;
 
-
     private InputModel? _input;
 
     [SupplyParameterFromForm]
@@ -166,6 +167,20 @@
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
+    // zatial vypnutie email overenia
+    // protected override void OnInitialized()
+    // {
+    //     if (_input is null)
+    //     {
+    //         var draft = Drafts.Get();
+    //         if (draft is not null)
+    //         {
+    //             _input = new InputModel { ... };
+    //             ReturnUrl ??= draft.ReturnUrl;
+    //         }
+    //     }
+    // }
+
     private async Task RegisterUser()
     {
         _globalError = null;
@@ -177,27 +192,30 @@
             return;
         }
 
-        DateTime dob;
-        try
+        var currentYear = DateTime.Today.Year;
+        if (year < currentYear - 100 || year > currentYear)
         {
-            dob = new DateTime(year, month, day);
+            _dateError = $"Rok narodenia musí byť medzi {currentYear - 100} a {currentYear}.";
+            return;
         }
-        catch (ArgumentOutOfRangeException)
+        if (month < 1 || month > 12)
         {
-            _dateError = "Neplatný dátum narodenia.";
+            _dateError = "Mesiac musí byť medzi 1 a 12.";
             return;
         }
 
+        var maxDay = DateTime.DaysInMonth(year, month);
+        if (day < 1 || day > maxDay)
+        {
+            _dateError = $"V tomto mesiaci ({month}/{year}) je maximálne {maxDay} dní.";
+            return;
+        }
+
+        var dob = new DateTime(year, month, day);
         var maxDob = DateTime.Today.AddYears(-18);
-        var minDob = DateTime.Today.AddYears(-100);
         if (dob > maxDob)
         {
             _dateError = "Musíte mať aspoň 18 rokov.";
-            return;
-        }
-        if (dob < minDob)
-        {
-            _dateError = "Skontrolujte rok narodenia.";
             return;
         }
 
@@ -205,6 +223,20 @@
         if (await UserManager.FindByEmailAsync(email) is not null)
         {
             _globalError = "Tento e-mail je už registrovaný.";
+            return;
+        }
+
+        var phone = string.IsNullOrWhiteSpace(Input.PhoneNumber) ? null : Input.PhoneNumber.Trim();
+        if (phone is not null && await UserManager.Users.AnyAsync(u => u.PhoneNumber == phone))
+        {
+            _globalError = "Toto telefónne číslo už používa iný účet.";
+            return;
+        }
+
+        var rodneCislo = Input.RodneCislo!.Trim();
+        if (await UserManager.Users.AnyAsync(u => u.RodneCislo == rodneCislo))
+        {
+            _globalError = "Toto rodné číslo už používa iný účet.";
             return;
         }
 
@@ -218,17 +250,24 @@
             return;
         }
 
+        // zatial vypnutie email overenia
+        // var code = Drafts.GenerateCode();
+        // var draft = new RegistrationDraft { FirstName, LastName, Email, ... };
+        // Drafts.Save(draft);
+        // await EmailSender.SendEmailAsync(email, "ZISK – Potvrdenie e-mailu", BuildConfirmationEmailBody(...));
+        // NavigationManager.NavigateTo("/overenie/email", ...);
+
         var user = new ApplicationUser
         {
             UserName = username,
             Email = email,
             FirstName = Input.FirstName!.Trim(),
             LastName = Input.LastName!.Trim(),
-            PhoneNumber = string.IsNullOrWhiteSpace(Input.PhoneNumber) ? null : Input.PhoneNumber.Trim(),
-            RodneCislo = Input.RodneCislo!.Trim(),
+            PhoneNumber = phone,
+            RodneCislo = rodneCislo,
             Bydlisko = Input.Bydlisko!.Trim(),
             DateOfBirth = DateOnly.FromDateTime(dob),
-            EmailConfirmed = false,
+            EmailConfirmed = true,
             IsActive = true
         };
 
@@ -240,55 +279,18 @@
         }
 
         await UserManager.AddToRoleAsync(user, "Parent");
-
-        try
-        {
-            var linkToken = await UserManager.GenerateEmailConfirmationTokenAsync(user);
-            var encoded = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(linkToken));
-            var callback = NavigationManager.GetUriWithQueryParameters(
-                NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
-                new Dictionary<string, object?> { ["userId"] = user.Id, ["code"] = encoded, ["returnUrl"] = ReturnUrl });
-
-            var code = await EmailConfirmationCodes.IssueAsync(user);
-            await EmailSender.SendEmailAsync(
-                user.Email!,
-                "ZISK – Potvrdenie e-mailu",
-                BuildConfirmationEmailBody(user, callback, code));
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Confirmation email send failed for {UserId}", user.Id);
-        }
-
         Logger.LogInformation("Registered new user {UserId} ({Email})", user.Id, user.Email);
 
-        NavigationManager.NavigateTo(
-            NavigationManager.GetUriWithQueryParameters("/overenie/email",
-                new Dictionary<string, object?> { ["userId"] = user.Id, ["email"] = user.Email, ["returnUrl"] = ReturnUrl }),
-            forceLoad: true);
+        await SignInManager.SignInAsync(user, isPersistent: false);
+        var target = string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : ReturnUrl;
+        NavigationManager.NavigateTo(target, forceLoad: true);
     }
 
-    private static string BuildConfirmationEmailBody(ApplicationUser user, string confirmationLink, string code)
-    {
-        return $"""
-            <h2>Vitajte v ZISK, {HtmlEncoder.Default.Encode(user.FirstName)}!</h2>
-            <p>Pre aktiváciu účtu máte dve možnosti — kliknite na odkaz alebo zadajte 6-miestny kód na stránke overenia:</p>
-            <p style="text-align: center; margin: 24px 0;">
-                <a href="{confirmationLink}"
-                   style="background-color: #1976d2; color: white; padding: 12px 30px;
-                          text-decoration: none; border-radius: 6px; font-weight: bold;
-                          display: inline-block;">Potvrdiť e-mail</a>
-            </p>
-            <p style="text-align: center; font-size: 28px; letter-spacing: 8px; font-weight: 700; color: #1976d2;">
-                {code}
-            </p>
-            <p style="color: #666; font-size: 13px; text-align: center;">Kód je platný 30 minút.</p>
-            <p style="color: #666; font-size: 13px;">
-                Ak tlačidlo nefunguje, skopírujte tento odkaz:<br/>
-                <a href="{confirmationLink}" style="color: #1976d2;">{confirmationLink}</a>
-            </p>
-            """;
-    }
+    // zatial vypnutie email overenia
+    // private static string BuildConfirmationEmailBody(string firstName, string code)
+    // {
+    //     return $"<h2>Vitajte v ZISK, {firstName}!</h2> ... <p>{code}</p> ...";
+    // }
 
     private sealed class InputModel
     {
@@ -319,7 +321,8 @@
         [StringLength(200, MinimumLength = 5, ErrorMessage = "Zadajte úplnú adresu.")]
         public string? Bydlisko { get; set; }
 
-        [StringLength(64, MinimumLength = 3, ErrorMessage = "Používateľské meno musí mať 3 až 64 znakov.")]
+        [StringLength(24, ErrorMessage = "Používateľské meno môže mať najviac 24 znakov.")]
+        [RegularExpression(@"^$|^.{3,}$", ErrorMessage = "Používateľské meno musí mať aspoň 3 znaky.")]
         public string? Username { get; set; }
 
         [Required(ErrorMessage = "Heslo je povinné.")]

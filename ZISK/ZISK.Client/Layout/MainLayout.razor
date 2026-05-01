@@ -147,6 +147,13 @@
 
     private string MainContentStyle => "background: var(--zisk-bg); min-height: 100vh;";
 
+    protected override void OnInitialized()
+    {
+        _routeKey = NavigationManager.Uri;
+        ActivityTracker.StateChanged += OnActivityChanged;
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -159,10 +166,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ActivityTracker.StateChanged += OnActivityChanged;
-        NavigationManager.LocationChanged += OnLocationChanged;
-        _routeKey = NavigationManager.Uri;
-
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         _isCoach = authState.User.IsInRole("Coach");
         _isParentAthlete = authState.User.IsInRole("Parent") || authState.User.IsInRole("Athlete");
@@ -180,13 +183,11 @@
             }
         }
 
-        // Load pending email invitations for this user
         try
         {
             _pendingInvitations = await InvitationsApi.GetPendingAsync();
         }
         catch { }
-
     }
 
     private void OnOnlineStatusChanged() => InvokeAsync(StateHasChanged);
