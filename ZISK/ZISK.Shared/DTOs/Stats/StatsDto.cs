@@ -24,4 +24,15 @@ namespace ZISK.Shared.DTOs.Stats
         int TrainingCount,
         decimal AverageAttendance
     );
+
+    public record TrainingTypeStatDto(
+        string Type,
+        int Count
+    );
+
+    public record AttendanceTrendPointDto(
+        DateOnly Date,
+        decimal PresentPercent,
+        int TotalRecords
+    );
 }

@@ -87,6 +87,56 @@ public class StatsService : IStatsService
         return await GetAttendanceStatsInternalAsync(days);
     }
 
+    public async Task<List<TrainingTypeStatDto>> GetTrainingTypeStatsAsync(int days)
+    {
+        var fromDate = DateTime.UtcNow.AddDays(-days);
+        var grouped = await _context.TrainingEvents
+            .AsNoTracking()
+            .Where(t => t.StartTime >= fromDate)
+            .GroupBy(t => t.Type)
+            .Select(g => new TrainingTypeStatDto(g.Key.ToString(), g.Count()))
+            .ToListAsync();
+
+        return grouped.OrderByDescending(t => t.Count).ToList();
+    }
+
+    public async Task<List<AttendanceTrendPointDto>> GetAttendanceTrendAsync(int days)
+    {
+        var fromDate = DateTime.UtcNow.AddDays(-days).Date;
+        var records = await _context.AttendanceRecords
+            .AsNoTracking()
+            .Where(a => a.RecordedAt >= fromDate)
+            .Select(a => new { a.RecordedAt, a.Status })
+            .ToListAsync();
+
+        
+        bool weekly = days > 60;
+
+        DateOnly Bucket(DateTime dt)
+        {
+            var d = DateOnly.FromDateTime(dt);
+            if (!weekly) return d;
+            var diff = ((int)d.DayOfWeek + 6) % 7; 
+            return d.AddDays(-diff);
+        }
+
+        var result = records
+            .GroupBy(r => Bucket(r.RecordedAt))
+            .OrderBy(g => g.Key)
+            .Select(g =>
+            {
+                var total = g.Count();
+                var present = g.Count(x => x.Status == AttendanceStatus.Present);
+                return new AttendanceTrendPointDto(
+                    g.Key,
+                    AttendanceCalculator.CalculatePercentageDecimal(present, total),
+                    total);
+            })
+            .ToList();
+
+        return result;
+    }
+
     private async Task<AttendanceStatsDto> GetAttendanceStatsInternalAsync(int days)
     {
         var fromDate = DateTime.UtcNow.AddDays(-days);

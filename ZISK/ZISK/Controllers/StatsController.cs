@@ -37,4 +37,18 @@ public class StatsController : ControllerBase
         var result = await _statsService.GetAttendanceStatsAsync(days);
         return Ok(result);
     }
+
+    [HttpGet("training-types")]
+    public async Task<ActionResult<List<TrainingTypeStatDto>>> GetTrainingTypeStats([FromQuery] int days = 30)
+    {
+        var result = await _statsService.GetTrainingTypeStatsAsync(days);
+        return Ok(result);
+    }
+
+    [HttpGet("attendance-trend")]
+    public async Task<ActionResult<List<AttendanceTrendPointDto>>> GetAttendanceTrend([FromQuery] int days = 30)
+    {
+        var result = await _statsService.GetAttendanceTrendAsync(days);
+        return Ok(result);
+    }
 }
