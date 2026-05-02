@@ -116,6 +116,29 @@
     font-family: inherit;
 }
 
+::deep .has-toggle input {
+    padding-right: 2.75rem;
+}
+
+.pwd-toggle {
+    position: absolute;
+    right: 0.65rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    color: var(--zisk-slate-600);
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+    line-height: 0;
+    z-index: 2;
+}
+
+.pwd-toggle:hover {
+    color: var(--zisk-primary);
+}
+
 ::deep .input-wrapper input:focus {
     border-color: var(--zisk-primary);
     background: var(--zisk-surface);

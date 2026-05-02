@@ -13,8 +13,8 @@ public record DocumentDto(
 );
 
 public record CreateDocumentRequest(
-    [property: Required(ErrorMessage = "Názov je povinný.")]
-    [property: StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 200 znakov.")]
+    [Required(ErrorMessage = "Názov je povinný.")]
+    [StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 200 znakov.")]
     string Title,
 
     DocumentCategory Category,
@@ -22,8 +22,8 @@ public record CreateDocumentRequest(
 );
 
 public record UpdateDocumentRequest(
-    [property: Required(ErrorMessage = "Názov je povinný.")]
-    [property: StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 200 znakov.")]
+    [Required(ErrorMessage = "Názov je povinný.")]
+    [StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 200 znakov.")]
     string Title,
 
     DocumentCategory Category,

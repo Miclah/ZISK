@@ -46,45 +46,45 @@ public record TrainingAttendanceDto(
 );
 
 public record CancelTrainingRequest(
-    [property: Required(ErrorMessage = "Dôvod zrušenia je povinný.")]
-    [property: StringLength(500, ErrorMessage = "Dôvod môže mať max 500 znakov.")]
+    [Required(ErrorMessage = "Dôvod zrušenia je povinný.")]
+    [StringLength(500, ErrorMessage = "Dôvod môže mať max 500 znakov.")]
     string Reason
 );
 
 public record CreateTrainingEventRequest(
-    [property: Required(ErrorMessage = "Tím je povinný.")]
+    [Required(ErrorMessage = "Tím je povinný.")]
     Guid TeamId,
 
-    [property: Required(ErrorMessage = "Názov je povinný.")]
-    [property: StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 200 znakov.")]
+    [Required(ErrorMessage = "Názov je povinný.")]
+    [StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 200 znakov.")]
     string Title,
 
     DateTime StartTime,
     DateTime EndTime,
 
-    [property: StringLength(200, ErrorMessage = "Miesto môže mať max 200 znakov.")]
+    [StringLength(200, ErrorMessage = "Miesto môže mať max 200 znakov.")]
     string? Location,
 
     TrainingType Type,
 
-    [property: StringLength(1000, ErrorMessage = "Poznámka môže mať max 1000 znakov.")]
+    [StringLength(1000, ErrorMessage = "Poznámka môže mať max 1000 znakov.")]
     string? CoachNote
 );
 
 public record UpdateTrainingEventRequest(
-    [property: Required(ErrorMessage = "Názov je povinný.")]
-    [property: StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 200 znakov.")]
+    [Required(ErrorMessage = "Názov je povinný.")]
+    [StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 200 znakov.")]
     string Title,
 
     DateTime StartTime,
     DateTime EndTime,
 
-    [property: StringLength(200, ErrorMessage = "Miesto môže mať max 200 znakov.")]
+    [StringLength(200, ErrorMessage = "Miesto môže mať max 200 znakov.")]
     string? Location,
 
     TrainingType Type,
 
-    [property: StringLength(1000, ErrorMessage = "Poznámka môže mať max 1000 znakov.")]
+    [StringLength(1000, ErrorMessage = "Poznámka môže mať max 1000 znakov.")]
     string? CoachNote,
 
     bool IsLocked
