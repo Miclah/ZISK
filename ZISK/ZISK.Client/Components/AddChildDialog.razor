@@ -166,7 +166,12 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void SubmitForm() => _editForm?.EditContext?.Validate();
+    private async Task SubmitForm()
+    {
+        if (_editForm?.EditContext is null) return;
+        if (_editForm.EditContext.Validate())
+            await Submit();
+    }
 
     private async Task Submit()
     {

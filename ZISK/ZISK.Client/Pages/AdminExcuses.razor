@@ -1,4 +1,4 @@
-﻿@page "/admin/ospravedlnenky"
+@page "/admin/ospravedlnenky"
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Excuses
 @using ZISK.Shared.Enums
@@ -10,10 +10,55 @@
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2" Wrap="Wrap.Wrap">
     <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" Color="Color.Warning" />
     <MudText Typo="Typo.h4">Správa ospravedlneniek</MudText>
+    <MudChip T="string" Color="Color.Info" Size="Size.Small">Celkom: @_excuses.Count</MudChip>
+    <MudSpacer />
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Refresh"
+               OnClick="LoadExcuses"
+               Disabled="_isLoading">
+        Obnoviť
+    </MudButton>
 </MudStack>
+
+@if (!_isLoading && _excuses.Any())
+{
+    <MudPaper Class="pa-3 mb-4" Elevation="0" Outlined="true">
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_searchText"
+                              Placeholder="Hľadať podľa mena alebo dôvodu..."
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="string" @bind-Value="_selectedTeam"
+                           Label="Tím"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Clearable="true">
+                    <MudSelectItem T="string" Value="@(null)">Všetky tímy</MudSelectItem>
+                    @foreach (var team in _teamOptions)
+                    {
+                        <MudSelectItem T="string" Value="@team">@team</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudDateRangePicker @bind-DateRange="_dateRange"
+                                    Label="Dátum tréningu"
+                                    Variant="Variant.Outlined"
+                                    Margin="Margin.Dense"
+                                    Clearable="true" />
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
 
 @if (_isLoading)
 {
@@ -30,43 +75,143 @@ else if (_error != null)
 }
 else if (!_excuses.Any())
 {
-    <MudPaper Class="pa-6" Elevation="1">
+    <MudPaper Class="pa-8" Elevation="0" Outlined="true">
         <MudStack AlignItems="AlignItems.Center" Spacing="2">
             <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Large" Color="Color.Success" />
-            <MudText Typo="Typo.body1" Color="Color.Secondary">Žiadne ospravedlnenky na spracovanie</MudText>
+            <MudText Typo="Typo.body1" Color="Color.Secondary">Žiadne ospravedlnenky.</MudText>
         </MudStack>
     </MudPaper>
 }
 else
 {
-    <MudTable Items="@_excuses" Hover="true" Elevation="3" Striped="true" Breakpoint="Breakpoint.Sm">
-        <HeaderContent>
-            <MudTh>Dieťa</MudTh>
-            <MudTh>Tím</MudTh>
-            <MudTh>Dátum</MudTh>
-            <MudTh>Dôvod</MudTh>
-            <MudTh>Stav</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="Dieťa">@context.ChildName</MudTd>
-            <MudTd DataLabel="Tím">@context.TeamName</MudTd>
-            <MudTd DataLabel="Dátum">
-                @if (context.DateFrom.HasValue)
+    var filtered = FilteredExcuses.ToList();
+    @if (!filtered.Any())
+    {
+        <MudPaper Class="pa-6" Elevation="0" Outlined="true">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Default" />
+                <MudText Typo="Typo.body1" Color="Color.Secondary">Žiadne ospravedlnenky nezodpovedajú filtru.</MudText>
+            </MudStack>
+        </MudPaper>
+    }
+    else
+    {
+        @* Desktop tabulka *@
+        <MudHidden Breakpoint="Breakpoint.SmAndDown">
+            <MudTable T="ExcuseListDto"
+                      Items="filtered"
+                      Hover="true"
+                      Striped="true"
+                      Breakpoint="Breakpoint.None"
+                      Elevation="2"
+                      Dense="false">
+                <HeaderContent>
+                    <MudTh>
+                        <MudTableSortLabel SortBy="new Func<ExcuseListDto, object>(x => x.ChildName)">Dieťa</MudTableSortLabel>
+                    </MudTh>
+                    <MudTh>
+                        <MudTableSortLabel SortBy="new Func<ExcuseListDto, object>(x => x.TeamName)">Tím</MudTableSortLabel>
+                    </MudTh>
+                    <MudTh>
+                        <MudTableSortLabel SortBy="new Func<ExcuseListDto, object>(x => x.DateFrom ?? DateTime.MinValue)" InitialDirection="SortDirection.Descending">Dátum tréningu</MudTableSortLabel>
+                    </MudTh>
+                    <MudTh>
+                        <MudTableSortLabel SortBy="new Func<ExcuseListDto, object>(x => x.CreatedAt)">Podaná</MudTableSortLabel>
+                    </MudTh>
+                    <MudTh>Dôvod</MudTh>
+                    <MudTh>Stav</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudAvatar Color="Color.Secondary" Size="Size.Small">
+                                @GetInitials(context.ChildName)
+                            </MudAvatar>
+                            <MudText Typo="Typo.body2"><strong>@context.ChildName</strong></MudText>
+                        </MudStack>
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default">@context.TeamName</MudChip>
+                    </MudTd>
+                    <MudTd>
+                        @if (context.DateFrom.HasValue)
+                        {
+                            <MudText Typo="Typo.body2">@context.DateFrom.Value.ToString("dd.MM.yyyy")</MudText>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">—</MudText>
+                        }
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">@context.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
+                    </MudTd>
+                    <MudTd>
+                        @{
+                            var reason = string.IsNullOrWhiteSpace(context.Reason) ? "(bez dôvodu)" : context.Reason!;
+                        }
+                        <MudTooltip Text="@reason" Placement="Placement.Top">
+                            <MudText Typo="Typo.body2"
+                                     Style="max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                @reason
+                            </MudText>
+                        </MudTooltip>
+                    </MudTd>
+                    <MudTd>
+                        @{
+                            var statusInfo = GetStatusInfo(context.Status);
+                        }
+                        <MudChip T="string" Size="Size.Small" Color="@statusInfo.Color">@statusInfo.Label</MudChip>
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new[] { 10, 25, 50, 100 }"
+                                   RowsPerPageString="Riadkov na stranu:"
+                                   InfoFormat="{first_item}–{last_item} z {all_items}" />
+                </PagerContent>
+            </MudTable>
+        </MudHidden>
+
+        @* Mobile karty *@
+        <MudHidden Breakpoint="Breakpoint.MdAndUp">
+            <MudStack Spacing="2">
+                @foreach (var item in filtered)
                 {
-                    @context.DateFrom.Value.ToString("dd.MM.yyyy")
+                    var statusInfo = GetStatusInfo(item.Status);
+                    <MudPaper Class="pa-3" Elevation="1">
+                        <MudStack Spacing="1">
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudAvatar Color="Color.Secondary" Size="Size.Small">
+                                        @GetInitials(item.ChildName)
+                                    </MudAvatar>
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.subtitle2"><strong>@item.ChildName</strong></MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@item.TeamName</MudText>
+                                    </MudStack>
+                                </MudStack>
+                                <MudChip T="string" Size="Size.Small" Color="@statusInfo.Color">@statusInfo.Label</MudChip>
+                            </MudStack>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" Color="Color.Default" />
+                                <MudText Typo="Typo.body2">
+                                    @(item.DateFrom?.ToString("dd.MM.yyyy") ?? "—")
+                                </MudText>
+                                <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" Color="Color.Default" Class="ml-2" />
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    podaná @item.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")
+                                </MudText>
+                            </MudStack>
+                            @if (!string.IsNullOrWhiteSpace(item.Reason))
+                            {
+                                <MudText Typo="Typo.body2">@item.Reason</MudText>
+                            }
+                        </MudStack>
+                    </MudPaper>
                 }
-            </MudTd>
-            <MudTd DataLabel="Dôvod">@context.Reason</MudTd>
-            <MudTd DataLabel="Stav">
-                <MudChip T="string" Size="Size.Small" Color="Color.Info">
-                    Prijaté
-                </MudChip>
-            </MudTd>
-        </RowTemplate>
-        <NoRecordsContent>
-            <MudText>Žiadne ospravedlnenky</MudText>
-        </NoRecordsContent>
-    </MudTable>
+            </MudStack>
+        </MudHidden>
+    }
 }
 </MudContainer>
 
@@ -75,7 +220,25 @@ else
     private string? _error;
     private List<ExcuseListDto> _excuses = new();
 
-protected override async Task OnInitializedAsync()
+    private string _searchText = string.Empty;
+    private string? _selectedTeam;
+    private DateRange? _dateRange;
+
+    private IEnumerable<string> _teamOptions => _excuses
+        .Select(e => e.TeamName)
+        .Where(n => !string.IsNullOrWhiteSpace(n))
+        .Distinct()
+        .OrderBy(n => n);
+
+    private IEnumerable<ExcuseListDto> FilteredExcuses => _excuses
+        .Where(e => string.IsNullOrWhiteSpace(_searchText)
+            || e.ChildName.Contains(_searchText, StringComparison.OrdinalIgnoreCase)
+            || (e.Reason ?? string.Empty).Contains(_searchText, StringComparison.OrdinalIgnoreCase))
+        .Where(e => string.IsNullOrWhiteSpace(_selectedTeam) || e.TeamName == _selectedTeam)
+        .Where(e => _dateRange?.Start is null || (e.DateFrom.HasValue && e.DateFrom.Value.Date >= _dateRange.Start.Value.Date))
+        .Where(e => _dateRange?.End is null || (e.DateFrom.HasValue && e.DateFrom.Value.Date <= _dateRange.End.Value.Date));
+
+    protected override async Task OnInitializedAsync()
     {
         await LoadExcuses();
     }
@@ -85,6 +248,7 @@ protected override async Task OnInitializedAsync()
         try
         {
             _isLoading = true;
+            _error = null;
             _excuses = await ExcusesApi.GetExcusesAsync(null);
         }
         catch (Exception ex)
@@ -97,4 +261,19 @@ protected override async Task OnInitializedAsync()
             _isLoading = false;
         }
     }
+
+    private static string GetInitials(string fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName)) return "?";
+        var parts = fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "?";
+        if (parts.Length == 1) return parts[0][0].ToString().ToUpperInvariant();
+        return $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant();
+    }
+
+    private static (Color Color, string Label) GetStatusInfo(ExcuseStatus status) => status switch
+    {
+        ExcuseStatus.Received => (Color.Info, "Prijaté"),
+        _ => (Color.Default, status.ToString())
+    };
 }
