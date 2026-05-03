@@ -1,6 +1,7 @@
-using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using ZISK.Client.Components;
+using ZISK.Client.Layout;
 using ZISK.Client.Services;
 using ZISK.Shared.DTOs.Teams;
 using ZISK.Shared.DTOs.Trainings;
@@ -13,15 +14,23 @@ public partial class AdminTrainings
     [Inject] private ITeamsApi TeamsApi { get; set; } = default!;
     [Inject] private ITrainingsApi TrainingsApi { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
     private bool _isLoading = true;
-    private bool _dialogVisible = false;
+    private int _activeTab;
     private List<TeamDto> _teams = new();
     private List<TrainingEventDto> _trainings = new();
 
-    private Guid? _editingId;
-    private bool _isLocked = false;
-    private TrainingFormModel _trainingModel = new();
+    private Guid? _filterTeamId;
+    private TrainingType? _filterType;
+    private const int MobilePageSize = 10;
+    private int _mobileShown = MobilePageSize;
+
+    private IEnumerable<TrainingEventDto> FilteredTrainings =>
+        _trainings.Where(t =>
+            (_filterTeamId is null || t.TeamId == _filterTeamId) &&
+            (_filterType is null || t.Type == _filterType));
 
     protected override async Task OnInitializedAsync()
     {
@@ -38,96 +47,79 @@ public partial class AdminTrainings
         {
             _isLoading = false;
         }
+
+        if (NavigationManager.Uri.Contains("action=create", StringComparison.OrdinalIgnoreCase))
+            await OpenCreateDialog();
     }
 
     private async Task LoadTrainings()
     {
         _trainings = await TrainingsApi.GetTrainingsAsync(null, null, null);
+        _mobileShown = MobilePageSize;
     }
 
-    private void OpenDialog(TrainingEventDto? training)
+    private void OnFilterChanged()
     {
-        if (training != null)
-        {
-            _editingId = training.Id;
-            _isLocked = training.IsLocked;
-            _trainingModel = new TrainingFormModel
-            {
-                TeamId = training.TeamId,
-                Title = training.Title,
-                StartDate = training.StartTime.Date,
-                StartTime = training.StartTime.TimeOfDay,
-                EndTime = training.EndTime.TimeOfDay,
-                Location = string.IsNullOrWhiteSpace(training.Location) ? null : training.Location,
-                Type = training.Type,
-                CoachNote = string.IsNullOrWhiteSpace(training.CoachNote) ? null : training.CoachNote
-            };
-        }
-        else
-        {
-            _editingId = null;
-            _isLocked = false;
-            _trainingModel = new TrainingFormModel
-            {
-                TeamId = _teams.FirstOrDefault()?.Id,
-                StartDate = DateTime.Today,
-                StartTime = new TimeSpan(16, 0, 0),
-                EndTime = new TimeSpan(17, 30, 0),
-                Type = TrainingType.Conditioning
-            };
-        }
-        _dialogVisible = true;
+        _mobileShown = MobilePageSize;
     }
 
-    private void CloseDialog() => _dialogVisible = false;
-
-    private async Task Save()
+    private void LoadMoreMobile()
     {
-        try
-        {
-            var start = _trainingModel.StartDate!.Value.Add(_trainingModel.StartTime!.Value);
-            var end = _trainingModel.StartDate!.Value.Add(_trainingModel.EndTime!.Value);
+        _mobileShown += MobilePageSize;
+    }
 
-            if (_editingId.HasValue)
-            {
-                var request = new UpdateTrainingEventRequest(
-                    _trainingModel.Title,
-                    start,
-                    end,
-                    string.IsNullOrWhiteSpace(_trainingModel.Location) ? null : _trainingModel.Location,
-                    _trainingModel.Type,
-                    string.IsNullOrWhiteSpace(_trainingModel.CoachNote) ? null : _trainingModel.CoachNote,
-                    _isLocked);
-                await TrainingsApi.UpdateTrainingAsync(_editingId.Value, request);
-                Snackbar.Add("Tréning upravený", Severity.Success);
-            }
-            else
-            {
-                var request = new CreateTrainingEventRequest(
-                    _trainingModel.TeamId!.Value,
-                    _trainingModel.Title,
-                    start,
-                    end,
-                    string.IsNullOrWhiteSpace(_trainingModel.Location) ? null : _trainingModel.Location,
-                    _trainingModel.Type,
-                    string.IsNullOrWhiteSpace(_trainingModel.CoachNote) ? null : _trainingModel.CoachNote);
-                await TrainingsApi.CreateTrainingAsync(request);
-                Snackbar.Add("Tréning vytvorený", Severity.Success);
-            }
-            CloseDialog();
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(TrainingFormDialog.Teams)] = _teams,
+            [nameof(TrainingFormDialog.DefaultTeamId)] = (Guid?)_teams.FirstOrDefault()?.Id
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<TrainingFormDialog>("Nový tréning", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+        {
+            Snackbar.Add("Tréning vytvorený", Severity.Success);
             await LoadTrainings();
         }
-        catch (Exception ex)
+    }
+
+    private async Task OpenEditDialog(TrainingEventDto training)
+    {
+        var parameters = new DialogParameters
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            [nameof(TrainingFormDialog.Teams)] = _teams,
+            [nameof(TrainingFormDialog.Existing)] = training
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<TrainingFormDialog>("Upraviť tréning", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+        {
+            Snackbar.Add("Tréning upravený", Severity.Success);
+            await LoadTrainings();
         }
     }
 
-    private async Task Delete(Guid id)
+    private async Task ConfirmDeleteAsync(TrainingEventDto training)
     {
+        bool? confirm = await DialogService.ShowMessageBoxAsync(
+            "Vymazať tréning",
+            $"Naozaj chcete vymazať tréning '{training.Title}' ({training.StartTime:dd.MM.yyyy HH:mm})?",
+            yesText: "Áno, vymazať",
+            cancelText: "Zrušiť",
+            options: new DialogOptions { MaxWidth = MaxWidth.Small });
+
+        if (confirm != true) return;
+
         try
         {
-            await TrainingsApi.DeleteTrainingAsync(id);
+            await TrainingsApi.DeleteTrainingAsync(training.Id);
             Snackbar.Add("Tréning vymazaný", Severity.Success);
             await LoadTrainings();
         }
@@ -137,15 +129,16 @@ public partial class AdminTrainings
         }
     }
 
-    private Color GetTypeColor(TrainingType type) => type switch
+    private static Color GetTypeColor(TrainingType type) => type switch
     {
         TrainingType.Conditioning => Color.Primary,
         TrainingType.Technical => Color.Secondary,
         TrainingType.Match => Color.Tertiary,
+        TrainingType.Recovery => Color.Info,
         _ => Color.Default
     };
 
-    private string GetTypeText(TrainingType type) => type switch
+    private static string GetTypeText(TrainingType type) => type switch
     {
         TrainingType.Conditioning => "Kondičný",
         TrainingType.Technical => "Technický",
@@ -154,30 +147,16 @@ public partial class AdminTrainings
         _ => "Iný"
     };
 
-    public class TrainingFormModel
+    private static string GetTypeBorderColor(TrainingType type)
     {
-        [Required(ErrorMessage = "Tím je povinný.")]
-        public Guid? TeamId { get; set; }
-
-        [Required(ErrorMessage = "Názov je povinný.")]
-        [StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 200 znakov.")]
-        public string Title { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Dátum je povinný.")]
-        public DateTime? StartDate { get; set; }
-
-        [Required(ErrorMessage = "Čas začiatku je povinný.")]
-        public TimeSpan? StartTime { get; set; }
-
-        [Required(ErrorMessage = "Čas konca je povinný.")]
-        public TimeSpan? EndTime { get; set; }
-
-        [StringLength(200, ErrorMessage = "Miesto môže mať max 200 znakov.")]
-        public string? Location { get; set; }
-
-        public TrainingType Type { get; set; } = TrainingType.Conditioning;
-
-        [StringLength(1000, ErrorMessage = "Poznámka môže mať max 1000 znakov.")]
-        public string? CoachNote { get; set; }
+        var palette = AppTheme.SportClubTheme.PaletteLight;
+        return type switch
+        {
+            TrainingType.Conditioning => palette.Primary.Value,
+            TrainingType.Technical => palette.Secondary.Value,
+            TrainingType.Match => palette.Tertiary.Value,
+            TrainingType.Recovery => palette.Info.Value,
+            _ => palette.ActionDefault.Value
+        };
     }
 }

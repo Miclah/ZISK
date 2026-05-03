@@ -24,7 +24,7 @@
 @if (_isLoading)
 {
     <MudStack Spacing="3">
-        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="180px" />
+        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="64px" />
         <MudGrid Spacing="3">
             @for (int i = 0; i < 3; i++)
             {
@@ -37,11 +37,16 @@
 }
 else
 {
-    <MudPaper Elevation="0" Class="dashboard-hero mb-4">
-        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start" Wrap="Wrap.Wrap" Spacing="3">
-            <MudStack Spacing="0">
-                <h1 class="dashboard-hero__greeting">Vitajte, @_firstName</h1>
-                <div class="dashboard-hero__subtitle">@_dateText</div>
+    <MudPaper Elevation="0" Class="dashboard-hero mb-3">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudAvatar Color="Color.Surface" Size="Size.Medium" Style="color:var(--mud-palette-primary);">
+                    @(_firstName.Length > 0 ? _firstName[0].ToString().ToUpper() : "?")
+                </MudAvatar>
+                <MudStack Spacing="0">
+                    <h1 class="dashboard-hero__greeting">Vitajte, @_firstName</h1>
+                    <div class="dashboard-hero__subtitle">@_dateText</div>
+                </MudStack>
             </MudStack>
             <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
                 @if (_isParent)
@@ -59,43 +64,80 @@ else
                 </MudButton>
             </MudStack>
         </MudStack>
-
-        <MudGrid Spacing="2" Class="mt-4">
-            <MudItem xs="6" sm="3">
-                <div class="dashboard-kpi">
-                    <div class="dashboard-kpi__value">@_kpiTrainingsThisWeek</div>
-                    <div class="dashboard-kpi__label">Tréningy tento týždeň</div>
-                </div>
-            </MudItem>
-            <MudItem xs="6" sm="3">
-                <div class="dashboard-kpi">
-                    <div class="dashboard-kpi__value">@_kpiPendingExcuses</div>
-                    <div class="dashboard-kpi__label">Aktívne ospravedlnenky</div>
-                </div>
-            </MudItem>
-            <MudItem xs="6" sm="3">
-                <div class="dashboard-kpi">
-                    <div class="dashboard-kpi__value">@_kpiRecentAnnouncements</div>
-                    <div class="dashboard-kpi__label">Nové oznamy (7 dní)</div>
-                </div>
-            </MudItem>
-            <MudItem xs="6" sm="3">
-                <div class="dashboard-kpi">
-                    <div class="dashboard-kpi__value">@(_isParent ? _children.Count(c => !c.IsOwnProfile) : 1)</div>
-                    <div class="dashboard-kpi__label">@(_isParent ? "Detí v rodine" : "Profil")</div>
-                </div>
-            </MudItem>
-        </MudGrid>
     </MudPaper>
+
+    <MudGrid Class="mb-4" Spacing="3">
+        <MudItem xs="6" sm="3">
+            <MudCard Elevation="2">
+                <MudCardContent Class="pa-3">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Color="Color.Primary" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h5" Style="font-weight:700;">@_kpiTrainingsThisWeek</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Tréningy tento týždeň</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudCard Elevation="2">
+                <MudCardContent Class="pa-3">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.EventBusy" Color="Color.Warning" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h5" Style="font-weight:700;">@_kpiPendingExcuses</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Aktívne ospravedlnenky</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudCard Elevation="2">
+                <MudCardContent Class="pa-3">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.Campaign" Color="Color.Info" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h5" Style="font-weight:700;">@_kpiRecentAnnouncements</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Nové oznamy (7 dní)</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudCard Elevation="2">
+                <MudCardContent Class="pa-3">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudIcon Icon="@(_isParent ? Icons.Material.Filled.FamilyRestroom : Icons.Material.Filled.Person)" Color="Color.Secondary" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h5" Style="font-weight:700;">@(_isParent ? _children.Count(c => !c.IsOwnProfile) : 1)</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@(_isParent ? "Detí v rodine" : "Profil")</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    @if (_isParent)
+    {
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+            <MudText Typo="Typo.h6">Moja rodina</MudText>
+            @if (_childCards.Any())
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @_childCards.Count @(_childCards.Count == 1 ? "dieťa" : (_childCards.Count is >= 2 and <= 4 ? "deti" : "detí"))
+                </MudText>
+            }
+        </MudStack>
+    }
 
     <MudGrid Spacing="3">
         <MudItem xs="12" lg="8">
             @if (_isParent)
             {
-                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
-                    <MudText Typo="Typo.h6">Moja rodina</MudText>
-                </MudStack>
-
                 @if (!_childCards.Any())
                 {
                     <MudPaper Class="card-standard empty-state" Elevation="0">
@@ -123,27 +165,24 @@ else
                                             <MudAvatar Color="Color.Primary" Size="Size.Medium">
                                                 @((card.Child.FirstName.Length > 0 ? card.Child.FirstName[0] : '?').ToString().ToUpper())
                                             </MudAvatar>
-                                            <MudStack Spacing="0">
-                                                <MudText Typo="Typo.subtitle1" Style="font-weight:600;">
-                                                    @card.Child.FirstName @card.Child.LastName
-                                                </MudText>
+                                            <MudStack Spacing="0" Style="flex:1; min-width:0;">
+                                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.Wrap">
+                                                    <MudText Typo="Typo.subtitle1" Style="font-weight:600;">
+                                                        @card.Child.FirstName @card.Child.LastName
+                                                    </MudText>
+                                                    @if (!string.IsNullOrWhiteSpace(card.Child.TeamName))
+                                                    {
+                                                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Icon="@Icons.Material.Rounded.Group" Style="height:20px;">
+                                                            @card.Child.TeamName
+                                                        </MudChip>
+                                                    }
+                                                </MudStack>
                                                 @if (card.Age.HasValue)
                                                 {
                                                     <MudText Typo="Typo.caption" Color="Color.Secondary">@card.Age rokov</MudText>
                                                 }
                                             </MudStack>
                                         </MudStack>
-
-                                        @if (!string.IsNullOrWhiteSpace(card.Child.TeamName))
-                                        {
-                                            <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Icon="@Icons.Material.Rounded.Group">
-                                                @card.Child.TeamName
-                                            </MudChip>
-                                        }
-                                        else
-                                        {
-                                            <MudChip T="string" Size="Size.Small" Color="Color.Default">Bez tímu</MudChip>
-                                        }
 
                                         <MudDivider />
 

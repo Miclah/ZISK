@@ -70,7 +70,7 @@
                                 @authContext.User.FindFirst(ClaimTypes.GivenName)?.Value @authContext.User.FindFirst(ClaimTypes.Surname)?.Value
                             </MudText>
                             <MudText Typo="Typo.caption" Class="appbar-user-role">
-                                @authContext.User.FindFirst(ClaimTypes.Role)?.Value
+                                @GetRoleName(authContext.User.FindFirst(ClaimTypes.Role)?.Value)
                             </MudText>
                         </MudStack>
                     </MudStack>
@@ -91,8 +91,8 @@
         </MudDrawerContainer>
     </MudDrawer>
 
-    <MudMainContent Class="px-6 pb-6" Style="@MainContentStyle">
-        <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
+    <MudMainContent Class="pb-6" Style="@MainContentStyle">
+        <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" DisableGutters="true">
             @if (_pendingInvitations.Any())
             {
                 <MudStack Spacing="1" Class="mb-3">
@@ -223,6 +223,16 @@
     {
         await OnlineStatus.DisposeAsync();
     }
+
+    private static string GetRoleName(string? role) => role switch
+    {
+        "Admin"    => "Admin",
+        "Coach"    => "Tréner",
+        "Parent"   => "Rodič",
+        "Athlete"  => "Športovec",
+        "Child"    => "Dieťa",
+        _          => role ?? ""
+    };
 
     private async Task AcceptInvitation(PendingInvitationDto inv)
     {

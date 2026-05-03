@@ -79,8 +79,7 @@ private IEnumerable<UserListDto> FilteredUsers => _users
         {
             [nameof(AddUserDialog.Model)] = new AddUserDialog.AddUserDialogModel()
             {
-                Role = "Parent",
-                GeneratePassword = true
+                Role = "Parent"
             }
         };
 
@@ -95,8 +94,7 @@ private IEnumerable<UserListDto> FilteredUsers => _users
         try
         {
             var createEmail = BuildCreateEmail(model);
-            var initialPassword = GenerateInitialPassword(model);
-            var request = model.ToRequest(initialPassword, createEmail);
+            var request = model.ToRequest(createEmail);
 
             await UsersApi.CreateUserAsync(request);
             Snackbar.Add("Používateľ bol vytvorený.", Severity.Success);
@@ -276,17 +274,18 @@ private IEnumerable<UserListDto> FilteredUsers => _users
         return $"{suffix}@zisk.local";
     }
 
-    private static string GenerateInitialPassword(AddUserDialog.AddUserDialogModel model)
-    {
-        var phoneDigits = new string((model.PhoneNumber ?? string.Empty).Where(char.IsDigit).ToArray());
-
-        if (model.GeneratePassword)
-            return $"Zisk!{Random.Shared.Next(1000, 9999)}";
-
-        var datePart = model.DateOfBirth?.ToString("ddMMyyyy") ?? "01011990";
-        var phonePart = phoneDigits.Length >= 4 ? phoneDigits[^4..] : phoneDigits.PadLeft(4, '0');
-        return $"{datePart}{phonePart}";
-    }
+    // Zatial pre testovanie vypnute - heslo sa zadava priamo v dialogu
+    // private static string GenerateInitialPassword(AddUserDialog.AddUserDialogModel model)
+    // {
+    //     var phoneDigits = new string((model.PhoneNumber ?? string.Empty).Where(char.IsDigit).ToArray());
+    //
+    //     if (model.GeneratePassword)
+    //         return $"Zisk!{Random.Shared.Next(1000, 9999)}";
+    //
+    //     var datePart = model.DateOfBirth?.ToString("ddMMyyyy") ?? "01011990";
+    //     var phonePart = phoneDigits.Length >= 4 ? phoneDigits[^4..] : phoneDigits.PadLeft(4, '0');
+    //     return $"{datePart}{phonePart}";
+    // }
 
     private void OnSelectedParentsChanged(IEnumerable<string> parentIds)
     {

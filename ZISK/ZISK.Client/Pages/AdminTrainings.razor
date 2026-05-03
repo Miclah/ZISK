@@ -1,5 +1,5 @@
-﻿@page "/admin/treningy"
-@using System.ComponentModel.DataAnnotations
+@page "/admin/treningy"
+@using ZISK.Client.Components
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Teams
 @using ZISK.Shared.DTOs.Trainings
@@ -8,101 +8,210 @@
 
 <PageTitle>Správa tréningov</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-<MudText Typo="Typo.h4" Class="mb-4">Správa tréningov</MudText>
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
-<MudTabs Elevation="1" Rounded="true" PanelClass="pa-3">
-    <MudTabPanel Text="Jednorazové tréningy">
-        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
-            <MudText Typo="Typo.h6">Tréningy</MudText>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => OpenDialog(null))">Nový tréning</MudButton>
-        </MudStack>
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4" Spacing="2" Wrap="Wrap.Wrap">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Size="Size.Large" Color="Color.Primary" />
+        <MudText Typo="Typo.h4">Správa tréningov</MudText>
+    </MudStack>
+    @if (_activeTab == 0)
+    {
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenCreateDialog">
+            Nový tréning
+        </MudButton>
+    }
+</MudStack>
 
-        @if (_isLoading)
-        {
-            <MudStack Spacing="2">
-                @for (int i = 0; i < 6; i++)
-                {
-                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="56px" />
-                }
-            </MudStack>
-        }
-        else
-        {
-            <MudTable Items="@_trainings" Hover="true" Breakpoint="Breakpoint.Sm">
-                <HeaderContent>
-                    <MudTh>Dátum</MudTh>
-                    <MudTh>Názov</MudTh>
-                    <MudTh>Tím</MudTh>
-                    <MudTh>Typ</MudTh>
-                    <MudTh>Akcie</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Dátum">@context.StartTime.ToString("dd.MM.yyyy HH:mm")</MudTd>
-                    <MudTd DataLabel="Názov">@context.Title</MudTd>
-                    <MudTd DataLabel="Tím">@context.TeamName</MudTd>
-                    <MudTd DataLabel="Typ">
-                        <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.Type)">@GetTypeText(context.Type)</MudChip>
-                    </MudTd>
-                    <MudTd DataLabel="Akcie">
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OpenDialog(context))" />
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => Delete(context.Id))" />
-                    </MudTd>
-                </RowTemplate>
-            </MudTable>
-        }
-    </MudTabPanel>
-
-    <MudTabPanel Text="Opakované tréningy">
-        <TrainingSeriesManager IsAdmin="true" />
-    </MudTabPanel>
-</MudTabs>
-</MudContainer>
-
-<MudDialog @bind-Visible="_dialogVisible" Options="new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true }">
-    <TitleContent>@(_editingId.HasValue ? "Upraviť tréning" : "Nový tréning")</TitleContent>
-    <DialogContent>
-        <EditForm Model="@_trainingModel" OnValidSubmit="Save">
-            <DataAnnotationsValidator />
-            <MudStack Spacing="3">
-                <MudSelect T="Guid?" @bind-Value="_trainingModel.TeamId"
-                           For="@(() => _trainingModel.TeamId)"
-                           Label="Tím" Variant="Variant.Outlined">
-                    @foreach (var team in _teams)
+<MudPaper Elevation="1" Class="pa-2">
+    <MudTabs @bind-ActivePanelIndex="_activeTab"
+             Rounded="true"
+             ApplyEffectsToContainer="true"
+             PanelClass="pa-3"
+             AlwaysShowScrollButtons="false">
+        <MudTabPanel Text="Jednorazové" Icon="@Icons.Material.Filled.Event">
+            @if (_isLoading)
+            {
+                <MudStack Spacing="2">
+                    @for (int i = 0; i < 6; i++)
                     {
-                        <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
+                        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="56px" />
                     }
-                </MudSelect>
-                <MudTextField @bind-Value="_trainingModel.Title"
-                              For="@(() => _trainingModel.Title)"
-                              Label="Názov" Variant="Variant.Outlined" />
-                <MudDatePicker @bind-Date="_trainingModel.StartDate"
-                               For="@(() => _trainingModel.StartDate)"
-                               Label="Dátum" Variant="Variant.Outlined" />
-                <MudTimePicker @bind-Time="_trainingModel.StartTime"
-                               For="@(() => _trainingModel.StartTime)"
-                               Label="Začiatok" Variant="Variant.Outlined" />
-                <MudTimePicker @bind-Time="_trainingModel.EndTime"
-                               For="@(() => _trainingModel.EndTime)"
-                               Label="Koniec" Variant="Variant.Outlined" />
-                <MudTextField @bind-Value="_trainingModel.Location"
-                              For="@(() => _trainingModel.Location)"
-                              Label="Miesto" Variant="Variant.Outlined" />
-                <MudSelect T="TrainingType" @bind-Value="_trainingModel.Type" Label="Typ" Variant="Variant.Outlined">
-                    <MudSelectItem Value="TrainingType.Conditioning">Kondičný</MudSelectItem>
-                    <MudSelectItem Value="TrainingType.Technical">Technický</MudSelectItem>
-                    <MudSelectItem Value="TrainingType.Match">Herný</MudSelectItem>
-                    <MudSelectItem Value="TrainingType.Recovery">Regeneračný</MudSelectItem>
-                </MudSelect>
-                <MudTextField @bind-Value="_trainingModel.CoachNote"
-                              For="@(() => _trainingModel.CoachNote)"
-                              Label="Poznámka" Variant="Variant.Outlined" Lines="2" />
-                <MudButton ButtonType="ButtonType.Submit"
-                           Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           FullWidth="true">Uložiť</MudButton>
-            </MudStack>
-        </EditForm>
-    </DialogContent>
-</MudDialog>
+                </MudStack>
+            }
+            else if (!_trainings.Any())
+            {
+                <MudPaper Class="pa-8" Elevation="0" Outlined="true">
+                    <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.EventBusy" Size="Size.Large" Color="Color.Default" />
+                        <MudText Typo="Typo.body1" Color="Color.Secondary">Zatiaľ neexistujú žiadne tréningy.</MudText>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="OpenCreateDialog">
+                            Vytvoriť prvý tréning
+                        </MudButton>
+                    </MudStack>
+                </MudPaper>
+            }
+            else
+            {
+                @* Filtre *@
+                <MudPaper Class="pa-3 mb-3" Elevation="0" Outlined="true">
+                    <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@Icons.Material.Filled.FilterList" Color="Color.Secondary" />
+                        <MudSelect T="Guid?" Value="_filterTeamId"
+                                   ValueChanged="@(v => { _filterTeamId = v; OnFilterChanged(); })"
+                                   Label="Tím" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                                   Style="min-width: 180px;" Clearable="true">
+                            <MudSelectItem T="Guid?" Value="@((Guid?)null)">Všetky tímy</MudSelectItem>
+                            @foreach (var team in _teams)
+                            {
+                                <MudSelectItem T="Guid?" Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudSelect T="TrainingType?" Value="_filterType"
+                                   ValueChanged="@(v => { _filterType = v; OnFilterChanged(); })"
+                                   Label="Typ" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                                   Style="min-width: 160px;" Clearable="true">
+                            <MudSelectItem T="TrainingType?" Value="@((TrainingType?)null)">Všetky typy</MudSelectItem>
+                            <MudSelectItem T="TrainingType?" Value="@((TrainingType?)TrainingType.Conditioning)">Kondičný</MudSelectItem>
+                            <MudSelectItem T="TrainingType?" Value="@((TrainingType?)TrainingType.Technical)">Technický</MudSelectItem>
+                            <MudSelectItem T="TrainingType?" Value="@((TrainingType?)TrainingType.Match)">Herný</MudSelectItem>
+                            <MudSelectItem T="TrainingType?" Value="@((TrainingType?)TrainingType.Recovery)">Regeneračný</MudSelectItem>
+                            <MudSelectItem T="TrainingType?" Value="@((TrainingType?)TrainingType.Other)">Iný</MudSelectItem>
+                        </MudSelect>
+                        @if (_filterTeamId is not null || _filterType is not null)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Default"
+                                       StartIcon="@Icons.Material.Filled.Clear"
+                                       OnClick="@(() => { _filterTeamId = null; _filterType = null; OnFilterChanged(); })">
+                                Vyčistiť
+                            </MudButton>
+                        }
+                        <MudSpacer />
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @FilteredTrainings.Count() z @_trainings.Count
+                        </MudText>
+                    </MudStack>
+                </MudPaper>
 
+                @* Desktop: tabulka *@
+                <MudHidden Breakpoint="Breakpoint.SmAndDown">
+                    <MudTable Items="@FilteredTrainings"
+                              Hover="true"
+                              Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Dátum</MudTh>
+                            <MudTh>Názov</MudTh>
+                            <MudTh>Tím</MudTh>
+                            <MudTh>Typ</MudTh>
+                            <MudTh Style="text-align: right;">Akcie</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body2"><strong>@context.StartTime.ToString("dd.MM.yyyy")</strong></MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @context.StartTime.ToString("HH:mm") – @context.EndTime.ToString("HH:mm")
+                                    </MudText>
+                                </MudStack>
+                            </MudTd>
+                            <MudTd>@context.Title</MudTd>
+                            <MudTd>@context.TeamName</MudTd>
+                            <MudTd>
+                                <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.Type)">
+                                    @GetTypeText(context.Type)
+                                </MudChip>
+                            </MudTd>
+                            <MudTd Style="text-align: right;">
+                                <MudTooltip Text="Upraviť">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                   Size="Size.Small"
+                                                   Color="Color.Primary"
+                                                   OnClick="@(() => OpenEditDialog(context))" />
+                                </MudTooltip>
+                                <MudTooltip Text="Vymazať">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Size="Size.Small"
+                                                   Color="Color.Error"
+                                                   OnClick="@(() => ConfirmDeleteAsync(context))" />
+                                </MudTooltip>
+                            </MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager RowsPerPageString="Riadkov na stranu:" InfoFormat="{first_item}–{last_item} z {all_items}" PageSizeOptions="new[] { 10, 25, 50 }" />
+                        </PagerContent>
+                    </MudTable>
+                </MudHidden>
+
+                @* Mobile: karty *@
+                <MudHidden Breakpoint="Breakpoint.MdAndUp">
+                    <MudStack Spacing="2">
+                        @{
+                            var mobileList = FilteredTrainings.Take(_mobileShown).ToList();
+                            var totalFiltered = FilteredTrainings.Count();
+                        }
+                        @if (totalFiltered == 0)
+                        {
+                            <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
+                                    Žiadne tréningy nezodpovedajú filtru.
+                                </MudText>
+                            </MudPaper>
+                        }
+                        @foreach (var training in mobileList)
+                        {
+                            <MudPaper Class="pa-3" Elevation="1" Style="@($"border-left: 4px solid {GetTypeBorderColor(training.Type)};")">
+                                <MudStack Spacing="1">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.subtitle2"><strong>@training.Title</strong></MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@training.TeamName</MudText>
+                                        </MudStack>
+                                        <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(training.Type)">
+                                            @GetTypeText(training.Type)
+                                        </MudChip>
+                                    </MudStack>
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                        <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" Color="Color.Default" />
+                                        <MudText Typo="Typo.body2">@training.StartTime.ToString("dd.MM.yyyy")</MudText>
+                                        <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" Color="Color.Default" Class="ml-2" />
+                                        <MudText Typo="Typo.body2">@training.StartTime.ToString("HH:mm") – @training.EndTime.ToString("HH:mm")</MudText>
+                                    </MudStack>
+                                    <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="0">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                       Size="Size.Small"
+                                                       Color="Color.Primary"
+                                                       OnClick="@(() => OpenEditDialog(training))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                       Size="Size.Small"
+                                                       Color="Color.Error"
+                                                       OnClick="@(() => ConfirmDeleteAsync(training))" />
+                                    </MudStack>
+                                </MudStack>
+                            </MudPaper>
+                        }
+                        @if (totalFiltered > _mobileShown)
+                        {
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Primary"
+                                       FullWidth="true"
+                                       StartIcon="@Icons.Material.Filled.ExpandMore"
+                                       OnClick="LoadMoreMobile">
+                                Načítať ďalšie (@(totalFiltered - _mobileShown))
+                            </MudButton>
+                        }
+                    </MudStack>
+                </MudHidden>
+            }
+        </MudTabPanel>
+
+        <MudTabPanel Text="Opakované" Icon="@Icons.Material.Filled.Repeat">
+            <TrainingSeriesManager IsAdmin="true" />
+        </MudTabPanel>
+    </MudTabs>
+</MudPaper>
+</MudContainer>

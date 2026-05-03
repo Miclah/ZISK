@@ -233,6 +233,9 @@ public class DatabaseInitializer
         var sampleParent = sampleUsers.Parents.FirstOrDefault() ?? defaultParent;
         await EnsureSampleAbsenceRequestsAsync(sampleTrainings, sampleChildren, sampleParent);
 
+        // Bohata vzorka pre grafy a statistiky - generuje treningy/dochadzku/ospravedlnenky za posledne 3 mesiace
+        await EnsureRichSampleHistoryAsync(teams, sampleChildren, attendanceUser, sampleParent);
+
         var announcementAuthor = admin ?? defaultCoach ?? sampleUsers.Coaches.FirstOrDefault();
         await EnsureSampleAnnouncementsAsync(announcementAuthor, teams);
         await EnsureSampleDocumentsAsync();
@@ -574,6 +577,169 @@ public class DatabaseInitializer
         });
 
         await _context.SaveChangesAsync();
+    }
+
+    private const string RichSamplePrefix = "[SAMPLE-HIST]";
+
+    private async Task EnsureRichSampleHistoryAsync(
+        List<Team> teams,
+        List<ApplicationUser> sampleChildren,
+        ApplicationUser? markedByUser,
+        ApplicationUser? parent)
+    {
+        if (!teams.Any() || !sampleChildren.Any())
+            return;
+
+        var alreadySeeded = await _context.TrainingEvents
+            .AnyAsync(t => t.Title.StartsWith(RichSamplePrefix));
+        if (alreadySeeded)
+            return;
+
+        var activeSeason = await _context.Seasons.FirstOrDefaultAsync(s => s.IsActive);
+        if (activeSeason == null)
+            return;
+
+        var rng = new Random(42);
+        var now = DateTime.UtcNow;
+        var startWindow = now.AddDays(-90);
+
+        var trainings = new List<TrainingEvent>();
+        var attendances = new List<AttendanceRecord>();
+        var excuses = new List<AbsenceRequest>();
+
+        var typeRotation = new[]
+        {
+            TrainingType.Conditioning,
+            TrainingType.Technical,
+            TrainingType.Match,
+            TrainingType.Recovery,
+            TrainingType.Conditioning,
+            TrainingType.Technical
+        };
+
+        var locations = new[] { "Hlavná telocvičňa", "Vedľajšia telocvičňa", "Štadión", "Posilňovňa" };
+        var titles = new[]
+        {
+            "Príprava na zápas", "Kondičný tréning", "Technika - prihrávky",
+            "Hranie 5 na 5", "Regenerácia", "Špeciálne situácie", "Rýchlosť a obratnosť"
+        };
+
+        var teamMemberCache = new Dictionary<Guid, List<string>>();
+        foreach (var team in teams)
+        {
+            var members = await _context.TeamMembers
+                .Where(tm => tm.TeamId == team.Id && sampleChildren.Select(c => c.Id).Contains(tm.UserId))
+                .Select(tm => tm.UserId)
+                .ToListAsync();
+            teamMemberCache[team.Id] = members;
+        }
+
+        // Generuj treningy pre kazdy tim, 2-krat tyzdenne za poslednych 90 dni
+        for (var day = startWindow.Date; day <= now.Date.AddDays(7); day = day.AddDays(1))
+        {
+            // Trening Pondelok a Streda alebo Utorok a Stvrtok podla tima
+            for (var teamIndex = 0; teamIndex < teams.Count; teamIndex++)
+            {
+                var team = teams[teamIndex];
+                var dayOfWeek = (int)day.DayOfWeek;
+                var teamDaysA = teamIndex % 2 == 0 ? new[] { 1, 3 } : new[] { 2, 4 }; // Po/St alebo Ut/St
+                if (!teamDaysA.Contains(dayOfWeek))
+                    continue;
+
+                var hour = 16 + (teamIndex % 3);
+                var startTime = day.AddHours(hour);
+                var type = typeRotation[(teamIndex + day.DayOfYear) % typeRotation.Length];
+                var title = $"{RichSamplePrefix} {titles[(teamIndex + day.DayOfYear) % titles.Length]} - {team.ShortName}";
+
+                var training = new TrainingEvent
+                {
+                    Id = Guid.NewGuid(),
+                    TeamId = team.Id,
+                    SeasonId = activeSeason.Id,
+                    Title = title,
+                    StartTime = startTime,
+                    EndTime = startTime.AddMinutes(90),
+                    Location = locations[(teamIndex + day.DayOfYear) % locations.Length],
+                    Type = type,
+                    CoachNote = null,
+                    CreatedAt = startTime.AddDays(-7),
+                    IsLocked = false
+                };
+                trainings.Add(training);
+
+                // Dochadzka len pre minule treningy
+                if (training.StartTime > now)
+                    continue;
+
+                var members = teamMemberCache[team.Id];
+                foreach (var childId in members)
+                {
+                    // Realisticka distribucia: 70% Present, 18% Excused, 12% Absent
+                    var roll = rng.Next(100);
+                    var status = roll < 70 ? AttendanceStatus.Present
+                        : roll < 88 ? AttendanceStatus.Excused
+                        : AttendanceStatus.Absent;
+
+                    attendances.Add(new AttendanceRecord
+                    {
+                        Id = Guid.NewGuid(),
+                        TrainingEventId = training.Id,
+                        ChildId = childId,
+                        Status = status,
+                        Note = status == AttendanceStatus.Absent ? $"{RichSamplePrefix} Neospravedlnená absencia" : null,
+                        MarkedByUserId = markedByUser?.Id,
+                        RecordedAt = training.StartTime.AddHours(2)
+                    });
+                }
+            }
+        }
+
+        // Ospravedlnenky: 12 vzoriek pre nadchadzajuce treningy
+        if (parent != null)
+        {
+            var futureTrainings = trainings
+                .Where(t => t.StartTime > now)
+                .OrderBy(t => t.StartTime)
+                .Take(12)
+                .ToList();
+
+            var reasons = new[]
+            {
+                "Choroba - chrípka", "Rodinná dovolenka", "Návšteva u lekára",
+                "Školský výlet", "Príprava na test", "Iný šport - turnaj",
+                "Súrodenecké narodeniny", "Rodinná oslava", "Doprava nedostupná"
+            };
+
+            foreach (var training in futureTrainings)
+            {
+                var members = teamMemberCache[training.TeamId];
+                if (members.Count == 0) continue;
+
+                var childId = members[rng.Next(members.Count)];
+                excuses.Add(new AbsenceRequest
+                {
+                    Id = Guid.NewGuid(),
+                    ChildId = childId,
+                    ParentId = parent.Id,
+                    TrainingEventId = training.Id,
+                    DateFrom = training.StartTime,
+                    DateTo = training.EndTime,
+                    Reason = $"{RichSamplePrefix} {reasons[rng.Next(reasons.Length)]}",
+                    Status = AbsenceRequestStatus.Received,
+                    CreatedAt = now.AddDays(-rng.Next(1, 14))
+                });
+            }
+        }
+
+        _context.TrainingEvents.AddRange(trainings);
+        await _context.SaveChangesAsync();
+
+        _context.AttendanceRecords.AddRange(attendances);
+        _context.AbsenceRequests.AddRange(excuses);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Seeded {Trainings} trainings, {Attendances} attendance records, {Excuses} excuses for sample history.",
+            trainings.Count, attendances.Count, excuses.Count);
     }
 
     private async Task EnsureSampleAnnouncementsAsync(ApplicationUser? author, List<Team> teams)

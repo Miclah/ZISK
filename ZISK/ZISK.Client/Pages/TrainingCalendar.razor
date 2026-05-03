@@ -1,4 +1,5 @@
 @page "/kalendar"
+@using System.Globalization
 @using ZISK.Client.Services
 @using ZISK.Client.Components
 @using ZISK.Shared.DTOs.Trainings
@@ -55,7 +56,13 @@
                          ItemClicked="OnItemClickedAsync"
                          ShowTodayButton="true"
                          MonthCellMinHeight="100"
-                         ItemTemplate="_itemTemplate" />
+                         Culture="@CultureInfo.GetCultureInfo("sk-SK")">
+                <CellTemplate Context="item">
+                    <div class="mud-cal-cell-template-chip" style="@GetItemStyle(item)">
+                        @item.Text
+                    </div>
+                </CellTemplate>
+            </MudCalendar>
         </MudPaper>
 
         @if (_isLoading)
@@ -147,10 +154,25 @@
     private Guid? _editingTeamId;
     private List<TeamDto> _myTeams = [];
 
-    private RenderFragment<TrainingCalendarItem> _itemTemplate => item =>
-        @<div class="training-chip @TypeChipClass(item.Type) @(item.IsCancelled ? "training-chip--cancelled" : "")">
-            @item.Text@(item.IsCancelled ? " ⊘" : "")
-        </div>;
+    private static readonly string _cConditioning = (string)AppTheme.SportClubTheme.PaletteLight.Secondary;
+    private static readonly string _cTechnical    = (string)AppTheme.SportClubTheme.PaletteLight.Tertiary;
+    private static readonly string _cMatch        = (string)AppTheme.SportClubTheme.PaletteLight.Error;
+    private static readonly string _cRecovery     = (string)AppTheme.SportClubTheme.PaletteLight.Success;
+    private static readonly string _cOther        = (string)AppTheme.SportClubTheme.PaletteLight.ActionDefault;
+
+    private string GetItemStyle(TrainingCalendarItem item)
+    {
+        var bg = item.Type switch
+        {
+            TrainingType.Conditioning => _cConditioning,
+            TrainingType.Technical    => _cTechnical,
+            TrainingType.Match        => _cMatch,
+            TrainingType.Recovery     => _cRecovery,
+            _                         => _cOther
+        };
+        var extra = item.IsCancelled ? "opacity:0.55;text-decoration:line-through;" : "";
+        return $"background-color:{bg};color:#fff;{extra}";
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -170,8 +192,9 @@
         StateHasChanged();
         try
         {
-            var from = range.Start ?? DateTime.Today.AddMonths(-1);
-            var to = range.End ?? DateTime.Today.AddMonths(2);
+            var from = (range.Start ?? DateTime.Today.AddMonths(-1)).Date;
+            var rawTo = (range.End ?? DateTime.Today.AddMonths(2)).Date;
+            var to = rawTo == from ? from.AddDays(1).AddTicks(-1) : rawTo.AddDays(1).AddTicks(-1);
             var trainings = await TrainingsApi.GetTrainingsAsync(null, from, to);
 
             _items = trainings
@@ -233,11 +256,11 @@
 
     private static string TypeChipClass(TrainingType type) => type switch
     {
-        TrainingType.Technical => "training-chip--technical",
+        TrainingType.Technical    => "training-chip--technical",
         TrainingType.Conditioning => "training-chip--conditioning",
-        TrainingType.Match => "training-chip--match",
-        TrainingType.Recovery => "training-chip--recovery",
-        _ => "training-chip--other"
+        TrainingType.Match        => "training-chip--match",
+        TrainingType.Recovery     => "training-chip--recovery",
+        _                         => "training-chip--other"
     };
 
     public class TrainingCalendarItem : CalendarItem

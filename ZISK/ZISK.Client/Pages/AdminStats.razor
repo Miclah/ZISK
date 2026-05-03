@@ -1,4 +1,5 @@
-﻿@page "/admin/statistiky"
+@page "/admin/statistiky"
+@using ZISK.Client.Layout
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Stats
 @inject IStatsApi StatsApi
@@ -7,19 +8,31 @@
 
 <PageTitle>Štatistiky</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-<MudText Typo="Typo.h4" Class="mb-4">Štatistiky klubu</MudText>
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
+    <MudIcon Icon="@Icons.Material.Filled.Insights" Size="Size.Large" Color="Color.Primary" />
+    <MudText Typo="Typo.h4">Štatistiky klubu</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Refresh"
+               OnClick="LoadAllAsync"
+               Disabled="_isLoading">
+        Obnoviť
+    </MudButton>
+</MudStack>
 
 @if (_isLoading)
 {
     <MudGrid Spacing="3" Class="mb-4">
         @for (int i = 0; i < 4; i++)
         {
-            <MudItem xs="12" sm="6" lg="3">
+            <MudItem xs="12" sm="6" md="3">
                 <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="120px" />
             </MudItem>
         }
     </MudGrid>
+    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="320px" />
 }
 else if (_error != null)
 {
@@ -27,113 +40,297 @@ else if (_error != null)
 }
 else
 {
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="2" Class="d-flex flex-column" Style="height: 100%;">
+                <MudCardContent Class="flex-grow-1">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.body2" Color="Color.Default">Aktívne tímy</MudText>
+                            <MudText Typo="Typo.h4">@_dashboardStats?.ActiveTeams / @_dashboardStats?.TotalTeams</MudText>
+                        </MudStack>
+                        <MudIcon Icon="@Icons.Material.Filled.Groups" Color="Color.Primary" Style="opacity: 0.35;" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="2" Class="d-flex flex-column" Style="height: 100%;">
+                <MudCardContent Class="flex-grow-1">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.body2" Color="Color.Default">Aktívni členovia</MudText>
+                            <MudText Typo="Typo.h4">@_dashboardStats?.ActiveMembers</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">z @_dashboardStats?.TotalMembers celkovo</MudText>
+                        </MudStack>
+                        <MudIcon Icon="@Icons.Material.Filled.EmojiPeople" Color="Color.Secondary" Style="opacity: 0.35;" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="2" Class="d-flex flex-column" Style="height: 100%;">
+                <MudCardContent Class="flex-grow-1">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.body2" Color="Color.Default">Priemerná účasť</MudText>
+                            <MudText Typo="Typo.h4">@(_attendanceStats?.PresentPercent ?? 0)%</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">za @_selectedDays dní</MudText>
+                        </MudStack>
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Style="opacity: 0.35;" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="2" Class="d-flex flex-column" Style="height: 100%;">
+                <MudCardContent Class="flex-grow-1">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.body2" Color="Color.Default">Čakajúce ospravedlnenky</MudText>
+                            <MudText Typo="Typo.h4">@_dashboardStats?.PendingExcuses</MudText>
+                        </MudStack>
+                        <MudIcon Icon="@Icons.Material.Filled.EventBusy"
+                                 Color="@(_dashboardStats?.PendingExcuses > 0 ? Color.Warning : Color.Default)"
+                                 Style="opacity: 0.35;" />
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <MudPaper Class="pa-3 mb-4" Elevation="0" Outlined="true">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+            <MudIcon Icon="@Icons.Material.Filled.DateRange" Color="Color.Secondary" />
+            <MudText Typo="Typo.body2">Obdobie:</MudText>
+            <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small" Color="Color.Primary">
+                @foreach (var d in _periods)
+                {
+                    var localD = d;
+                    <MudButton Variant="@(_selectedDays == localD ? Variant.Filled : Variant.Outlined)"
+                               OnClick="@(() => SelectPeriodAsync(localD))">
+                        @PeriodLabel(localD)
+                    </MudButton>
+                }
+            </MudButtonGroup>
+        </MudStack>
+    </MudPaper>
+
     <MudGrid>
-        <MudItem xs="12" md="6">
-            <MudPaper Class="pa-4" Elevation="2">
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4" Elevation="2" Style="height: 100%;">
                 <MudText Typo="Typo.h6" Class="mb-3">Členovia podľa tímu</MudText>
-                <MudSimpleTable Dense="true" Hover="true">
-                    <thead>
-                        <tr>
-                            <th>Tím</th>
-                            <th>Počet členov</th>
-                            <th>Tréningy</th>
-                            <th>Priem. účasť</th>
-                            <th>Stav</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var team in _teamStats)
+                <MudTable Items="@_teamStats"
+                          Dense="true"
+                          Hover="true"
+                          Breakpoint="Breakpoint.Sm"
+                          Elevation="0">
+                    <HeaderContent>
+                        <MudTh>Tím</MudTh>
+                        <MudTh>Členovia</MudTh>
+                        <MudTh>Tréningy</MudTh>
+                        <MudTh>Priem. účasť</MudTh>
+                        <MudTh>Stav</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Tím">@context.TeamName</MudTd>
+                        <MudTd DataLabel="Členovia">@context.MemberCount</MudTd>
+                        <MudTd DataLabel="Tréningy">@context.TrainingCount</MudTd>
+                        <MudTd DataLabel="Priem. účasť">
+                            <MudChip T="string" Size="Size.Small" Color="@GetAttendanceColor(context.AverageAttendance)">
+                                @context.AverageAttendance%
+                            </MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Stav">
+                            <MudChip T="string" Size="Size.Small" Color="@(context.IsActive ? Color.Success : Color.Default)">
+                                @(context.IsActive ? "Aktívny" : "Neaktívny")
+                            </MudChip>
+                        </MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne tímy.</MudText>
+                    </NoRecordsContent>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Elevation="2" Style="height: 100%;">
+                <MudText Typo="Typo.h6" Class="mb-4">Rozdelenie účasti</MudText>
+                @if (_attendanceStats is null || (_attendanceStats.PresentPercent + _attendanceStats.AbsentPercent + _attendanceStats.ExcusedPercent) == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne dáta za zvolené obdobie.</MudText>
+                }
+                else
+                {
+                    <MudStack Spacing="4">
+                        <MudStack Spacing="1">
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                                    <MudText Typo="Typo.body2">Účasť</MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.body2"><strong>@_attendanceStats.PresentPercent%</strong></MudText>
+                            </MudStack>
+                            <MudProgressLinear Value="@((double)_attendanceStats.PresentPercent)" Color="Color.Success" Rounded="true" Size="Size.Medium" />
+                        </MudStack>
+                        <MudStack Spacing="1">
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" Size="Size.Small" />
+                                    <MudText Typo="Typo.body2">Neospravedlnené</MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.body2"><strong>@_attendanceStats.AbsentPercent%</strong></MudText>
+                            </MudStack>
+                            <MudProgressLinear Value="@((double)_attendanceStats.AbsentPercent)" Color="Color.Error" Rounded="true" Size="Size.Medium" />
+                        </MudStack>
+                        <MudStack Spacing="1">
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.EventBusy" Color="Color.Warning" Size="Size.Small" />
+                                    <MudText Typo="Typo.body2">Ospravedlnené</MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.body2"><strong>@_attendanceStats.ExcusedPercent%</strong></MudText>
+                            </MudStack>
+                            <MudProgressLinear Value="@((double)_attendanceStats.ExcusedPercent)" Color="Color.Warning" Rounded="true" Size="Size.Medium" />
+                        </MudStack>
+                    </MudStack>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="2" Style="height: 100%;">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Color="Color.Success" />
+                    <MudText Typo="Typo.h6">Top tímy podľa účasti</MudText>
+                </MudStack>
+                @if (!_teamStats.Any())
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne dáta.</MudText>
+                }
+                else
+                {
+                    <MudStack Spacing="3">
+                        @{ var rank = 0; }
+                        @foreach (var team in _teamStats.OrderByDescending(t => t.AverageAttendance).Take(3))
                         {
-                            <tr>
-                                <td>@team.TeamName</td>
-                                <td>@team.MemberCount</td>
-                                <td>@team.TrainingCount</td>
-                                <td>
-                                    <MudChip T="string" Size="Size.Small" Color="@GetAttendanceColor(team.AverageAttendance)">
-                                        @team.AverageAttendance%
-                                    </MudChip>
-                                </td>
-                                <td>
-                                    @if (team.IsActive)
-                                    {
-                                        <MudChip T="string" Size="Size.Small" Color="Color.Success">Aktívny</MudChip>
-                                    }
-                                    else
-                                    {
-                                        <MudChip T="string" Size="Size.Small" Color="Color.Error">Neaktívny</MudChip>
-                                    }
-                                </td>
-                            </tr>
+                            rank++;
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudAvatar Size="Size.Medium" Style="@RankAvatarStyle(rank, true)">
+                                    <MudText Typo="Typo.subtitle2" Style="font-weight:700;">@rank</MudText>
+                                </MudAvatar>
+                                <MudStack Spacing="1" Style="flex:1;">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@team.TeamName</MudText>
+                                        <MudText Typo="Typo.subtitle2" Style="font-weight:700;">@team.AverageAttendance%</MudText>
+                                    </MudStack>
+                                    <MudProgressLinear Value="@((double)team.AverageAttendance)" Color="@GetAttendanceColor(team.AverageAttendance)" Rounded="true" Size="Size.Medium" />
+                                </MudStack>
+                            </MudStack>
                         }
-                    </tbody>
-                </MudSimpleTable>
+                    </MudStack>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="2" Style="height: 100%;">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Color="Color.Error" />
+                    <MudText Typo="Typo.h6">Tímy s najnižšou účasťou</MudText>
+                </MudStack>
+                @if (!_teamStats.Any())
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne dáta.</MudText>
+                }
+                else
+                {
+                    <MudStack Spacing="3">
+                        @{ var rank = 0; }
+                        @foreach (var team in _teamStats.OrderBy(t => t.AverageAttendance).Take(3))
+                        {
+                            rank++;
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudAvatar Size="Size.Medium" Style="@RankAvatarStyle(rank, false)">
+                                    <MudText Typo="Typo.subtitle2" Style="font-weight:700;">@rank</MudText>
+                                </MudAvatar>
+                                <MudStack Spacing="1" Style="flex:1;">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@team.TeamName</MudText>
+                                        <MudText Typo="Typo.subtitle2" Style="font-weight:700;">@team.AverageAttendance%</MudText>
+                                    </MudStack>
+                                    <MudProgressLinear Value="@((double)team.AverageAttendance)" Color="@GetAttendanceColor(team.AverageAttendance)" Rounded="true" Size="Size.Medium" />
+                                </MudStack>
+                            </MudStack>
+                        }
+                    </MudStack>
+                }
             </MudPaper>
         </MudItem>
 
         <MudItem xs="12" md="6">
             <MudPaper Class="pa-4" Elevation="2">
-                <MudText Typo="Typo.h6" Class="mb-3">Súhrn</MudText>
-                <MudSimpleTable Dense="true">
-                    <tbody>
-                        <tr>
-                            <td>Celkom tímov</td>
-                            <td><strong>@_dashboardStats?.TotalTeams</strong></td>
-                        </tr>
-                        <tr>
-                            <td>Aktívnych tímov</td>
-                            <td><strong>@_dashboardStats?.ActiveTeams</strong></td>
-                        </tr>
-                        <tr>
-                            <td>Celkom členov</td>
-                            <td><strong>@_dashboardStats?.TotalMembers</strong></td>
-                        </tr>
-                        <tr>
-                            <td>Aktívnych členov</td>
-                            <td><strong>@_dashboardStats?.ActiveMembers</strong></td>
-                        </tr>
-                        <tr>
-                            <td>Používatelia</td>
-                            <td><strong>@_dashboardStats?.TotalUsers</strong></td>
-                        </tr>
-                        <tr>
-                            <td>Čakajúce ospravedlnenky</td>
-                            <td>
-                                <MudChip T="string" Size="Size.Small" Color="@(_dashboardStats?.PendingExcuses > 0 ? Color.Warning : Color.Default)">
-                                    @_dashboardStats?.PendingExcuses
-                                </MudChip>
-                            </td>
-                        </tr>
-                    </tbody>
-                </MudSimpleTable>
+                <MudText Typo="Typo.h6" Class="mb-3">Tréningy podľa typu</MudText>
+                @if (!_trainingTypes.Any())
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne tréningy za zvolené obdobie.</MudText>
+                }
+                else
+                {
+                    var totalTrainings = _trainingTypes.Sum(t => t.Count);
+                    var sorted = _trainingTypes.OrderByDescending(t => t.Count).ToList();
+                    var maxCount = sorted.First().Count;
+
+                    <MudStack Spacing="2">
+                        @foreach (var item in sorted)
+                        {
+                            var pct = totalTrainings > 0 ? (double)item.Count / totalTrainings * 100 : 0;
+                            var fillPct = maxCount > 0 ? (double)item.Count / maxCount * 100 : 0;
+                            var hex = TrainingTypeHex(item.Type);
+                            <div>
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-1">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        <div style="width:10px;height:10px;border-radius:50%;background:@hex;flex-shrink:0;"></div>
+                                        <MudText Typo="Typo.body2" Style="font-weight:500;">@TrainingTypeLabel(item.Type)</MudText>
+                                    </MudStack>
+                                    <MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="2">
+                                        <MudText Typo="Typo.body2" Style="font-weight:700;">@item.Count</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@pct.ToString("0")%</MudText>
+                                    </MudStack>
+                                </MudStack>
+                                <MudProgressLinear Value="@fillPct" Rounded="true" Size="Size.Medium"
+                                                   Style="@($"--mud-palette-primary:{hex};")" />
+                            </div>
+                        }
+                    </MudStack>
+                }
             </MudPaper>
         </MudItem>
 
-        <MudItem xs="12">
+        <MudItem xs="12" md="6">
             <MudPaper Class="pa-4" Elevation="2">
-                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
-                    <MudText Typo="Typo.h6">Priemerná účasť za posledných @_selectedDays dní</MudText>
-                    <MudSelect T="int" @bind-Value="_selectedDays" @bind-Value:after="LoadAttendanceStats"
-                               Label="Obdobie" Variant="Variant.Outlined" Style="width: 150px;">
-                        <MudSelectItem Value="7">7 dní</MudSelectItem>
-                        <MudSelectItem Value="30">30 dní</MudSelectItem>
-                        <MudSelectItem Value="90">90 dní</MudSelectItem>
-                        <MudSelectItem Value="365">1 rok</MudSelectItem>
-                    </MudSelect>
-                </MudStack>
-                <MudGrid>
-                    <MudItem xs="6" sm="4">
-                        <MudText Typo="Typo.h4" Color="Color.Success">@(_attendanceStats?.PresentPercent ?? 0)%</MudText>
-                        <MudText Typo="Typo.body2">Celková účasť</MudText>
-                    </MudItem>
-                    <MudItem xs="6" sm="4">
-                        <MudText Typo="Typo.h4" Color="Color.Error">@(_attendanceStats?.AbsentPercent ?? 0)%</MudText>
-                        <MudText Typo="Typo.body2">Neospravedlnené absencie</MudText>
-                    </MudItem>
-                    <MudItem xs="6" sm="4">
-                        <MudText Typo="Typo.h4" Color="Color.Info">@(_attendanceStats?.ExcusedPercent ?? 0)%</MudText>
-                        <MudText Typo="Typo.body2">Ospravedlnené</MudText>
-                    </MudItem>
-                </MudGrid>
+                <MudText Typo="Typo.h6" Class="mb-3">Trend účasti za obdobie</MudText>
+                @if (!_attendanceTrend.Any())
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Nedostatok dát pre vykreslenie trendu.</MudText>
+                }
+                else if (_attendanceTrend.Count == 1)
+                {
+                    <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Style="height:200px;">
+                        <MudText Typo="Typo.h2" Color="Color.Primary" Style="font-weight:700;">@_attendanceTrend[0].PresentPercent%</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Účasť za @_attendanceTrend[0].Date.ToString("dd.MM.yyyy")</MudText>
+                    </MudStack>
+                }
+                else
+                {
+                    <MudChart T="double" TChartOptions="LineChartOptions" ChartType="ChartType.Line"
+                              ChartSeries="@_trendSeries"
+                              XAxisLabels="@_trendLabels"
+                              Width="100%"
+                              Height="240px"
+                              ChartOptions="_trendChartOptions" />
+                }
             </MudPaper>
         </MudItem>
     </MudGrid>
@@ -141,27 +338,65 @@ else
 </MudContainer>
 
 @code {
+    // Cached theme hex values — avoids re-instantiating MudTheme on each render
+    private static readonly string _cPrimary   = (string)AppTheme.SportClubTheme.PaletteLight.Primary;
+    private static readonly string _cSecondary = (string)AppTheme.SportClubTheme.PaletteLight.Secondary;
+    private static readonly string _cTertiary  = (string)AppTheme.SportClubTheme.PaletteLight.Tertiary;
+    private static readonly string _cSuccess   = (string)AppTheme.SportClubTheme.PaletteLight.Success;
+    private static readonly string _cWarning   = (string)AppTheme.SportClubTheme.PaletteLight.Warning;
+    private static readonly string _cError     = (string)AppTheme.SportClubTheme.PaletteLight.Error;
+    private static readonly string _cGray      = (string)AppTheme.SportClubTheme.PaletteLight.TextSecondary;
+    private static readonly string _cDivider   = (string)AppTheme.SportClubTheme.PaletteLight.Divider;
+
     private bool _isLoading = true;
     private string? _error;
     private int _selectedDays = 30;
 
+    private readonly int[] _periods = new[] { 7, 30, 90, 365 };
+
     private DashboardStatsDto? _dashboardStats;
     private List<TeamStatsDto> _teamStats = new();
     private AttendanceStatsDto? _attendanceStats;
+    private List<TrainingTypeStatDto> _trainingTypes = new();
+    private List<AttendanceTrendPointDto> _attendanceTrend = new();
+
+    private List<ChartSeries<double>> _trendSeries = new();
+    private string[] _trendLabels = Array.Empty<string>();
+
+    private LineChartOptions _trendChartOptions = default!;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadData();
+        _trendChartOptions = new LineChartOptions
+        {
+            ChartPalette = new[] { _cPrimary },
+            LineStrokeWidth = 3,
+            InterpolationOption = InterpolationOption.NaturalSpline
+        };
+        await LoadAllAsync();
     }
 
-    private async Task LoadData()
+    private async Task LoadAllAsync()
     {
         try
         {
             _isLoading = true;
-            _dashboardStats = await StatsApi.GetDashboardStatsAsync();
-            _teamStats = await StatsApi.GetTeamStatsAsync();
-            _attendanceStats = _dashboardStats.AttendanceStats;
+            _error = null;
+
+            var dashboardTask = StatsApi.GetDashboardStatsAsync();
+            var teamsTask = StatsApi.GetTeamStatsAsync();
+            var attendanceTask = StatsApi.GetAttendanceStatsAsync(_selectedDays);
+            var typesTask = StatsApi.GetTrainingTypeStatsAsync(_selectedDays);
+            var trendTask = StatsApi.GetAttendanceTrendAsync(_selectedDays);
+
+            await Task.WhenAll(dashboardTask, teamsTask, attendanceTask, typesTask, trendTask);
+
+            _dashboardStats = await dashboardTask;
+            _teamStats = await teamsTask;
+            _attendanceStats = await attendanceTask;
+            _trainingTypes = await typesTask;
+            _attendanceTrend = await trendTask;
+            BuildTrendSeries();
         }
         catch (Exception ex)
         {
@@ -173,11 +408,20 @@ else
         }
     }
 
-    private async Task LoadAttendanceStats()
+    private async Task SelectPeriodAsync(int days)
     {
+        if (_selectedDays == days) return;
+        _selectedDays = days;
         try
         {
-            _attendanceStats = await StatsApi.GetAttendanceStatsAsync(_selectedDays);
+            var attendanceTask = StatsApi.GetAttendanceStatsAsync(_selectedDays);
+            var typesTask = StatsApi.GetTrainingTypeStatsAsync(_selectedDays);
+            var trendTask = StatsApi.GetAttendanceTrendAsync(_selectedDays);
+            await Task.WhenAll(attendanceTask, typesTask, trendTask);
+            _attendanceStats = await attendanceTask;
+            _trainingTypes = await typesTask;
+            _attendanceTrend = await trendTask;
+            BuildTrendSeries();
         }
         catch (Exception ex)
         {
@@ -185,10 +429,88 @@ else
         }
     }
 
-    private Color GetAttendanceColor(decimal percent) => percent switch
+    private void BuildTrendSeries()
+    {
+        if (!_attendanceTrend.Any())
+        {
+            _trendSeries = new();
+            _trendLabels = Array.Empty<string>();
+            return;
+        }
+
+        var count = _attendanceTrend.Count;
+        var step = count > 10 ? (int)Math.Ceiling(count / 10.0) : 1;
+        _trendLabels = _attendanceTrend
+            .Select((p, i) => i % step == 0 ? p.Date.ToString("dd.MM") : "")
+            .ToArray();
+
+        _trendSeries = new()
+        {
+            new ChartSeries<double>
+            {
+                Name = "Účasť %",
+                Data = _attendanceTrend.Select(p => (double)p.PresentPercent).ToArray()
+            }
+        };
+    }
+
+    private static string PeriodLabel(int days) => days switch
+    {
+        7 => "7 dní",
+        30 => "30 dní",
+        90 => "90 dní",
+        365 => "1 rok",
+        _ => $"{days} dní"
+    };
+
+    private static Color TrainingTypeColor(string type) => type switch
+    {
+        "Conditioning" => Color.Primary,
+        "Technical" => Color.Secondary,
+        "Match" => Color.Tertiary,
+        "Recovery" => Color.Info,
+        _ => Color.Default
+    };
+
+    private static string TrainingTypeLabel(string type) => type switch
+    {
+        "Conditioning" => "Kondičný",
+        "Technical" => "Technický",
+        "Match" => "Herný",
+        "Recovery" => "Regeneračný",
+        "Other" => "Ostatné",
+        _ => type
+    };
+
+    private static Color GetAttendanceColor(decimal percent) => percent switch
     {
         >= 80 => Color.Success,
         >= 60 => Color.Warning,
         _ => Color.Error
+    };
+
+    private string RankAvatarStyle(int rank, bool isTop) => isTop
+        ? rank switch
+        {
+            1 => $"background:{_cSecondary};color:#fff;",
+            2 => $"background:{_cGray};color:#fff;",
+            3 => $"background:{_cSecondary};color:#fff;opacity:0.65;",
+            _ => $"background:{_cDivider};color:{_cPrimary};"
+        }
+        : rank switch
+        {
+            1 => $"background:{_cError};color:#fff;",
+            2 => $"background:{_cWarning};color:#fff;",
+            3 => $"background:{_cWarning};color:#fff;opacity:0.65;",
+            _ => $"background:{_cDivider};color:{_cPrimary};"
+        };
+
+    private string TrainingTypeHex(string type) => type switch
+    {
+        "Conditioning" => _cPrimary,
+        "Technical"    => _cSecondary,
+        "Match"        => _cTertiary,
+        "Recovery"     => _cSuccess,
+        _              => _cGray
     };
 }
