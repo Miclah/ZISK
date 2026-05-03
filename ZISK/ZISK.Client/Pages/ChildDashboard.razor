@@ -1,4 +1,5 @@
 @page "/dieta"
+@using ZISK.Client.Layout
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Attendance
 @using ZISK.Shared.DTOs.Trainings
@@ -13,142 +14,185 @@
 
 <PageTitle>Môj prehľad</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
-    <MudText Typo="Typo.h5" Class="mb-3">Môj prehľad</MudText>
-
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-2">
     @if (_isLoading)
     {
-        <MudGrid Spacing="3" Class="mb-4">
-            @for (int i = 0; i < 3; i++)
-            {
-                <MudItem xs="12" sm="4">
-                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="120px" />
-                </MudItem>
-            }
-        </MudGrid>
-        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="200px" />
+        <MudStack Spacing="3">
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="80px" />
+            <MudGrid Spacing="3">
+                @for (int i = 0; i < 3; i++)
+                {
+                    <MudItem xs="12" sm="4">
+                        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="120px" />
+                    </MudItem>
+                }
+            </MudGrid>
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="240px" />
+        </MudStack>
     }
     else
     {
-        <MudCard Elevation="2" Class="mb-4">
-            <MudCardContent>
-                <MudText Typo="Typo.h6" Class="mb-2">Môj profil</MudText>
-                @if (_profile is null)
-                {
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Profil nie je dostupný.</MudText>
-                }
-                else
-                {
-                    <MudGrid>
-                        <MudItem xs="6">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Meno</MudText>
-                            <MudText Typo="Typo.body2">@_profile.FirstName @_profile.LastName</MudText>
-                        </MudItem>
-                        <MudItem xs="6">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Dátum narodenia</MudText>
-                            <MudText Typo="Typo.body2">@(_profile.DateOfBirth?.ToString("dd.MM.yyyy") ?? "-")</MudText>
-                        </MudItem>
-                        <MudItem xs="12">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Tím</MudText>
-                            <MudText Typo="Typo.body2">@(_profile.TeamName ?? "Bez tímu")</MudText>
-                        </MudItem>
-                    </MudGrid>
-                }
-            </MudCardContent>
-        </MudCard>
-
-        <MudCard Elevation="2" Class="mb-4">
-            <MudCardContent>
-                <MudText Typo="Typo.h6" Class="mb-2">Môj najbližší tréning</MudText>
-                @if (_nextTraining is null)
-                {
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadny najbližší tréning.</MudText>
-                }
-                else
-                {
-                    <MudStack Spacing="0">
-                        <MudText Typo="Typo.body1">@_nextTraining.Title</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">@_nextTraining.StartTime.ToString("dd.MM.yyyy HH:mm") - @_nextTraining.EndTime.ToString("HH:mm")</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Miesto: @(_nextTraining.Location ?? "Neuvedené")</MudText>
-                    </MudStack>
-                }
-            </MudCardContent>
-        </MudCard>
-
-        <MudCard Elevation="2" Class="mb-4">
-            <MudCardContent>
-                <MudText Typo="Typo.h6" Class="mb-2">Moja dochádzka</MudText>
-                @if (_stats is not null)
-                {
-                    <MudGrid Class="mb-3">
-                        <MudItem xs="4">
-                            <MudPaper Elevation="0" Class="pa-2 text-center">
-                                <MudText Typo="Typo.h6" Color="Color.Success">@_stats.Present</MudText>
-                                <MudText Typo="Typo.caption">Prítomný</MudText>
-                            </MudPaper>
-                        </MudItem>
-                        <MudItem xs="4">
-                            <MudPaper Elevation="0" Class="pa-2 text-center">
-                                <MudText Typo="Typo.h6" Color="Color.Error">@_stats.Absent</MudText>
-                                <MudText Typo="Typo.caption">Neprítomný</MudText>
-                            </MudPaper>
-                        </MudItem>
-                        <MudItem xs="4">
-                            <MudPaper Elevation="0" Class="pa-2 text-center">
-                                <MudText Typo="Typo.h6" Color="Color.Warning">@_stats.Excused</MudText>
-                                <MudText Typo="Typo.caption">Ospravedlnený</MudText>
-                            </MudPaper>
-                        </MudItem>
-                    </MudGrid>
-                }
-
-                @if (!_recentAttendance.Any())
-                {
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Zatiaľ žiadne záznamy.</MudText>
-                }
-                else
-                {
-                    <MudTable Items="@_recentAttendance" Dense="true" Hover="true">
-                        <HeaderContent>
-                            <MudTh>Dátum</MudTh>
-                            <MudTh>Tréning</MudTh>
-                            <MudTh>Stav</MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd>@context.Date.ToString("dd.MM.yyyy")</MudTd>
-                            <MudTd>@context.TrainingName</MudTd>
-                            <MudTd>
-                                <MudChip T="string" Size="Size.Small" Class="@GetStatusChipClass(context.Status)">
-                                    @GetStatusText(context.Status)
-                                </MudChip>
-                            </MudTd>
-                        </RowTemplate>
-                    </MudTable>
-                }
-            </MudCardContent>
-        </MudCard>
-
-        <MudText Typo="Typo.h6" Class="mb-3">Najnovšie oznamy</MudText>
-
-        @if (!_announcements.Any())
-        {
-            <MudPaper Elevation="1" Class="pa-3 mb-2">
-                <MudText Typo="Typo.body2" Color="Color.Secondary">Zatiaľ žiadne oznamy tímu.</MudText>
-            </MudPaper>
-        }
-        else
-        {
-            <MudStack Spacing="2">
-                @foreach (var announcement in _announcements.Take(3))
-                {
-                    <MudPaper Elevation="1" Class="pa-3 mb-2">
-                        <MudText Typo="Typo.subtitle2">@announcement.Title</MudText>
-                        <MudText Typo="Typo.body2">@announcement.ContentPreview</MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">@announcement.PublishDate.ToString("dd.MM.yyyy HH:mm")</MudText>
-                    </MudPaper>
-                }
+        <MudPaper Elevation="0" Class="dashboard-hero mb-3">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudAvatar Color="Color.Surface" Size="Size.Medium" Style="@($"color:{_cPrimary};")">
+                    @((_profile?.FirstName ?? "?").Substring(0, 1).ToUpper())
+                </MudAvatar>
+                <MudStack Spacing="0">
+                    <h1 class="dashboard-hero__greeting">Ahoj, @(_profile?.FirstName ?? "")</h1>
+                    <div class="dashboard-hero__subtitle">@(_profile?.TeamName ?? "Bez tímu")</div>
+                </MudStack>
             </MudStack>
-        }
+        </MudPaper>
+
+        <MudGrid Spacing="3" Class="mb-3">
+            <MudItem xs="12" md="6" lg="4">
+                <MudCard Elevation="2" Class="h-100">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" Class="mb-3">Môj profil</MudText>
+                        @if (_profile is null)
+                        {
+                            <MudText Typo="Typo.body2">Profil nie je dostupný.</MudText>
+                        }
+                        else
+                        {
+                            <MudStack Spacing="2">
+                                <div>
+                                    <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">Meno</MudText>
+                                    <MudText Typo="Typo.body1" Style="font-weight:600;">@_profile.FirstName @_profile.LastName</MudText>
+                                </div>
+                                <div>
+                                    <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">Dátum narodenia</MudText>
+                                    <MudText Typo="Typo.body1">@(_profile.DateOfBirth?.ToString("dd.MM.yyyy") ?? "-")</MudText>
+                                </div>
+                                <div>
+                                    <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">Tím</MudText>
+                                    <MudText Typo="Typo.body1">@(_profile.TeamName ?? "Bez tímu")</MudText>
+                                </div>
+                            </MudStack>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" md="6" lg="4">
+                <MudCard Elevation="2" Class="h-100">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" Class="mb-3">Najbližší tréning</MudText>
+                        @if (_nextTraining is null)
+                        {
+                            <MudText Typo="Typo.body2">Žiadny najbližší tréning.</MudText>
+                        }
+                        else
+                        {
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.body1" Style="font-weight:600;">@_nextTraining.Title</MudText>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Rounded.Schedule" Size="Size.Small" Style="@($"color:{_cPrimary};")" />
+                                    <MudText Typo="Typo.body2">@_nextTraining.StartTime.ToString("dd.MM.yyyy HH:mm") – @_nextTraining.EndTime.ToString("HH:mm")</MudText>
+                                </MudStack>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Rounded.Place" Size="Size.Small" Style="@($"color:{_cPrimary};")" />
+                                    <MudText Typo="Typo.body2">@(_nextTraining.Location ?? "Neuvedené")</MudText>
+                                </MudStack>
+                            </MudStack>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" lg="4">
+                <MudCard Elevation="2" Class="h-100">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" Class="mb-3">Moja dochádzka</MudText>
+                        @if (_stats is not null)
+                        {
+                            <MudGrid Spacing="2">
+                                <MudItem xs="4">
+                                    <MudPaper Elevation="0" Class="pa-2 text-center" Style="@($"background:{_cSuccess}14; border-radius:8px;")">
+                                        <MudText Typo="Typo.h6" Style="@($"color:{_cSuccess}; font-weight:700;")">@_stats.Present</MudText>
+                                        <MudText Typo="Typo.caption">Prítomný</MudText>
+                                    </MudPaper>
+                                </MudItem>
+                                <MudItem xs="4">
+                                    <MudPaper Elevation="0" Class="pa-2 text-center" Style="@($"background:{_cError}14; border-radius:8px;")">
+                                        <MudText Typo="Typo.h6" Style="@($"color:{_cError}; font-weight:700;")">@_stats.Absent</MudText>
+                                        <MudText Typo="Typo.caption">Neprítomný</MudText>
+                                    </MudPaper>
+                                </MudItem>
+                                <MudItem xs="4">
+                                    <MudPaper Elevation="0" Class="pa-2 text-center" Style="@($"background:{_cWarning}14; border-radius:8px;")">
+                                        <MudText Typo="Typo.h6" Style="@($"color:{_cWarning}; font-weight:700;")">@_stats.Excused</MudText>
+                                        <MudText Typo="Typo.caption">Ospravedlnený</MudText>
+                                    </MudPaper>
+                                </MudItem>
+                            </MudGrid>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2">Zatiaľ žiadne dáta.</MudText>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        <MudGrid Spacing="3">
+            <MudItem xs="12" lg="7">
+                <MudCard Elevation="2">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" Class="mb-3">Posledné záznamy dochádzky</MudText>
+                        @if (!_recentAttendance.Any())
+                        {
+                            <MudText Typo="Typo.body2">Zatiaľ žiadne záznamy.</MudText>
+                        }
+                        else
+                        {
+                            <MudTable Items="@_recentAttendance" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+                                <HeaderContent>
+                                    <MudTh>Dátum</MudTh>
+                                    <MudTh>Tréning</MudTh>
+                                    <MudTh>Stav</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Dátum">@context.Date.ToString("dd.MM.yyyy")</MudTd>
+                                    <MudTd DataLabel="Tréning">@context.TrainingName</MudTd>
+                                    <MudTd DataLabel="Stav">
+                                        <MudChip T="string" Size="Size.Small" Class="@GetStatusChipClass(context.Status)">
+                                            @GetStatusText(context.Status)
+                                        </MudChip>
+                                    </MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" lg="5">
+                <MudCard Elevation="2">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" Class="mb-3">Najnovšie oznamy</MudText>
+                        @if (!_announcements.Any())
+                        {
+                            <MudText Typo="Typo.body2">Zatiaľ žiadne oznamy tímu.</MudText>
+                        }
+                        else
+                        {
+                            <MudStack Spacing="2">
+                                @foreach (var announcement in _announcements.Take(3))
+                                {
+                                    <MudPaper Elevation="0" Class="pa-3" Style="@($"background:{_cPrimary}0A; border-left:3px solid {_cPrimary}; border-radius:6px;")">
+                                        <MudText Typo="Typo.subtitle2" Style="font-weight:600;">@announcement.Title</MudText>
+                                        <MudText Typo="Typo.body2" Class="mt-1">@announcement.ContentPreview</MudText>
+                                        <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">@announcement.PublishDate.ToString("dd.MM.yyyy HH:mm")</MudText>
+                                    </MudPaper>
+                                }
+                            </MudStack>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
     }
 </MudContainer>
 
@@ -224,4 +268,10 @@
         AttendanceStatus.Excused => "Ospravedlnený",
         _ => "Neznámy"
     };
+
+    private static readonly string _cPrimary = (string)AppTheme.SportClubTheme.PaletteLight.Primary;
+    private static readonly string _cSuccess = (string)AppTheme.SportClubTheme.PaletteLight.Success;
+    private static readonly string _cError = (string)AppTheme.SportClubTheme.PaletteLight.Error;
+    private static readonly string _cWarning = (string)AppTheme.SportClubTheme.PaletteLight.Warning;
+    private static readonly string _cTextSecondary = (string)AppTheme.SportClubTheme.PaletteLight.TextSecondary;
 }

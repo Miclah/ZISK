@@ -121,10 +121,20 @@ public class TrainingService : ITrainingService
         if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(request.TeamId))
             throw new UnauthorizedAccessException();
 
+        var trainingDate = DateOnly.FromDateTime(request.StartTime);
+        var season = await _context.Seasons
+                         .Where(s => s.StartDate <= trainingDate && s.EndDate >= trainingDate)
+                         .OrderByDescending(s => s.IsActive)
+                         .FirstOrDefaultAsync()
+                     ?? await _context.Seasons.FirstOrDefaultAsync(s => s.IsActive)
+                     ?? await _context.Seasons.OrderByDescending(s => s.StartDate).FirstOrDefaultAsync()
+                     ?? throw new InvalidOperationException("V systéme nie je definovaná žiadna sezóna.");
+
         var training = new TrainingEvent
         {
             Id = Guid.NewGuid(),
             TeamId = request.TeamId,
+            SeasonId = season.Id,
             Title = request.Title,
             StartTime = request.StartTime,
             EndTime = request.EndTime,
@@ -191,43 +201,6 @@ public class TrainingService : ITrainingService
         training.CancelledReason = request.Reason;
         await _context.SaveChangesAsync();
         _auditService.Log("Cancel", "Training", training.Id.ToString(), user, new { training.Title, training.StartTime, request.Reason });
-
-        var members = await _context.TeamMembers
-            .Include(tm => tm.User)
-            .Where(tm => tm.TeamId == training.TeamId)
-            .ToListAsync();
-
-        var memberIds = members.Select(m => m.UserId).ToList();
-        var parentLinks = await _context.ParentChildren
-            .Include(pc => pc.Parent)
-            .Where(pc => memberIds.Contains(pc.ChildId))
-            .ToListAsync();
-
-        var emails = members
-            .Select(m => m.User.Email)
-            .Concat(parentLinks.Select(pc => pc.Parent.Email))
-            .Where(e => !string.IsNullOrEmpty(e))
-            .Distinct()
-            .ToList();
-
-        var html = $"""
-            <h2>Tréning zrušený</h2>
-            <p>Tréning <strong>{training.Title}</strong> (tím: {training.Team.Name}) plánovaný na
-            <strong>{training.StartTime:dd.MM.yyyy HH:mm}</strong> bol zrušený.</p>
-            <p><strong>Dôvod:</strong> {request.Reason}</p>
-            """;
-
-        foreach (var email in emails)
-        {
-            try
-            {
-                await _emailSender.SendEmailAsync(email!, "Tréning zrušený – ZISK", html);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to send cancellation email to {Email}", email);
-            }
-        }
     }
 
     public async Task LockTrainingAsync(Guid id, ClaimsPrincipal user)

@@ -30,7 +30,7 @@
         }
         else
         {
-            <EditForm Model="@_model" OnValidSubmit="Submit">
+            <EditForm @ref="_editForm" Model="@_model" OnValidSubmit="Submit">
                 <DataAnnotationsValidator />
                 <MudStack Spacing="3">
                     <MudSelect T="string?"
@@ -92,7 +92,7 @@
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
     private ExcuseFormModel _model = new();
-    private EditContext? _editContext;
+    private EditForm? _editForm;
     private bool _isLoading = true;
     private bool _isSubmitting;
     private bool _isAthlete;
@@ -164,10 +164,11 @@
         MudDialog.Cancel();
     }
 
-    private void SubmitForm()
+    private async Task SubmitForm()
     {
-        _editContext ??= new EditContext(_model);
-        _editContext.Validate();
+        if (_editForm?.EditContext is null) return;
+        if (_editForm.EditContext.Validate())
+            await Submit();
     }
 
 

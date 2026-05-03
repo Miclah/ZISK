@@ -123,15 +123,7 @@ else
 
     @if (_isParent)
     {
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
-            <MudText Typo="Typo.h6">Moja rodina</MudText>
-            @if (_childCards.Any())
-            {
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    @_childCards.Count @(_childCards.Count == 1 ? "dieťa" : (_childCards.Count is >= 2 and <= 4 ? "deti" : "detí"))
-                </MudText>
-            }
-        </MudStack>
+        <MudText Typo="Typo.h6" Class="mb-3">Moja rodina</MudText>
     }
 
     <MudGrid Spacing="3">

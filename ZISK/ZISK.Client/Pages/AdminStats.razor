@@ -269,7 +269,7 @@ else
             </MudPaper>
         </MudItem>
 
-        <MudItem xs="12" md="6">
+        <MudItem xs="12">
             <MudPaper Class="pa-4" Elevation="2">
                 <MudText Typo="Typo.h6" Class="mb-3">Tréningy podľa typu</MudText>
                 @if (!_trainingTypes.Any())
@@ -308,31 +308,6 @@ else
             </MudPaper>
         </MudItem>
 
-        <MudItem xs="12" md="6">
-            <MudPaper Class="pa-4" Elevation="2">
-                <MudText Typo="Typo.h6" Class="mb-3">Trend účasti za obdobie</MudText>
-                @if (!_attendanceTrend.Any())
-                {
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Nedostatok dát pre vykreslenie trendu.</MudText>
-                }
-                else if (_attendanceTrend.Count == 1)
-                {
-                    <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Style="height:200px;">
-                        <MudText Typo="Typo.h2" Color="Color.Primary" Style="font-weight:700;">@_attendanceTrend[0].PresentPercent%</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Účasť za @_attendanceTrend[0].Date.ToString("dd.MM.yyyy")</MudText>
-                    </MudStack>
-                }
-                else
-                {
-                    <MudChart T="double" TChartOptions="LineChartOptions" ChartType="ChartType.Line"
-                              ChartSeries="@_trendSeries"
-                              XAxisLabels="@_trendLabels"
-                              Width="100%"
-                              Height="240px"
-                              ChartOptions="_trendChartOptions" />
-                }
-            </MudPaper>
-        </MudItem>
     </MudGrid>
 }
 </MudContainer>
@@ -363,6 +338,11 @@ else
     private List<ChartSeries<double>> _trendSeries = new();
     private string[] _trendLabels = Array.Empty<string>();
 
+    private int _trendAverage;
+    private int _trendMin;
+    private int _trendMax;
+    private int? _trendDelta;
+
     private LineChartOptions _trendChartOptions = default!;
 
     protected override async Task OnInitializedAsync()
@@ -370,8 +350,11 @@ else
         _trendChartOptions = new LineChartOptions
         {
             ChartPalette = new[] { _cPrimary },
-            LineStrokeWidth = 3,
-            InterpolationOption = InterpolationOption.NaturalSpline
+            LineStrokeWidth = 2,
+            InterpolationOption = InterpolationOption.NaturalSpline,
+            XAxisLines = false,
+            YAxisLines = false,
+            YAxisTicks = 50
         };
         await LoadAllAsync();
     }
@@ -435,21 +418,37 @@ else
         {
             _trendSeries = new();
             _trendLabels = Array.Empty<string>();
+            _trendAverage = _trendMin = _trendMax = 0;
+            _trendDelta = null;
             return;
         }
 
-        var count = _attendanceTrend.Count;
-        var step = count > 10 ? (int)Math.Ceiling(count / 10.0) : 1;
-        _trendLabels = _attendanceTrend
-            .Select((p, i) => i % step == 0 ? p.Date.ToString("dd.MM") : "")
-            .ToArray();
+        var values = _attendanceTrend.Select(p => (double)p.PresentPercent).ToArray();
+        _trendAverage = (int)Math.Round(values.Average());
+        _trendMin = (int)Math.Round(values.Min());
+        _trendMax = (int)Math.Round(values.Max());
+
+        if (values.Length >= 4)
+        {
+            var half = values.Length / 2;
+            var prev = values.Take(half).Average();
+            var curr = values.Skip(half).Average();
+            _trendDelta = (int)Math.Round(curr - prev);
+        }
+        else
+        {
+            _trendDelta = null;
+        }
+
+        _trendLabels = new string[values.Length];
+        Array.Fill(_trendLabels, string.Empty);
 
         _trendSeries = new()
         {
             new ChartSeries<double>
             {
-                Name = "Účasť %",
-                Data = _attendanceTrend.Select(p => (double)p.PresentPercent).ToArray()
+                Name = string.Empty,
+                Data = values
             }
         };
     }
