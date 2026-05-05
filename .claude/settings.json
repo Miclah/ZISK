@@ -5,7 +5,8 @@
       "mcp__jcodemunch__plan_turn",
       "mcp__jcodemunch__resolve_repo",
       "mcp__jcodemunch__get_repo_outline",
-      "mcp__jcodemunch__get_file_content"
+      "mcp__jcodemunch__get_file_content",
+      "mcp__jcodemunch__register_edit"
     ]
   }
 }

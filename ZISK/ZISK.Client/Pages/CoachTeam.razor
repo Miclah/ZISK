@@ -12,28 +12,32 @@
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
-    <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Large" Color="Color.Primary" />
-    <MudStack Spacing="0">
-        <MudText Typo="Typo.h4">@(_teamName ?? "Môj tím")</MudText>
-        <MudText Typo="Typo.caption" Style="@_styleMuted">Súpiska a ospravedlnenky</MudText>
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2" Wrap="Wrap.Wrap">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="min-width:0; flex:1 1 240px;">
+        <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Large" Color="Color.Primary" />
+        <MudStack Spacing="0" Style="min-width:0;">
+            <MudText Typo="Typo.h4" Style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@(_teamName ?? "Môj tím")</MudText>
+            <MudText Typo="Typo.caption" Style="@_styleMuted">Súpiska a ospravedlnenky</MudText>
+        </MudStack>
     </MudStack>
-    <MudSpacer />
     @if (!_isLoading)
     {
-        <MudPaper Class="px-3 py-2" Elevation="0" Outlined="true">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+        <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+            <MudPaper Elevation="0" Class="px-3 py-2"
+                      Style="@($"background:{_cPrimaryBg}; color:{_cPrimary}; border-radius:999px;")">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                    <MudIcon Icon="@Icons.Material.Filled.PeopleAlt" Size="Size.Small" Color="Color.Primary" />
+                    <MudIcon Icon="@Icons.Material.Filled.PeopleAlt" Size="Size.Small" Style="@($"color:{_cPrimary};")" />
                     <MudText Typo="Typo.body2"><strong>@_members.Count</strong> členov</MudText>
                 </MudStack>
-                <MudDivider Vertical="true" FlexItem="true" />
+            </MudPaper>
+            <MudPaper Elevation="0" Class="px-3 py-2"
+                      Style="@($"background:{_cSecondaryBg}; color:{_cSecondary}; border-radius:999px;")">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                    <MudIcon Icon="@Icons.Material.Filled.EventBusy" Size="Size.Small" Color="Color.Primary" />
+                    <MudIcon Icon="@Icons.Material.Filled.EventBusy" Size="Size.Small" Style="@($"color:{_cSecondary};")" />
                     <MudText Typo="Typo.body2"><strong>@_excuses.Count</strong> ospravedlneniek</MudText>
                 </MudStack>
-            </MudStack>
-        </MudPaper>
+            </MudPaper>
+        </MudStack>
     }
 </MudStack>
 
@@ -56,25 +60,25 @@
         }
         else
         {
-            <MudGrid>
+            <MudGrid Spacing="3">
                 @foreach (var member in _members.OrderBy(m => m.LastName).ThenBy(m => m.FirstName))
                 {
                     <MudItem xs="12" sm="6" md="4" lg="3">
-                        <MudPaper Elevation="0" Outlined="true" Class="pa-3"
-                                  Style="cursor:pointer; transition:box-shadow .15s, border-color .15s;"
+                        <MudPaper Elevation="0" Outlined="true"
+                                  Style="@($"cursor:pointer; border-top:3px solid {_cPrimary}; border-radius:10px; overflow:hidden;")"
                                   @onclick="() => OpenMemberDetail(member)">
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="pa-3">
                                 <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Medium">
                                     @GetInitials(member.FirstName, member.LastName)
                                 </MudAvatar>
                                 <MudStack Spacing="0" Style="min-width:0; flex:1;">
-                                    <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@member.FirstName @member.LastName</MudText>
+                                    <MudText Typo="Typo.subtitle1" Style="font-weight:600; overflow:hidden; text-overflow:ellipsis;">@member.FirstName @member.LastName</MudText>
                                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                         <MudIcon Icon="@Icons.Material.Filled.Cake" Size="Size.Small" Style="@_styleMuted" />
                                         <MudText Typo="Typo.caption" Style="@_styleMuted">@(member.DateOfBirth?.ToString("dd.MM.yyyy") ?? "neuvedený")</MudText>
                                     </MudStack>
                                 </MudStack>
-                                <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Default" />
+                                <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Style="@_styleMuted" />
                             </MudStack>
                         </MudPaper>
                     </MudItem>
@@ -103,19 +107,20 @@
                 @foreach (var excuse in _excuses.OrderByDescending(e => e.CreatedAt))
                 {
                     <MudPaper Elevation="0" Outlined="true" Class="pa-3"
-                              Style="@($"cursor:pointer; border-left:3px solid {_cAccent};")"
+                              Style="@($"cursor:pointer; border-left:4px solid {_cSecondary}; border-radius:10px;")"
                               @onclick="() => OpenExcuseDetail(excuse)">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
-                            <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">
-                                <MudIcon Icon="@Icons.Material.Filled.EventBusy" Size="Size.Small" />
+                            <MudAvatar Variant="Variant.Filled" Size="Size.Small"
+                                       Style="@($"background:{_cSecondaryBg}; color:{_cSecondary};")">
+                                <MudIcon Icon="@Icons.Material.Filled.EventBusy" Size="Size.Small" Style="@($"color:{_cSecondary};")" />
                             </MudAvatar>
                             <MudStack Spacing="0" Style="flex:1; min-width:0;">
                                 <MudText Typo="Typo.subtitle2" Style="font-weight:600;">@excuse.ChildName</MudText>
                                 <MudText Typo="Typo.body2" Style="@_styleMuted">
-                                    @((excuse.DateFrom ?? excuse.CreatedAt).ToString("dd.MM.yyyy")) • @excuse.Reason
+                                    <strong style="@_styleStrong">@((excuse.DateFrom ?? excuse.CreatedAt).ToString("dd.MM.yyyy"))</strong> • @excuse.Reason
                                 </MudText>
                             </MudStack>
-                            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Default" />
+                            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Style="@_styleMuted" />
                         </MudStack>
                     </MudPaper>
                 }
@@ -232,7 +237,11 @@
 </MudDialog>
 
 @code {
-    private static readonly string _cAccent = (string)AppTheme.SportClubTheme.PaletteLight.Primary;
+    private static readonly string _cPrimary = (string)AppTheme.SportClubTheme.PaletteLight.Primary;
+    private static readonly string _cSecondary = (string)AppTheme.SportClubTheme.PaletteLight.Secondary;
+    private const string _cPrimaryBg = "rgba(30, 58, 95, 0.08)";
+    private const string _cSecondaryBg = "rgba(217, 119, 6, 0.12)";
+    private const string _styleAccent = "color: var(--mud-palette-primary);";
     private const string _styleMuted = "color: var(--mud-palette-text-secondary);";
     private const string _styleStrong = "color: var(--mud-palette-text-primary);";
 

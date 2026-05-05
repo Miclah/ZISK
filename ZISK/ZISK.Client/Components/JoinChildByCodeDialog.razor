@@ -1,0 +1,76 @@
+@using System.ComponentModel.DataAnnotations
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Invitations
+@inject IInvitationsApi InvitationsApi
+@inject IChildrenApi ChildrenApi
+@inject UserContextService UserContextService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Pridať dieťa cez kód</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Zadajte kód, ktorý vám zdieľal druhý rodič. Po overení získate prístup k spoločnému dieťaťu.
+            </MudText>
+            <MudTextField @bind-Value="_code"
+                          Label="Kód"
+                          Variant="Variant.Outlined"
+                          Placeholder="XXXX-XXXX"
+                          Style="font-family: monospace; letter-spacing: 4px;" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Zrušiť</MudButton>
+        <LoadingButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit"
+                       Loading="_isSubmitting" LoadingText="Overujem...">
+            Pridať dieťa
+        </LoadingButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private string _code = string.Empty;
+    private bool _isSubmitting;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        if (string.IsNullOrWhiteSpace(_code))
+        {
+            Snackbar.Add("Zadajte kód.", Severity.Warning);
+            return;
+        }
+
+        _isSubmitting = true;
+        try
+        {
+            await InvitationsApi.RedeemCodeAsync(new RedeemCodeRequest(_code.Trim().ToUpperInvariant()));
+            Snackbar.Add("Dieťa bolo pridané do vašej rodiny.", Severity.Success);
+
+            try
+            {
+                var children = await ChildrenApi.GetMyChildrenAsync();
+                UserContextService.SetOptions(children.Select(c => new UserContextOption(
+                    c.Id, $"{c.FirstName} {c.LastName}", c.Id, c.TeamId, c.IsOwnProfile)));
+            }
+            catch { }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}
