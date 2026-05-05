@@ -25,7 +25,7 @@
             return;
         }
 
-        if (user.IsInRole("Child"))
+        if (user.IsInRole("Child") || user.IsInRole("Athlete"))
         {
             NavigationManager.NavigateTo("/dieta", replace: true);
             return;

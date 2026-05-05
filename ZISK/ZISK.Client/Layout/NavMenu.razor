@@ -1,7 +1,7 @@
 <MudStack Class="pa-3" Style="height: 100%;" Justify="Justify.SpaceBetween">
     <MudNavMenu Rounded="true" Margin="Margin.Dense" Color="Color.Primary">
 
-        <AuthorizeView Roles="Parent,Athlete">
+        <AuthorizeView Roles="Parent">
             <MudText Typo="Typo.caption" Class="px-3 pt-2 pb-1 nav-section-header">
                 Hlavné
             </MudText>
@@ -25,7 +25,7 @@
             </MudNavLink>
         </AuthorizeView>
 
-        <AuthorizeView Roles="Parent,Athlete">
+        <AuthorizeView Roles="Parent">
             <MudDivider Class="my-2 mx-2" Light="true" />
             <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1 nav-section-header">
                 Športovec / Rodič
@@ -38,9 +38,8 @@
             </MudNavLink>
         </AuthorizeView>
 
-        <AuthorizeView Roles="Child">
-            <MudDivider Class="my-2 mx-2" Light="true" />
-            <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1 nav-section-header">
+        <AuthorizeView Roles="Child,Athlete">
+            <MudText Typo="Typo.caption" Class="px-3 pt-2 pb-1 nav-section-header">
                 Dieťa
             </MudText>
 

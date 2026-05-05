@@ -19,15 +19,22 @@
                 <MudTextField @bind-Value="_lastName" Label="Priezvisko" Required="true" Variant="Variant.Outlined" MaxLength="100" />
                 <MudTextField @bind-Value="_bydlisko" Label="Bydlisko" Variant="Variant.Outlined" MaxLength="300" />
                 <MudDatePicker @bind-Date="_dateOfBirth" Label="Dátum narodenia" Variant="Variant.Outlined" />
-                <MudSelect T="Guid?" @bind-Value="_teamId" Label="Tím" Variant="Variant.Outlined"
-                           Disabled="@(!_canEditTeam)"
-                           HelperText="@(_canEditTeam ? null : "Zmenu tímu môže vykonať len tréner alebo administrátor.")">
-                    <MudSelectItem T="Guid?" Value="@((Guid?)null)">Bez tímu</MudSelectItem>
-                    @foreach (var team in _teams)
-                    {
-                        <MudSelectItem T="Guid?" Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
-                    }
-                </MudSelect>
+                @if (_canEditTeam)
+                {
+                    <MudSelect T="Guid?" @bind-Value="_teamId" Label="Tím" Variant="Variant.Outlined">
+                        <MudSelectItem T="Guid?" Value="@((Guid?)null)">Bez tímu</MudSelectItem>
+                        @foreach (var team in _teams)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                else
+                {
+                    <MudTextField T="string" Value="@(_teamName ?? "Bez tímu")" Label="Tím" Variant="Variant.Outlined"
+                                  ReadOnly="true" Disabled="true"
+                                  HelperText="Zmenu tímu môže vykonať len tréner alebo administrátor." />
+                }
             </MudStack>
         }
     </DialogContent>
@@ -50,6 +57,7 @@
     private string? _bydlisko;
     private DateTime? _dateOfBirth;
     private Guid? _teamId;
+    private string? _teamName;
     private List<TeamDto> _teams = new();
 
     protected override async Task OnInitializedAsync()
@@ -65,6 +73,7 @@
             _bydlisko = detail.Bydlisko;
             _dateOfBirth = detail.DateOfBirth.HasValue ? detail.DateOfBirth.Value.ToDateTime(TimeOnly.MinValue) : null;
             _teamId = detail.TeamId;
+            _teamName = detail.TeamName;
 
             if (_canEditTeam)
             {

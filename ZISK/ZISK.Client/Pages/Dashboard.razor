@@ -16,7 +16,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject AuthenticationStateProvider AuthStateProvider
-@attribute [Authorize(Roles = "Parent,Athlete")]
+@attribute [Authorize(Roles = "Parent,Athlete,Child")]
 
 <PageTitle>Nástenka</PageTitle>
 
@@ -54,6 +54,11 @@ else
                     <MudButton Variant="Variant.Filled" Color="Color.Secondary"
                                StartIcon="@Icons.Material.Rounded.PersonAdd" OnClick="OpenAddChildDialog">
                         Pridať dieťa
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Inherit"
+                               Style="border-color: rgba(255,255,255,0.4); color: #fff;"
+                               StartIcon="@Icons.Material.Rounded.Numbers" OnClick="OpenJoinByCodeDialog">
+                        Pridať dieťa cez kód
                     </MudButton>
                 }
                 <MudButton Variant="Variant.Outlined" Color="Color.Inherit"
@@ -138,11 +143,18 @@ else
                         <MudText Typo="Typo.body2" Color="Color.Secondary">
                             Pridajte prvé dieťa alebo prijmite pozvánku od iného rodiča.
                         </MudText>
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2"
-                                   StartIcon="@Icons.Material.Rounded.PersonAdd"
-                                   OnClick="OpenAddChildDialog">
-                            Pridať dieťa
-                        </MudButton>
+                        <MudStack Row="true" Spacing="2" Justify="Justify.Center" Class="mt-2">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Rounded.PersonAdd"
+                                       OnClick="OpenAddChildDialog">
+                                Pridať dieťa
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Rounded.Numbers"
+                                       OnClick="OpenJoinByCodeDialog">
+                                Pridať dieťa cez kód
+                            </MudButton>
+                        </MudStack>
                     </MudPaper>
                 }
                 else
@@ -354,6 +366,13 @@ else
     {
         var state = await AuthStateProvider.GetAuthenticationStateAsync();
         _isParent = state.User.IsInRole("Parent");
+
+        if (!_isParent && (state.User.IsInRole("Athlete") || state.User.IsInRole("Child")))
+        {
+            NavigationManager.NavigateTo("/dieta", replace: true);
+            return;
+        }
+
         _firstName = state.User.FindFirst(ClaimTypes.GivenName)?.Value ?? "";
 
         var sk = new CultureInfo("sk-SK");
@@ -540,6 +559,16 @@ else
         var result = await dialog.Result;
 
         if (result is not null && !result.Canceled)
+            await LoadData();
+    }
+
+    private async Task OpenJoinByCodeDialog()
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<JoinChildByCodeDialog>("Pridať dieťa cez kód", options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
             await LoadData();
     }
 

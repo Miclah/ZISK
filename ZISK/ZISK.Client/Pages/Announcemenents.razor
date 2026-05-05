@@ -53,8 +53,8 @@ else
     <MudGrid Spacing="3">
         @foreach (var announcement in FilteredAnnouncements)
         {
-            <MudItem xs="12" lg="6">
-                <MudPaper Class="card-standard pa-4 h-100" Elevation="0" Style="@GetAnnouncementStyle(announcement)">
+            <MudItem xs="12" lg="6" Class="d-flex">
+                <MudPaper Class="card-standard pa-4 h-100" Elevation="0" Style="@($"width:100%;{GetAnnouncementStyle(announcement)}")">
                     <MudStack Spacing="2">
                         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start" Spacing="2">
                             <MudStack Spacing="0" Style="min-width:0;flex:1;">

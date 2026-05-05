@@ -34,8 +34,8 @@
     }
     else
     {
-        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
-            <MudStack Spacing="0">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="mb-4">
+            <MudStack Spacing="0" Style="min-width:0;">
                 <MudText Typo="Typo.h5">@_detail.FirstName @_detail.LastName</MudText>
                 @if (!string.IsNullOrWhiteSpace(_detail.TeamName))
                 {
@@ -49,7 +49,7 @@
         <MudCard Elevation="1" Class="mb-4">
             <MudCardHeader>
                 <CardHeaderContent>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
                         <MudText Typo="Typo.subtitle1">Základné informácie</MudText>
                         <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
                                    StartIcon="@Icons.Material.Filled.Edit"
@@ -61,11 +61,11 @@
             </MudCardHeader>
             <MudCardContent>
                 <MudGrid>
-                    <MudItem xs="6">
+                    <MudItem xs="12" sm="6">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Dátum narodenia</MudText>
                         <MudText Typo="Typo.body2">@(_detail.DateOfBirth?.ToString("dd.MM.yyyy") ?? "-")</MudText>
                     </MudItem>
-                    <MudItem xs="6">
+                    <MudItem xs="12" sm="6">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Vek</MudText>
                         <MudText Typo="Typo.body2">@(_age?.ToString() ?? "-") @(_age.HasValue ? "rokov" : "")</MudText>
                     </MudItem>
@@ -84,11 +84,11 @@
         <MudCard Elevation="1" Class="mb-4">
             <MudCardHeader>
                 <CardHeaderContent>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
                         <MudText Typo="Typo.subtitle1">Dochádzka</MudText>
-                        <MudStack Row="true" Spacing="2">
-                            <MudDatePicker @bind-Date="_attendanceFrom" Label="Od" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                            <MudDatePicker @bind-Date="_attendanceTo" Label="Do" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
+                            <MudDatePicker @bind-Date="_attendanceFrom" Label="Od" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:130px;" />
+                            <MudDatePicker @bind-Date="_attendanceTo" Label="Do" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:130px;" />
                             <MudButton OnClick="LoadAttendance" Variant="Variant.Text" Color="Color.Primary" Size="Size.Small">Zobraziť</MudButton>
                         </MudStack>
                     </MudStack>
@@ -168,7 +168,7 @@
                             <MudTd>@FormatDateRange(context.DateFrom, context.DateTo)</MudTd>
                             <MudTd>@(string.IsNullOrWhiteSpace(context.Reason) ? "-" : context.Reason)</MudTd>
                             <MudTd>
-                                <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Status</MudChip>
+                                <MudChip T="string" Size="Size.Small" Color="@GetExcuseStatusColor(context.Status)">@GetExcuseStatusText(context.Status)</MudChip>
                             </MudTd>
                         </RowTemplate>
                     </MudTable>
@@ -179,7 +179,7 @@
         <MudCard Elevation="1" Class="mb-4">
             <MudCardHeader>
                 <CardHeaderContent>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
                         <MudText Typo="Typo.subtitle1">Rodičia</MudText>
                         @if (_canManageParents)
                         {
@@ -385,6 +385,18 @@
         AttendanceStatus.Absent => "Neprítomný",
         AttendanceStatus.Excused => "Ospravedlnený",
         _ => "Neznámy"
+    };
+
+    private Color GetExcuseStatusColor(ExcuseStatus status) => status switch
+    {
+        ExcuseStatus.Received => Color.Info,
+        _ => Color.Default
+    };
+
+    private string GetExcuseStatusText(ExcuseStatus status) => status switch
+    {
+        ExcuseStatus.Received => "Prijaté",
+        _ => status.ToString()
     };
 
     private static string FormatDateRange(DateTime? from, DateTime? to)
