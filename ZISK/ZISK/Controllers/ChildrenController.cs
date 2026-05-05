@@ -107,17 +107,18 @@ public class ChildrenController : ControllerBase
     [Authorize(Roles = "Admin,Coach")]
     public async Task<ActionResult<List<ChildDto>>> GetAllChildren()
     {
-        var childRoleId = await _context.Roles
-            .Where(r => r.Name == "Child")
+        var childRoleIds = await _context.Roles
+            .Where(r => r.Name == "Child" || r.Name == "Athlete")
             .Select(r => r.Id)
-            .FirstOrDefaultAsync();
+            .ToListAsync();
 
-        if (childRoleId == null)
+        if (!childRoleIds.Any())
             return Ok(new List<ChildDto>());
 
         var childUserIds = await _context.UserRoles
-            .Where(ur => ur.RoleId == childRoleId)
+            .Where(ur => childRoleIds.Contains(ur.RoleId))
             .Select(ur => ur.UserId)
+            .Distinct()
             .ToListAsync();
 
         var memberships = await _context.TeamMembers
@@ -401,6 +402,8 @@ public class ChildrenController : ControllerBase
         var parents = await _context.ParentChildren
             .Include(pc => pc.Parent)
             .Where(pc => pc.ChildId == childId)
+            .OrderByDescending(pc => pc.IsPrimary)
+            .ThenBy(pc => pc.Parent.LastName)
             .Select(pc => new ParentDto(
                 pc.Parent.Id,
                 pc.Parent.FirstName,
@@ -408,8 +411,6 @@ public class ChildrenController : ControllerBase
                 pc.Parent.Email ?? string.Empty,
                 pc.Parent.CreatedAt,
                 pc.IsPrimary))
-            .OrderByDescending(p => p.IsPrimary)
-            .ThenBy(p => p.LastName)
             .ToListAsync();
 
         return Ok(parents);

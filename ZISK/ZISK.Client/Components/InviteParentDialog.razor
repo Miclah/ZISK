@@ -10,6 +10,8 @@
         <MudText Typo="Typo.h6">Pozvať ďalšieho rodiča</MudText>
     </TitleContent>
     <DialogContent>
+        @* pre ucely testovania zakomentovane *@
+        @*
         <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true">
             <MudTabPanel Text="E-mailom" Icon="@Icons.Material.Filled.Email">
                 <MudStack Spacing="3" Class="pt-3">
@@ -32,6 +34,8 @@
                     }
                 </MudStack>
             </MudTabPanel>
+        *@
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true">
             <MudTabPanel Text="Kódom" Icon="@Icons.Material.Filled.Numbers">
                 <MudStack Spacing="3" Class="pt-3">
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
@@ -78,24 +82,25 @@
     private bool _isGeneratingCode;
     private InvitationCodeResponse? _generatedCode;
 
-    private async Task SendEmail()
-    {
-        _isSendingEmail = true;
-        _emailSent = false;
-        try
-        {
-            await InvitationsApi.SendEmailInvitationAsync(ChildId, new SendEmailInvitationRequest(_emailModel.TargetEmail));
-            _emailSent = true;
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
-        }
-        finally
-        {
-            _isSendingEmail = false;
-        }
-    }
+    // pre ucely testovania zakomentovane
+    // private async Task SendEmail()
+    // {
+    //     _isSendingEmail = true;
+    //     _emailSent = false;
+    //     try
+    //     {
+    //         await InvitationsApi.SendEmailInvitationAsync(ChildId, new SendEmailInvitationRequest(_emailModel.TargetEmail));
+    //         _emailSent = true;
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+    //     }
+    //     finally
+    //     {
+    //         _isSendingEmail = false;
+    //     }
+    // }
 
     private async Task GenerateCode()
     {

@@ -16,7 +16,7 @@
     <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Large" Color="Color.Primary" />
     <MudStack Spacing="0">
         <MudText Typo="Typo.h4">@(_teamName ?? "Môj tím")</MudText>
-        <MudText Typo="Typo.caption" Color="Color.Secondary">Súpiska a ospravedlnenky</MudText>
+        <MudText Typo="Typo.caption" Style="@_styleMuted">Súpiska a ospravedlnenky</MudText>
     </MudStack>
     <MudSpacer />
     @if (!_isLoading)
@@ -29,7 +29,7 @@
                 </MudStack>
                 <MudDivider Vertical="true" FlexItem="true" />
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                    <MudIcon Icon="@Icons.Material.Filled.EventBusy" Size="Size.Small" Color="Color.Warning" />
+                    <MudIcon Icon="@Icons.Material.Filled.EventBusy" Size="Size.Small" Color="Color.Primary" />
                     <MudText Typo="Typo.body2"><strong>@_excuses.Count</strong> ospravedlneniek</MudText>
                 </MudStack>
             </MudStack>
@@ -70,8 +70,8 @@
                                 <MudStack Spacing="0" Style="min-width:0; flex:1;">
                                     <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@member.FirstName @member.LastName</MudText>
                                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                                        <MudIcon Icon="@Icons.Material.Filled.Cake" Size="Size.Small" Color="Color.Secondary" />
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@(member.DateOfBirth?.ToString("dd.MM.yyyy") ?? "neuvedený")</MudText>
+                                        <MudIcon Icon="@Icons.Material.Filled.Cake" Size="Size.Small" Style="@_styleMuted" />
+                                        <MudText Typo="Typo.caption" Style="@_styleMuted">@(member.DateOfBirth?.ToString("dd.MM.yyyy") ?? "neuvedený")</MudText>
                                     </MudStack>
                                 </MudStack>
                                 <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Default" />
@@ -103,15 +103,15 @@
                 @foreach (var excuse in _excuses.OrderByDescending(e => e.CreatedAt))
                 {
                     <MudPaper Elevation="0" Outlined="true" Class="pa-3"
-                              Style="@($"cursor:pointer; border-left:3px solid {_cWarning};")"
+                              Style="@($"cursor:pointer; border-left:3px solid {_cAccent};")"
                               @onclick="() => OpenExcuseDetail(excuse)">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
-                            <MudAvatar Color="Color.Warning" Variant="Variant.Filled" Size="Size.Small">
+                            <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">
                                 <MudIcon Icon="@Icons.Material.Filled.EventBusy" Size="Size.Small" />
                             </MudAvatar>
                             <MudStack Spacing="0" Style="flex:1; min-width:0;">
                                 <MudText Typo="Typo.subtitle2" Style="font-weight:600;">@excuse.ChildName</MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                <MudText Typo="Typo.body2" Style="@_styleMuted">
                                     @((excuse.DateFrom ?? excuse.CreatedAt).ToString("dd.MM.yyyy")) • @excuse.Reason
                                 </MudText>
                             </MudStack>
@@ -126,27 +126,62 @@
 </MudContainer>
 
 <MudDialog @bind-Visible="_memberDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true })">
-    <TitleContent><MudText Typo="Typo.h6">Profil hráča</MudText></TitleContent>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Person" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Profil hráča</MudText>
+        </MudStack>
+    </TitleContent>
     <DialogContent>
         @if (_selectedMember is not null)
         {
-            <MudStack Spacing="1">
-                <MudText Typo="Typo.body1">@_selectedMember.FirstName @_selectedMember.LastName</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">Email: @(_selectedMember.Email ?? "neuvedený")</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">Dátum narodenia: @(_selectedMember.DateOfBirth?.ToString("dd.MM.yyyy") ?? "-")</MudText>
-                <MudText Typo="Typo.body2" Style="font-weight:600;" Class="mt-2">Kontakty rodičov</MudText>
-                @if (_selectedMember.ParentContacts.Any())
-                {
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-3">
+                <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Large">
+                    @GetInitials(_selectedMember.FirstName, _selectedMember.LastName)
+                </MudAvatar>
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@_selectedMember.FirstName @_selectedMember.LastName</MudText>
+                    @if (!string.IsNullOrWhiteSpace(_teamName))
+                    {
+                        <MudText Typo="Typo.caption" Style="@_styleMuted">@_teamName</MudText>
+                    }
+                </MudStack>
+            </MudStack>
+
+            <MudDivider Class="mb-3" />
+
+            <MudStack Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" Style="@_styleMuted" />
+                    <MudText Typo="Typo.body2" Style="@_styleMuted" Class="mr-1">Email:</MudText>
+                    <MudText Typo="Typo.body2">@(_selectedMember.Email ?? "neuvedený")</MudText>
+                </MudStack>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.Cake" Size="Size.Small" Style="@_styleMuted" />
+                    <MudText Typo="Typo.body2" Style="@_styleMuted" Class="mr-1">Dátum narodenia:</MudText>
+                    <MudText Typo="Typo.body2">@(_selectedMember.DateOfBirth?.ToString("dd.MM.yyyy") ?? "-")</MudText>
+                </MudStack>
+            </MudStack>
+
+            <MudDivider Class="my-3" />
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+                <MudIcon Icon="@Icons.Material.Filled.SupervisorAccount" Size="Size.Small" Color="Color.Primary" />
+                <MudText Typo="Typo.subtitle2" Style="font-weight:600;">Kontakty rodičov</MudText>
+            </MudStack>
+            @if (_selectedMember.ParentContacts.Any())
+            {
+                <MudStack Spacing="1">
                     @foreach (var contact in _selectedMember.ParentContacts)
                     {
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">@contact</MudText>
+                        <MudText Typo="Typo.body2" Style="@_styleMuted">@contact</MudText>
                     }
-                }
-                else
-                {
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Kontaktné údaje rodiča nie sú dostupné.</MudText>
-                }
-            </MudStack>
+                </MudStack>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Style="@_styleMuted">Kontaktné údaje rodiča nie sú dostupné.</MudText>
+            }
         }
     </DialogContent>
     <DialogActions>
@@ -155,15 +190,39 @@
 </MudDialog>
 
 <MudDialog @bind-Visible="_excuseDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
-    <TitleContent><MudText Typo="Typo.h6">Detail ospravedlnenky</MudText></TitleContent>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.EventBusy" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Detail ospravedlnenky</MudText>
+        </MudStack>
+    </TitleContent>
     <DialogContent>
         @if (_selectedExcuse is not null)
         {
-            <MudStack Spacing="1">
-                <MudText Typo="Typo.body1">@_selectedExcuse.ChildName</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">@_selectedExcuse.TeamName</MudText>
-                <MudText Typo="Typo.body2">@_selectedExcuse.Reason</MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Od: @_selectedExcuse.DateFrom?.ToString("dd.MM.yyyy") Do: @_selectedExcuse.DateTo?.ToString("dd.MM.yyyy")</MudText>
+            <MudStack Spacing="2">
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@_selectedExcuse.ChildName</MudText>
+                    @if (!string.IsNullOrWhiteSpace(_selectedExcuse.TeamName))
+                    {
+                        <MudText Typo="Typo.caption" Style="@_styleMuted">@_selectedExcuse.TeamName</MudText>
+                    }
+                </MudStack>
+
+                <MudDivider />
+
+                <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.Notes" Size="Size.Small" Style="@_styleMuted" Class="mt-1" />
+                    <MudText Typo="Typo.body2">@_selectedExcuse.Reason</MudText>
+                </MudStack>
+
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.DateRange" Size="Size.Small" Style="@_styleMuted" />
+                    <MudText Typo="Typo.body2" Style="@_styleMuted">
+                        Od: <strong style="@_styleStrong">@_selectedExcuse.DateFrom?.ToString("dd.MM.yyyy")</strong>
+                        &nbsp;•&nbsp;
+                        Do: <strong style="@_styleStrong">@_selectedExcuse.DateTo?.ToString("dd.MM.yyyy")</strong>
+                    </MudText>
+                </MudStack>
             </MudStack>
         }
     </DialogContent>
@@ -173,7 +232,9 @@
 </MudDialog>
 
 @code {
-    private static readonly string _cWarning = (string)AppTheme.SportClubTheme.PaletteLight.Warning;
+    private static readonly string _cAccent = (string)AppTheme.SportClubTheme.PaletteLight.Primary;
+    private const string _styleMuted = "color: var(--mud-palette-text-secondary);";
+    private const string _styleStrong = "color: var(--mud-palette-text-primary);";
 
     private bool _isLoading = true;
     private string? _teamName;
