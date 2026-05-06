@@ -8,7 +8,7 @@ public class AuthPasswordValidationTests
     {
         var ctx = new ValidationContext(model);
         var results = new List<ValidationResult>();
-        Validator.TryValidateObject(model, ctx, results, validateAllProperties: true);
+        Validator.TryValidateObject(model, ctx, results, validateAllProperties: true); // without this flag some attributes (e.g. [Compare]) are skipped during validation
         return results;
     }
 

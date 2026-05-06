@@ -230,6 +230,7 @@ else
 protected override async Task OnInitializedAsync()
     {
         await LoadData();
+        // Deep-link support: navigating to this page with ?action=create opens the create dialog automatically (same pattern as AdminTrainings).
         if (NavigationManager.Uri.Contains("action=create", StringComparison.OrdinalIgnoreCase))
             OpenCreateDialog();
     }

@@ -25,6 +25,8 @@ public class AttendanceAutoCloseWorker
     public async Task RunPassAsync(CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
+        // 30-day lookback window: trainings older than 30 days are assumed to have been handled already
+        // and are intentionally excluded to keep each worker pass fast and avoid re-processing old data.
         var cutoff = now.AddDays(-30);
 
         var pastTrainings = await _context.TrainingEvents

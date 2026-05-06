@@ -36,6 +36,7 @@ public class UserService : IUserService
 
         var userRoles = await _context.UserRoles.AsNoTracking().ToListAsync();
         var roles = await _context.Roles.AsNoTracking().ToDictionaryAsync(r => r.Id, r => r.Name);
+        // Falls back to "Parent" when a user has no recognized role — this is a defensive default, not a business rule.
         var userRoleMap = userRoles
             .GroupBy(ur => ur.UserId)
             .ToDictionary(g => g.Key, g => g.Select(ur => roles.TryGetValue(ur.RoleId, out var name) ? name : null).FirstOrDefault() ?? "Parent");
@@ -378,6 +379,8 @@ public class UserService : IUserService
         _auditService.Log("Delete", "User", id, callingUser, null);
     }
 
+    // Delete-then-recreate pattern: all existing assignments are replaced atomically.
+    // The first team in the list (i == 0) always becomes the primary team.
     private async Task UpdateCoachTeamsAsync(string id, List<Guid> teamIds, ClaimsPrincipal callingUser, ApplicationUser user)
     {
         var existingTeams = await _context.CoachTeams.Where(ct => ct.CoachId == id).ToListAsync();
@@ -397,6 +400,7 @@ public class UserService : IUserService
         _auditService.Log("TeamAssignmentUpdated", "User", user.Id, callingUser, new { TeamCount = teamIds.Count });
     }
 
+    // Same delete-then-recreate pattern as UpdateCoachTeamsAsync — first parent in the list becomes IsPrimary=true.
     private async Task EnsureChildParentLinksAsync(ApplicationUser user, List<string>? parentIds)
     {
         if (parentIds == null)

@@ -394,6 +394,8 @@ else
 
             var excuses = await excusesTask;
             var upcomingIds = upcoming.Select(t => t.Id).ToHashSet();
+            // Show excuses that relate to upcoming trainings OR have no specific training attached.
+            // Date relevance falls back: DateTo → DateFrom → CreatedAt, so any excuse still open today is included.
             _recentExcuses = excuses
                 .Where(e => !e.TrainingEventId.HasValue || upcomingIds.Contains(e.TrainingEventId.Value))
                 .Where(e => (e.DateTo ?? e.DateFrom ?? e.CreatedAt) >= now.Date)
@@ -407,6 +409,7 @@ else
             if (_nextTraining is not null)
             {
                 var d = _nextTraining.StartTime.Date;
+                // Three excuse patterns for a given date: exact training ID match, date range containing the date, or single-day DateFrom without DateTo.
                 _nextExcusedCount = excuses.Count(e =>
                     e.TrainingEventId == _nextTraining.Id ||
                     (e.DateFrom.HasValue && e.DateTo.HasValue && e.DateFrom.Value.Date <= d && e.DateTo.Value.Date >= d) ||

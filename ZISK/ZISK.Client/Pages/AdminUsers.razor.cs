@@ -153,6 +153,7 @@ private IEnumerable<UserListDto> FilteredUsers => _users
             return;
         }
 
+        // Business rule: a child can have at most 2 parents. Enforced here on the client; server also validates via EnsureChildParentLinksAsync.
         if (_editModel.Role == "Child" && _selectedParentIds.Count > 2)
         {
             Snackbar.Add("Dieťa môže mať maximálne 2 rodičov.", Severity.Warning);

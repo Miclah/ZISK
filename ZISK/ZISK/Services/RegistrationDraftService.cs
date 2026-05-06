@@ -116,6 +116,8 @@ public class RegistrationDraftService
         if (draft.ExpiresAt < DateTime.UtcNow) return DraftCodeResult.Expired;
         if (draft.AttemptCount >= RegistrationDraft.MaxAttempts) return DraftCodeResult.TooManyAttempts;
 
+        // FixedTimeEquals runs in constant time regardless of where the bytes differ — prevents timing attacks
+        // that could leak information about the correct code by measuring response time.
         var expected = Encoding.UTF8.GetBytes(draft.CodeHash);
         var actual = Encoding.UTF8.GetBytes(HashCode(submittedCode));
         if (expected.Length != actual.Length || !CryptographicOperations.FixedTimeEquals(expected, actual))

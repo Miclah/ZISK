@@ -1,40 +1,63 @@
-# ZISK - Žiarský Informačný Systém pre Kluby
+# ZISK – Žiarský Informačný Systém pre Kluby
 
-Webová aplikácia pre správu dochádzky, ospravedlneniek a komunikácie v športovom klube.
+Webová aplikácia pre evidenciu dochádzky, tréningov, tímov a komunikáciu medzi trénermi, rodičmi a deťmi v športovom klube. Postavená na **Blazor WebAssembly + Server (.NET 10)**, UI pomocou **MudBlazor**, databáza **SQL Server (LocalDB)**.
 
-## Technológie
-
-- **Backend:** ASP.NET Core 9, Entity Framework Core
-- **Frontend:** Blazor WebAssembly
-- **UI:** MudBlazor
-- **Databáza:** SQL Server
-- **Autentifikácia:** ASP.NET Core Identity
-
-## Architektúra
-
-**Client-Server architektúru s REST API**:
-- **Server (ZISK):** ASP.NET Core s Controllers (API endpoints)
-- **Klient (ZISK.Client):** Blazor WebAssembly
-- **Zdieľané (ZISK.Shared):** DTOs a Enumy
+---
 
 ## Požiadavky
 
-- .NET 9 SDK
-- SQL Server (LocalDB alebo full)
-- Visual Studio 2022/2026 alebo VS Code
+| Nástroj | Verzia |
+|---|---|
+| [.NET SDK](https://dotnet.microsoft.com/download) | **10.0** alebo novší |
+| [SQL Server LocalDB](https://learn.microsoft.com/en-us/sql/database-engine/configure-windows/sql-server-express-localdb) | súčasť Visual Studio alebo samostatne |
+| [Visual Studio 2022](https://visualstudio.microsoft.com/) alebo [VS Code](https://code.visualstudio.com/) | odporúčané |
 
-## Inštalácia
+Overenie inštalácie:
+```bash
+dotnet --version   # musí byť 10.0.x
+sqllocaldb info    # musí vypísať dostupné inštancie
+```
 
-### 1. Klonovanie repozitára
+---
+
+## Inštalácia a spustenie
+
+### 1. Klonuj repozitár
 
 ```bash
-git clone https://github.com/Miclah/ZISK.git
+git clone <url-repozitara>
 cd ZISK
 ```
 
-### 2. Konfigurácia databázy
+### 2. Obnov závislosti
 
-Upravte connection string v súbore `ZISK/ZISK/appsettings.json`:
+```bash
+dotnet restore ZISK/ZISK.sln
+```
+
+### 3. Spusti aplikáciu
+
+```bash
+dotnet run --project ZISK/ZISK/ZISK.csproj
+```
+
+Aplikácia sa automaticky spustí na: **http://localhost:5224**
+
+> **Poznámka:** Pri prvom spustení prebehne automaticky:
+> - migrácia databázy (vytvorenie schémy)
+> - seed dát – roly, testovacie účty, tímy, vzorové tréningy, dochádzka a oznamy
+
+### Spustenie vo Visual Studio
+
+1. Otvor `ZISK/ZISK.sln`
+2. Nastav startup project na `ZISK` (serverový projekt)
+3. Stlač `F5` (Debug) alebo `Ctrl+F5` (bez debuggera)
+
+---
+
+## Konfigurácia
+
+Hlavný konfiguračný súbor: `ZISK/ZISK/appsettings.json`
 
 ```json
 {
@@ -44,118 +67,158 @@ Upravte connection string v súbore `ZISK/ZISK/appsettings.json`:
 }
 ```
 
-### 3. Migrácia databázy
+Pre lokálny vývoj nie je potrebná žiadna zmena konfigurácie – LocalDB sa spustí automaticky.
 
-```bash
-cd ZISK/ZISK
-dotnet ef database update
-```
-
-### 4. Spustenie aplikácie
-
-```bash
-dotnet run
-```
-
-Aplikácia bude dostupná na: `http://localhost:5224`
+---
 
 ## Prihlasovacie údaje
 
-Po prvom spustení sa automaticky vytvoria používatelia:
+### Hlavné testovacie účty
 
-| Email | Heslo | Rola |
-|-------|-------|------|
-| admin@zisk.sk | admin123 | Admin |
-| trener@zisk.sk | trener123 | Coach |
-| rodic@zisk.sk | rodic123 | Parent |
+| Rola | E-mail | Heslo | Popis |
+|---|---|---|---|
+| **Admin** | `admin@zisk.sk` | `Admin1234` | Plný prístup – správa používateľov, tímov, sezón, štatistiky |
+| **Tréner** | `trener@zisk.sk` | `Trener1234` | Správa tréningov, dochádzka, tím, ospravedlnenky |
+| **Rodič** | `rodic@zisk.sk` | `Rodic1234` | Prehľad dieťaťa, posielanie ospravedlneniek |
+| **Dieťa** | `dieta@zisk.sk` | `Dieta1234` | Vlastný dashboard – rozvrh, dochádzka |
+
+### Vzorové účty (sample data)
+
+| Rola | E-mail | Heslo |
+|---|---|---|
+| Tréner | `coach.marek.sample@zisk.sk` | `Sample1234` |
+| Tréner | `coach.lukas.sample@zisk.sk` | `Sample1234` |
+| Rodič | `parent.jana.sample@zisk.sk` | `Sample1234` |
+| Rodič | `parent.milan.sample@zisk.sk` | `Sample1234` |
+| Atlét | `athlete.adam.sample@zisk.sk` | `Sample1234` |
+| Dieťa | `child.nina.sample@zisk.sk` | `Sample1234` |
+
+---
+
+## Navigácia a ovládanie
+
+### Rola: Admin
+
+Po prihlásení sa zobrazí **Admin Dashboard** s nasledujúcimi sekciami:
+
+| Sekcia | Popis |
+|---|---|
+| **Dashboard** | Prehľad aktivity, štatistiky tréningov |
+| **Používatelia** | Zoznam všetkých účtov, zmena roly, deaktivácia |
+| **Tímy** | Vytváranie a úprava tímov, správa členov |
+| **Tréningy** | Prehľad všetkých tréningov naprieč tímami |
+| **Sezóny** | Správa sezón (aktivácia, dátumy) |
+| **Oznamy** | Vytváranie a správa oznamov pre rodičov/atlétov |
+| **Ospravedlnenky** | Prehľad všetkých žiadostí |
+| **Štatistiky** | Grafy dochádzky, aktivita klubu |
+| **Dokumenty** | GDPR, poriadky, nahrávanie súborov |
+
+### Rola: Tréner (Coach)
+
+| Sekcia | Popis |
+|---|---|
+| **Dashboard** | Nadchádzajúce tréningy, dochádzka môjho tímu |
+| **Tréningy** | Zoznam tréningov, vytváranie jednorazových aj sérií |
+| **Môj tím** | Členovia tímu, detail hráča |
+| **Dochádzka** | Označenie prítomnosti/neprítomnosti na tréningu |
+| **Ospravedlnenky** | Schvaľovanie/zamietnutie žiadostí rodičov |
+| **Oznamy** | Čítanie oznamov |
+
+### Rola: Rodič (Parent)
+
+| Sekcia | Popis |
+|---|---|
+| **Dashboard** | Prehľad detí, nadchádzajúce tréningy |
+| **Dochádzka** | Dochádzka môjho dieťaťa |
+| **Ospravedlnenky** | Odoslanie ospravedlnenky na konkrétny tréning |
+| **Oznamy** | Oznamy od trénera/admina |
+| **Profil** | Správa účtu, zmena hesla |
+
+### Rola: Dieťa / Atlét (Child / Athlete)
+
+| Sekcia | Popis |
+|---|---|
+| **Dashboard** | Vlastný rozvrh tréningov, dochádzka |
+| **Tréningový plán** | Kalendár tréningov |
+| **Dochádzka** | História vlastnej dochádzky |
+| **Oznamy** | Oznamy tímu |
+
+---
+
+## Registrácia nového používateľa
+
+1. Choď na `/register`
+2. Vyplň meno, priezvisko, e-mail, heslo a rodné číslo
+3. registruj sa
+
+---
+
+## PWA – Inštalácia ako aplikácia
+
+ZISK podporuje inštaláciu ako **Progressive Web App (PWA)** na desktop aj mobil.
+
+**Nakonfigurované súčasti:**
+- `manifest.webmanifest` – názov (`ZISK`), farby, ikony (192×192, 512×512, maskable)
+- `service-worker.js` – registrovaný, umožňuje inštaláciu prehliadačom
+- `theme-color` a `application-name` v HTML hlavičke
+
+**Inštalácia na desktop (Chrome / Edge):**
+1. Otvor aplikáciu na `http://localhost:5224`
+2. V adresnom riadku klikni na ikonu **Inštalovať** (monitor s šípkou dole) alebo cez menu → *Inštalovať ZISK*
+3. Potvrď inštaláciu – aplikácia sa otvorí ako samostatné okno
+
+**Inštalácia na Android:**
+1. Otvor aplikáciu v Chrome
+2. Klepni na menu (⋮) → **Pridať na plochu**
+
+> **Offline režim:** Súčasná implementácia service workera neobsahuje cache stratégiu – aplikácia vyžaduje aktívne sieťové pripojenie na funkčnosť. Inštalácia a spustenie ako PWA sú plne funkčné.
+
+---
 
 ## Štruktúra projektu
 
 ```
 ZISK/
-├── ZISK/                    # Server projekt (ASP.NET Core)
-│   ├── Controllers/         # API kontrolery
-│   ├── Components/          # Razor komponenty (server-side)
-│   ├── Data/                # Entity a DbContext
-│   └── wwwroot/             # Statické súbory (CSS)
-├── ZISK.Client/             # Blazor WebAssembly klient
-│   ├── Pages/               # Stránky aplikácie
-│   ├── Layout/              # Layouty
-│   └── Services/            # API služby (Refit)
-└── ZISK.Shared/             # Zdieľané DTO a enumy
+├── ZISK/               # Serverový projekt (ASP.NET Core + Blazor Server)
+│   ├── Controllers/    # REST API pre WASM klienta (Refit)
+│   ├── Data/           # EF Core entity a DbContext
+│   ├── Services/       # Biznis logika, background workery
+│   └── Components/     # Server-side Razor stránky (login, register, verify)
+├── ZISK.Client/        # WebAssembly klient (Blazor WASM)
+│   ├── Pages/          # Stránky podľa roly (Admin, Coach, Parent, Child)
+│   ├── Components/     # Dialógy a zdieľané komponenty (MudDialog)
+│   └── Services/       # Refit API klienti (rozhrania a kontext používateľa)
+├── ZISK.Shared/        # Zdieľané DTOs, enumerácie
+└── ZISK.Tests/         # Unit testy (xUnit)
 ```
 
-### Vzťahy medzi entitami
-- **1:N:** Team → ChildProfile, Team → TrainingEvent, ChildProfile → AttendanceRecord
-- **M:N:** ApplicationUser ↔ ChildProfile (cez ParentChild)
+---
 
-## Bezpečnosť
+## Technológie
 
-- **Heslá:** Uložené pomocou ASP.NET Core Identity (hashované s PBKDF2)
-- **SQL Injection:** Ošetrené pomocou Entity Framework (parametrizované dotazy)
-- **Autorizácia:** Role-based ([Authorize(Roles = "Admin,Coach")])
-- **Validácia:** Na strane klienta (MudForm) aj servera (Controllers)
+| | |
+|---|---|
+| Framework | .NET 10 / Blazor Hybrid (Server + WebAssembly) |
+| UI knižnica | MudBlazor 9 |
+| Databáza | SQL Server (LocalDB pre vývoj) |
+| ORM | Entity Framework Core 10 |
+| HTTP klient | Refit |
+| Autentifikácia | ASP.NET Core Identity (cookie, 14-dňový token) |
+| Lokalizácia | sk-SK (slovenčina) |
 
-## AJAX komunikácia
+---
 
-Klient komunikuje so serverom asynchrónne pomocou Refit (HTTP client):
-- Načítavanie obsahu tabuliek (GetExcuses, GetAnnouncements, ...)
-- Odosielanie formulárov (CreateExcuse, CreateAnnouncement, ...)
-- Filtrovanie záznamov (GetExcuses?status=Pending)
-- Aktualizácia stavu (UpdateExcuseStatus)
+## Časté problémy
 
-## Funkcie
+**LocalDB sa nespúšťa**
+```bash
+sqllocaldb start MSSQLLocalDB
+```
 
-### Dochádzka
-- Označovanie dochádzky trénerom (1-klik)
-- Prehľad dochádzky pre rodičov
-- Uzamknutie dochádzky
-- Štatistiky účasti
+**Port je obsadený**  
+Zmeň `applicationUrl` v `ZISK/ZISK/Properties/launchSettings.json`.
 
-### Ospravedlnenky
-- Podávanie ospravedlneniek rodičmi
-- Schvaľovanie trénermi/adminmi
-- Prehľad stavu ospravedlneniek
-
-### Oznamy
-- Vytváranie oznamov trénermi
-- Priorita oznamov (nízka, stredná, vysoká)
-- Cielenie na tímy/skupiny
-- Platnosť oznamov
-
-### Dokumenty
-- Upload a správa dokumentov
-- Kategorizácia (všeobecné, zmluvy, tréningové plány)
-- Sťahovanie dokumentov
-
-### Administrácia
-- Správa používateľov
-- Správa tímov
-- Štatistiky klubu
-
-## Roly používateľov
-
-- **Admin** - plný prístup ku všetkým funkciám
-- **Coach (Tréner)** - správa dochádzky, oznamov, schvaľovanie ospravedlneniek
-- **Parent (Rodič)** - prehľad dochádzky, podávanie ospravedlneniek
-
-## Inštalácia ako aplikácia (PWA)
-
-ZISK podporuje inštaláciu ako Progressive Web App na desktop aj mobil.
-
-**Chrome / Edge (desktop):**
-1. Otvorte aplikáciu na `https://...` (v produkcii vyžaduje HTTPS; na `localhost` funguje aj bez neho).
-2. V adresnom riadku kliknite na ikonu **Inštalovať** (alebo menu → *Inštalovať ZISK*).
-3. Po inštalácii sa aplikácia otvorí vo vlastnom okne bez ovládacích prvkov prehliadača.
-
-**Android Chrome (mobil):**
-1. Otvorte aplikáciu v prehliadači.
-2. Menu (tri bodky) → *Pridať na plochu*.
-
-> **Dôležité upozornenie:** Aplikácia vyžaduje **aktívne pripojenie na internet**. Offline režim nie je podporovaný. Bez internetu sa aplikácia nenačíta. Pri strate pripojenia sa zobrazí upozornenie priamo v rozhraní.
-
-## Autor
-
-Michal - Bakalárska práca 2025/26
-
-
+**Migrácia zlyhá**
+```bash
+dotnet ef database update --project ZISK/ZISK/ZISK.csproj
+```

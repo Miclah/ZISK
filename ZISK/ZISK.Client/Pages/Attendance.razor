@@ -420,22 +420,25 @@
         await LoadExcuses();
     }
 
+    // Dialog must be opened in OnAfterRenderAsync, not OnInitializedAsync —
+    // MudBlazor dialogs require the component tree to be fully rendered before ShowAsync works correctly.
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender && _openCreateOnLoad && _canCreateExcuse)
         {
             _openCreateOnLoad = false;
             await OpenCreateExcuseDialog();
-            NavigationManager.NavigateTo(NavigationManager.Uri.Split('?')[0], replace: true);
+            NavigationManager.NavigateTo(NavigationManager.Uri.Split('?')[0], replace: true); // strip ?create from URL after opening so a page refresh does not re-open the dialog
         }
     }
 
     private void BuildFilterOptions()
     {
+        // IsOwnProfile=true means the user is an Athlete viewing their own profile as a "child" entry — exclude them from the parent's child filter list.
         var realChildren = _children.Where(c => !c.IsOwnProfile).ToList();
         if (realChildren.Count <= 1)
         {
-            _childFilterOptions = new();
+            _childFilterOptions = new(); // only one child — no filter needed, skip the selector entirely
             return;
         }
 

@@ -13,6 +13,8 @@
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
+        // Role priority order is intentional: Admin > Coach > Child/Athlete > default (Parent → /domov).
+        // If a user has multiple roles, the first match wins. Parent has no explicit branch and falls through to the default.
         if (user.IsInRole("Admin"))
         {
             NavigationManager.NavigateTo("/admin", replace: true);

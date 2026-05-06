@@ -23,6 +23,7 @@ public class TeamService : ITeamService
     {
         var query = _context.Teams.Include(t => t.Memberships).AsNoTracking();
 
+        // null = Admin (unrestricted, no filter applied); non-null = scoped to specific teams only.
         var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
         if (accessibleTeamIds is not null)
             query = query.Where(t => accessibleTeamIds.Contains(t.Id));
@@ -63,6 +64,7 @@ public class TeamService : ITeamService
                 m.User.LastName,
                 m.User.Email,
                 m.User.DateOfBirth,
+                // Distinct because a parent can appear via multiple DB paths; "(bez telefónu)" is the display fallback when no phone is set.
                 parentLinks
                     .Where(p => p.ChildId == m.User.Id)
                     .Select(p => $"{p.Parent.FirstName} {p.Parent.LastName} ({(string.IsNullOrWhiteSpace(p.Parent.PhoneNumber) ? "bez telefónu" : p.Parent.PhoneNumber)})")

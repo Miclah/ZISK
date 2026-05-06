@@ -57,6 +57,8 @@ public class InvitationsController : ControllerBase
 
         var baseUrl = _config["ApiBaseAddress"] ?? "http://localhost:5224";
 
+        // Two different flows: existing users go directly to the accept page with the token;
+        // new users land on the registration page where the invite code pre-fills their form and links the child after signup.
         var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.TargetEmail);
         string acceptUrl;
         if (existingUser != null)
@@ -103,6 +105,8 @@ public class InvitationsController : ControllerBase
             return Unauthorized();
 
         var now = DateTime.UtcNow;
+        // Only EmailLink invitations appear in this list — ManualCode invitations are redeemed by entering a code, not via this endpoint.
+        // Both temporal conditions (UsedAt == null AND ExpiresAt > now) are required to show truly open invitations.
         var invitations = await _context.ParentInvitations
             .Include(pi => pi.Child)
             .Include(pi => pi.Initiator)

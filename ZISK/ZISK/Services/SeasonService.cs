@@ -74,6 +74,8 @@ public class SeasonService : ISeasonService
 
     public async Task<SeasonDto> ActivateAsync(Guid id)
     {
+        // Serializable is the strictest isolation level — it prevents a race condition where two concurrent
+        // activation requests could both pass the "deactivate all" step and leave two active seasons at once.
         await using var transaction = await _context.Database.BeginTransactionAsync(
             System.Data.IsolationLevel.Serializable);
 

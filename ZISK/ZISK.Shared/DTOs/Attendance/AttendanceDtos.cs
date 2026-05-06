@@ -28,6 +28,8 @@ public record UserAttendanceDto(
     string ChildName
 );
 
+// Used in two different contexts: in AttendanceService the int fields are absolute counts,
+// in StatsService they are percentages (decimal). The meaning depends on the caller — not obvious without reading both usages.
 public record AttendanceStatsDto(
     int Present,
     int Absent,

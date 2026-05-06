@@ -110,13 +110,14 @@ public class StatsService : IStatsService
             .ToListAsync();
 
         
+        // More than 60 days would produce 60+ data points on a daily chart, which is unreadable — switch to weekly buckets automatically.
         bool weekly = days > 60;
 
         DateOnly Bucket(DateTime dt)
         {
             var d = DateOnly.FromDateTime(dt);
             if (!weekly) return d;
-            var diff = ((int)d.DayOfWeek + 6) % 7; 
+            var diff = ((int)d.DayOfWeek + 6) % 7; // .NET DayOfWeek starts on Sunday (0); this formula shifts it to Monday (0) per ISO 8601
             return d.AddDays(-diff);
         }
 

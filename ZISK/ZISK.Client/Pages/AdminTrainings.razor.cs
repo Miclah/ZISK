@@ -24,6 +24,8 @@ public partial class AdminTrainings
 
     private Guid? _filterTeamId;
     private TrainingType? _filterType;
+    // Manual mobile pagination instead of MudTable's built-in pager
+    // MudTable has performance issues with long lists on small screens.
     private const int MobilePageSize = 10;
     private int _mobileShown = MobilePageSize;
 
@@ -48,6 +50,7 @@ public partial class AdminTrainings
             _isLoading = false;
         }
 
+        // Deep-link support: other pages navigate here with ?action=create to open the create dialog automatically.
         if (NavigationManager.Uri.Contains("action=create", StringComparison.OrdinalIgnoreCase))
             await OpenCreateDialog();
     }
@@ -147,6 +150,8 @@ public partial class AdminTrainings
         _ => "Iný"
     };
 
+    // Reads colors directly from AppTheme so border colors stay in sync with the MudBlazor theme.
+    // Hardcoded HEX strings here would go out of sync whenever the theme palette changes.
     private static string GetTypeBorderColor(TrainingType type)
     {
         var palette = AppTheme.SportClubTheme.PaletteLight;

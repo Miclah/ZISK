@@ -66,6 +66,8 @@ public class MeController : ControllerBase
         if (user is null)
             return NotFound();
 
+        // Track changes separately — Identity's SetPhoneNumberAsync has side effects (updates security stamp),
+        // so it should only be called when the phone actually changed, not on every profile save.
         var phoneChanged = !string.Equals(user.PhoneNumber, request.PhoneNumber, StringComparison.Ordinal);
         var bydliskoChanged = !string.Equals(user.Bydlisko, request.Bydlisko, StringComparison.Ordinal);
 

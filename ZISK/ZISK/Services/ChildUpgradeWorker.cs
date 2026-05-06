@@ -75,7 +75,7 @@ public class ChildUpgradeWorker
             return;
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var cutoff = today.AddYears(-18);
+        var cutoff = today.AddYears(-18); // DateOnly comparison is inclusive — a child born exactly on cutoff date is upgraded on their 18th birthday
 
         var childUserIds = await _context.UserRoles
             .Where(ur => ur.RoleId == childRoleId)
@@ -144,6 +144,7 @@ public class ChildUpgradeService : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             var now = DateTime.UtcNow;
+            // Target: run once per day at 02:00 UTC. If it is already past 02:00 today, schedule for tomorrow at 02:00.
             var nextRun = now.Date.AddDays(now.Hour >= 2 ? 1 : 0).AddHours(2);
             var delay = nextRun - now;
 

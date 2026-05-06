@@ -8,7 +8,7 @@ public class DbSchemaTests
 {
     private static DbContextOptions<ApplicationDbContext> CreateOptions() =>
         new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase("SchemaTestDb_" + Guid.NewGuid())
+            .UseInMemoryDatabase("SchemaTestDb_" + Guid.NewGuid()) // unique DB name per test so parallel test runs do not share state and invalidate each other
             .Options;
 
     private static IEnumerable<string> IndexNames<T>(ApplicationDbContext ctx)
@@ -38,6 +38,8 @@ public class DbSchemaTests
         Assert.Equal(DeleteBehavior.Cascade, fk.DeleteBehavior);
     }
 
+    // Verifies the DB constraint that prevents two active seasons existing at the same time.
+    // SeasonService.ActivateAsync relies on this uniqueness guarantee and uses a Serializable transaction to enforce it.
     [Fact]
     public void Season_HasUniqueFilteredIndex_OnIsActive()
     {
@@ -79,6 +81,7 @@ public class DbSchemaTests
         Assert.True(idx.IsUnique);
     }
 
+    // Rodné číslo must be unique at the DB level, not just via application-layer validation — GDPR/compliance requirement.
     [Fact]
     public void ApplicationUser_HasUniqueIndex_OnRodneCislo()
     {

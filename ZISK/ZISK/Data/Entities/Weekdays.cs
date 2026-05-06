@@ -1,5 +1,7 @@
 namespace ZISK.Data.Entities;
 
+// [Flags] with powers of 2 lets the value be stored as a single int in the database using a bitmask.
+// Weekdays=31 (Mon–Fri) and Weekend=96 (Sat+Sun) are pre-calculated combinations for convenience.
 [Flags]
 public enum Weekdays
 {

@@ -35,6 +35,8 @@ public class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSender
         try
         {
             using var client = new SmtpClient();
+            // StartTls upgrades an existing plain connection to TLS (port 587); None is used for local/dev servers without TLS.
+            // Do not use SecureSocketOptions.SslOnConnect here — that is for implicit SSL on port 465, not StartTls.
             await client.ConnectAsync(_smtp.Host, _smtp.Port,
                 _smtp.UseSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.None);
 

@@ -25,6 +25,8 @@ public class ExcuseService : IExcuseService
     {
         var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
 
+        // accessibleTeamIds is not null means a scoped query (Coach/Parent); null means Admin — show all records.
+        // This follows the convention defined in TeamAccessService.GetAccessibleTeamIdsAsync.
         IQueryable<AbsenceRequest> query;
         if (accessibleTeamIds is not null)
         {
@@ -47,7 +49,7 @@ public class ExcuseService : IExcuseService
 
         if (status.HasValue)
         {
-            var dbStatus = (AbsenceRequestStatus)(int)status.Value;
+            var dbStatus = (AbsenceRequestStatus)(int)status.Value; // cast via int bridges two separate enum layers (Shared.Enums vs Data.Entities) that share the same int values
             query = query.Where(ar => ar.Status == dbStatus);
         }
 
@@ -113,6 +115,8 @@ public class ExcuseService : IExcuseService
     {
         var userId = user.GetRequiredUserId();
 
+        // Child cannot submit excuses — only a Parent does it on their behalf. Athlete can submit for themselves.
+        // The distinction between Child and Athlete roles is not obvious from the names alone.
         if (user.IsInRole("Child"))
             throw new UnauthorizedAccessException();
 
@@ -190,6 +194,8 @@ public class ExcuseService : IExcuseService
         if (user.IsInRole("Child"))
             throw new UnauthorizedAccessException();
 
+        // Admin can edit anything; Athlete can only edit their own excuse (excuse.ChildId == userId).
+        // The order of these conditions matters — Admin check must come first to short-circuit correctly.
         if (!user.IsInRole("Admin") && excuse.ParentId != userId)
         {
             if (!user.IsInRole("Athlete") || excuse.ChildId != userId)
@@ -308,6 +314,8 @@ public class ExcuseService : IExcuseService
             .ToDictionary(g => g.Key, g => g.First().Team.Name);
     }
 
+    // dateFromForRange is separate from dateFrom: on Update, dateFrom is the new edited value,
+    // but the range validation needs the original DateFrom to check correctly. Two parameters prevent confusion.
     private static void ValidateExcuseFields(string? reason, string? note, DateTime? dateFrom, DateTime? dateTo, DateTime? dateFromForRange = null)
     {
         if (!string.IsNullOrWhiteSpace(reason) && (reason.Length < 3 || reason.Length > 200))

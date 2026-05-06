@@ -99,18 +99,6 @@ builder.Services.AddHostedService<AttendanceAutoCloseService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<ForwardAuthHeaderHandler>();
 
-builder.Services.AddMemoryCache();
-builder.Services.Configure<NominatimSettings>(builder.Configuration.GetSection("Nominatim"));
-builder.Services.AddSingleton<NominatimService>();
-builder.Services.AddHttpClient(NominatimService.HttpClientName, (sp, client) =>
-{
-    var settings = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<NominatimSettings>>().Value;
-    client.BaseAddress = new Uri(settings.BaseUrl);
-    client.Timeout = TimeSpan.FromSeconds(10);
-    client.DefaultRequestHeaders.UserAgent.ParseAdd(settings.BuildUserAgentHeader());
-    client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
-    client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("sk,cs,en");
-});
 
 builder.Services.AddRateLimiter(options =>
 {

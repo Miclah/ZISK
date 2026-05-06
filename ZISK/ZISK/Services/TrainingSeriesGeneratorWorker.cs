@@ -24,7 +24,8 @@ public class TrainingSeriesGeneratorWorker
         if (series == null)
             return;
 
-        // Clamp range to season boundaries
+        // Clamp the requested range to season boundaries — training instances must not be generated outside the season.
+        // The caller may pass a wider window (e.g. today + 14 days) that extends past the season end date.
         var seasonStart = series.Season.StartDate;
         var seasonEnd = series.Season.EndDate;
         var effectiveFrom = from < seasonStart ? seasonStart : from;
@@ -88,7 +89,7 @@ public class TrainingSeriesGeneratorWorker
     public async Task RunPassAsync(CancellationToken ct = default)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var horizon = today.AddDays(14);
+        var horizon = today.AddDays(14); // generate training instances up to 14 days in advance so coaches always see the next two weeks
 
         var activeSeries = await _context.TrainingSeries
             .Include(ts => ts.Season)

@@ -75,6 +75,7 @@ public class TrainingService : ITrainingService
             .Where(ar => ar.TrainingEventId == id && ar.Status == AbsenceRequestStatus.Received)
             .ToListAsync();
 
+        // Pre-index into dictionaries so the Select below does O(1) lookups per member instead of O(n) scans.
         var attendanceByChild = training.AttendanceRecords.ToDictionary(ar => ar.ChildId);
         var excuseByChild = excuses.ToDictionary(e => e.ChildId);
 
@@ -122,6 +123,8 @@ public class TrainingService : ITrainingService
             throw new UnauthorizedAccessException();
 
         var trainingDate = DateOnly.FromDateTime(request.StartTime);
+        // Season resolution cascade: (1) season whose date range contains the training date (prefer active),
+        // (2) any active season, (3) most recent season by start date, (4) throw if no season exists at all.
         var season = await _context.Seasons
                          .Where(s => s.StartDate <= trainingDate && s.EndDate >= trainingDate)
                          .OrderByDescending(s => s.IsActive)

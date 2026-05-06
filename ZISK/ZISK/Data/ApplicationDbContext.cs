@@ -65,6 +65,8 @@ namespace ZISK.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Season
+            // Filtered unique index: only rows where IsActive=1 are included, so there can be at most one active season at a time.
+            // Inactive seasons (IsActive=0/null) are not covered by the index and can coexist freely.
             builder.Entity<Season>()
                 .HasIndex(s => s.IsActive)
                 .IsUnique()

@@ -84,7 +84,7 @@
             {
                 Date = start.Date,
                 From = start.TimeOfDay,
-                To = start.AddHours(1.5).TimeOfDay,
+                To = start.AddHours(1.5).TimeOfDay, // 90-minute default matches the typical training duration used in DatabaseInitializer demo data
                 Type = TrainingType.Conditioning
             };
         }

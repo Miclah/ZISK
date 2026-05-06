@@ -71,7 +71,7 @@
     [SupplyParameterFromForm(FormName = "change-email")]
     private InputModel Input
     {
-        get => _input ??= new();
+        get => _input ??= new(); // lazy init — Blazor SSR sends GET (empty form) and POST (filled form) through the same component
         set => _input = value;
     }
 
@@ -92,6 +92,7 @@
             return;
         }
 
+        // Identity does not check for duplicate emails during GenerateChangeEmailTokenAsync, so we do it manually here.
         var existing = await UserManager.FindByEmailAsync(Input.NewEmail);
         if (existing is not null && existing.Id != user.Id)
         {
@@ -101,7 +102,7 @@
 
         var userId = await UserManager.GetUserIdAsync(user);
         var code = await UserManager.GenerateChangeEmailTokenAsync(user, Input.NewEmail);
-        code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+        code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code)); // token contains special characters; Base64Url encoding is required by the Identity email change flow
         var callbackUrl = NavigationManager.GetUriWithQueryParameters(
             NavigationManager.ToAbsoluteUri("Account/ConfirmEmailChange").AbsoluteUri,
             new Dictionary<string, object?> { ["userId"] = userId, ["email"] = Input.NewEmail, ["code"] = code });

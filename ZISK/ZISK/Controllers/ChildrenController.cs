@@ -49,6 +49,8 @@ public class ChildrenController : ControllerBase
 
         var result = new List<ChildDto>();
 
+        // Athlete and Child roles return themselves as the single "child" entry — they are not a parent,
+        // but the same endpoint is used. IsOwnProfile=true lets the UI distinguish this case.
         if (User.IsInRole("Athlete") || User.IsInRole("Child"))
         {
             var membership = await _context.TeamMembers
@@ -95,6 +97,7 @@ public class ChildrenController : ControllerBase
             }
         }
 
+        // GroupBy deduplicates entries for a user who has both Athlete and Parent roles at the same time.
         return Ok(result
             .GroupBy(c => c.Id)
             .Select(g => g.First())
@@ -151,7 +154,7 @@ public class ChildrenController : ControllerBase
 
         // Validate age < 18
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        if (request.DateOfBirth > today.AddYears(-0) || request.DateOfBirth <= today.AddYears(-18))
+        if (request.DateOfBirth > today.AddYears(-0) || request.DateOfBirth <= today.AddYears(-18)) // AddYears(-0) == today; rejects future dates
             return BadRequest("Dieťa musí byť mladšie ako 18 rokov.");
 
         if (string.IsNullOrWhiteSpace(request.FirstName) || request.FirstName.Length < 2)
@@ -190,6 +193,7 @@ public class ChildrenController : ControllerBase
         };
 
         IdentityResult createResult;
+        // A child account can exist without login credentials — the parent manages it on their behalf.
         if (request.CreateCredentials && !string.IsNullOrWhiteSpace(request.Password))
             createResult = await _userManager.CreateAsync(child, request.Password);
         else
@@ -306,6 +310,8 @@ public class ChildrenController : ControllerBase
 
         bool teamChangeRequested = request.TeamId != currentTeamId;
 
+        // Two-step team change validation: (1) Parent cannot change teams at all;
+        // (2) Coach can only change to/from teams they have access to. Order matters — Parent check is first.
         if (teamChangeRequested && isParent && !isAdmin && !isCoach)
             return BadRequest("Zmenu tímu môže vykonať len tréner alebo administrátor.");
 
@@ -371,7 +377,7 @@ public class ChildrenController : ControllerBase
         if (User.IsInRole("Coach"))
         {
             var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(User);
-            if (accessibleTeamIds is null)
+            if (accessibleTeamIds is null) // null = Admin by TeamAccessService convention
                 return true;
 
             var childTeamIds = await _context.TeamMembers

@@ -46,6 +46,7 @@
                         <div class="dashboard-hero__subtitle">@(_profile?.TeamName ?? "Bez tímu")</div>
                     </MudStack>
                 </MudStack>
+                @* Athlete can submit excuses themselves; Child cannot — a Parent does it on their behalf. *@
                 @if (_isAthlete)
                 {
                     <MudButton Variant="Variant.Outlined" Color="Color.Inherit"

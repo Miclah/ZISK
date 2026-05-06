@@ -14,6 +14,9 @@ public class CustomClaimsPrincipalFactory : UserClaimsPrincipalFactory<Applicati
     {
     }
 
+    // ASP.NET Identity cookie does not include GivenName, Surname, or Email by default.
+    // Blazor WASM reads claims directly from the auth cookie via AuthenticationStateProvider without any extra API call,
+    // so these claims must be added here to be available on the client side.
     protected override async Task<ClaimsIdentity> GenerateClaimsAsync(ApplicationUser user)
     {
         var identity = await base.GenerateClaimsAsync(user);

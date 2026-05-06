@@ -343,6 +343,8 @@ else if (_dashboardStats != null)
             var usersTask = UsersApi.GetUsersAsync();
             var coachesTask = UsersApi.GetUsersAsync("Coach");
             var now = DateTime.Now;
+            // .NET DayOfWeek starts on Sunday (0). This formula shifts the week to start on Monday:
+            // Sunday gets -6 offset (back to previous Monday); all other days get +1 offset.
             var weekStart = now.Date.AddDays(-(int)now.DayOfWeek + (now.DayOfWeek == DayOfWeek.Sunday ? -6 : 1));
             var weekEnd = weekStart.AddDays(7);
             var trainingsTask = TrainingsApi.GetTrainingsAsync(null, weekStart, now.AddDays(7));
@@ -362,6 +364,7 @@ else if (_dashboardStats != null)
 
             var allTrainings = await trainingsTask;
             _weeklyTrainings = allTrainings.Count(t => t.StartTime >= weekStart && t.StartTime < weekEnd);
+            // Average across all teams; if no team stats exist, default to 0 to avoid DivideByZeroException from .Average() on empty sequence.
             _weeklyAttendance = _teamStats.Any()
                 ? (int)Math.Round(_teamStats.Average(ts => (double)ts.AverageAttendance))
                 : 0;

@@ -126,7 +126,7 @@ namespace ZISK.Shared.DTOs.Users
 
         [Required(ErrorMessage = "Nové heslo je povinné.")]
         [StringLength(100, MinimumLength = 8, ErrorMessage = "Heslo musí mať aspoň 8 znakov.")]
-        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$",
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$", // lookaheads: lowercase required, uppercase required, digit required
             ErrorMessage = "Heslo musí obsahovať aspoň jedno malé písmeno, veľké písmeno a číslicu.")]
         string NewPassword
     );

@@ -20,6 +20,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISeasonService, SeasonService>();
         services.AddScoped<ITrainingSeriesService, TrainingSeriesService>();
         services.AddScoped<IParentInvitationService, ParentInvitationService>();
+        // These workers are registered as Scoped, not as hosted services, because they depend on DbContext.
+        // They are triggered manually from a controller or scheduler, not by the DI host automatically.
         services.AddScoped<ChildUpgradeWorker>();
         services.AddScoped<TrainingSeriesGeneratorWorker>();
         services.AddScoped<AttendanceAutoCloseWorker>();
@@ -28,9 +30,12 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddRefitClients(this IServiceCollection services, IConfiguration configuration)
     {
+        // "http://localhost:5224" is a fallback for local development only; production must set ApiBaseAddress in config.
         var baseAddressString = configuration["ApiBaseAddress"] ?? "http://localhost:5224";
         var baseAddress = new Uri(baseAddressString);
 
+        // Every Refit client gets ForwardAuthHeaderHandler so that Blazor SSR requests carry the auth cookie.
+        // See ForwardAuthHeaderHandler for a full explanation of why this is needed.
         services.AddRefitClient<IExcusesApi>()
             .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
             .AddHttpMessageHandler<ForwardAuthHeaderHandler>();

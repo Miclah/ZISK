@@ -35,6 +35,7 @@ public class AttendanceService : IAttendanceService
         if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(training.TeamId))
             throw new UnauthorizedAccessException();
 
+        // Side effect on GET: ensures every team member has a record before the attendance list is shown to the coach.
         await AutoCompleteForTrainingAsync(trainingEventId, false);
 
         return await _context.AttendanceRecords
@@ -160,6 +161,8 @@ public class AttendanceService : IAttendanceService
             .OrderByDescending(s => s.AttendancePercentage)
             .ToListAsync();
 
+        // Members with no attendance records are missing from the GROUP BY result above.
+        // They must be added manually with zero stats so they still appear in the overview.
         var membersWithRecords = stats.Select(s => s.ChildId).ToHashSet();
         var allMembers = await _context.TeamMembers
             .Include(tm => tm.User)
@@ -290,11 +293,12 @@ public class AttendanceService : IAttendanceService
         var training = await _context.TrainingEvents
             .FirstOrDefaultAsync(t => t.Id == trainingEventId);
 
+        // AddMinutes(10) is an intentional grace period — auto-complete does not fire until the training has actually started.
         if (training == null || DateTime.UtcNow < training.StartTime.AddMinutes(10))
             return;
 
         var teamMemberIds = await _context.TeamMembers
-            .Where(tm => tm.TeamId == training.TeamId && tm.JoinedAt <= training.StartTime)
+            .Where(tm => tm.TeamId == training.TeamId && tm.JoinedAt <= training.StartTime) // only members who were in the team before the training started
             .Select(tm => tm.UserId)
             .ToListAsync();
 
@@ -313,6 +317,8 @@ public class AttendanceService : IAttendanceService
 
         if (missingIds.Any())
         {
+            // An excuse matches either a specific training ID or a date range
+            // a parent can excuse an entire week without linking to individual training events.
             var excuses = await _context.AbsenceRequests
                 .Where(ar => missingIds.Contains(ar.ChildId)
                              && ar.Status == AbsenceRequestStatus.Received
@@ -331,7 +337,7 @@ public class AttendanceService : IAttendanceService
                     Id = Guid.NewGuid(),
                     TrainingEventId = trainingEventId,
                     ChildId = childId,
-                    Status = excuses.Contains(childId) ? Data.Entities.AttendanceStatus.Excused : Data.Entities.AttendanceStatus.Present,
+                    Status = excuses.Contains(childId) ? Data.Entities.AttendanceStatus.Excused : Data.Entities.AttendanceStatus.Present, // default is Present (optimistic); coach corrects if needed
                     RecordedAt = DateTime.UtcNow
                 });
             }

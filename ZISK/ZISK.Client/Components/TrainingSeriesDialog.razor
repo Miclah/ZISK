@@ -107,6 +107,8 @@
         public bool IsChecked { get; set; }
     }
 
+    // Flag values must be powers of 2 to match the [Flags] Weekdays enum stored in the database as a bitmask.
+    // The order (Mon=1 … Sun=64) matches the Weekdays enum definition exactly.
     private readonly DayOption[] _dayOptions =
     [
         new() { Flag = 1, Label = "Po" },
@@ -157,8 +159,8 @@
 
     private async Task SubmitAsync()
     {
-        var daysOfWeek = _dayOptions.Where(d => d.IsChecked).Sum(d => d.Flag);
-        if (daysOfWeek == 0) { _daysError = true; return; }
+        var daysOfWeek = _dayOptions.Where(d => d.IsChecked).Sum(d => d.Flag); // sum of powers-of-2 flags produces the combined bitmask sent to the API
+        if (daysOfWeek == 0) { _daysError = true; return; } // MudBlazor has no built-in required validator for checkbox groups — manual check here
         _daysError = false;
         _saving = true;
 

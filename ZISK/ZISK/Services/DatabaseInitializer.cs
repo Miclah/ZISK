@@ -192,6 +192,8 @@ public class DatabaseInitializer
         var hasPrimary = await _context.CoachTeams
             .AnyAsync(ct => ct.CoachId == coach.Id && ct.IsPrimary);
 
+        // firstNew flag: only the very first new team gets IsPrimary=true, and only if the coach has no primary team yet.
+        // The combination of !hasPrimary && firstNew ensures at most one team is promoted per call.
         var firstNew = true;
         foreach (var teamId in activeTeamIds.Where(teamId => !assignedTeamIds.Contains(teamId)))
         {
@@ -599,7 +601,7 @@ public class DatabaseInitializer
         if (activeSeason == null)
             return;
 
-        var rng = new Random(42);
+        var rng = new Random(42); // fixed seed — produces the same demo data on every restart, so the UI always looks consistent
         var now = DateTime.UtcNow;
         var startWindow = now.AddDays(-90);
 
@@ -634,7 +636,8 @@ public class DatabaseInitializer
             teamMemberCache[team.Id] = members;
         }
 
-        // Generuj treningy pre kazdy tim, 2-krat tyzdenne za poslednych 90 dni
+        // Trainings are generated up to +7 days in the future, but attendance records are only created for past trainings.
+        // This gives the demo data both upcoming trainings and a full history to display in charts.
         for (var day = startWindow.Date; day <= now.Date.AddDays(7); day = day.AddDays(1))
         {
             // Trening Pondelok a Streda alebo Utorok a Stvrtok podla tima
@@ -642,7 +645,7 @@ public class DatabaseInitializer
             {
                 var team = teams[teamIndex];
                 var dayOfWeek = (int)day.DayOfWeek;
-                var teamDaysA = teamIndex % 2 == 0 ? new[] { 1, 3 } : new[] { 2, 4 }; // Po/St alebo Ut/St
+                var teamDaysA = teamIndex % 2 == 0 ? new[] { 1, 3 } : new[] { 2, 4 }; // 1,2,3,4 = Mon,Tue,Wed,Thu (DayOfWeek); even teams train Mon+Wed, odd teams Tue+Thu
                 if (!teamDaysA.Contains(dayOfWeek))
                     continue;
 
@@ -674,7 +677,7 @@ public class DatabaseInitializer
                 var members = teamMemberCache[team.Id];
                 foreach (var childId in members)
                 {
-                    // Realisticka distribucia: 70% Present, 18% Excused, 12% Absent
+                    // Intentional distribution: 70% Present / 18% Excused / 12% Absent — makes demo charts look realistic.
                     var roll = rng.Next(100);
                     var status = roll < 70 ? AttendanceStatus.Present
                         : roll < 88 ? AttendanceStatus.Excused

@@ -13,6 +13,9 @@ public class TeamAccessService : ITeamAccessService
         _context = context;
     }
 
+    // Return value convention: null means unrestricted access (Admin), empty set means no access at all,
+    // non-empty set contains the specific team IDs this user is allowed to see.
+    // Every caller must handle all three cases differently.
     public async Task<HashSet<Guid>?> GetAccessibleTeamIdsAsync(ClaimsPrincipal user)
     {
         if (user.IsInRole("Admin"))

@@ -106,13 +106,13 @@ public class TrainingSeriesService : ITrainingSeriesService
         if (from >= to)
             throw new ArgumentException("Dátum od musí byť pred dátumom do.");
 
-        var weekdays = (Weekdays)series.DaysOfWeek;
+        var weekdays = (Weekdays)series.DaysOfWeek; // DaysOfWeek is stored as an int bitmask in the DB; cast restores the [Flags] enum
         var existingDates = await _context.TrainingEvents
             .Where(te => te.SeriesId == seriesId)
             .Select(te => DateOnly.FromDateTime(te.StartTime))
             .ToListAsync();
 
-        var existingSet = new HashSet<DateOnly>(existingDates);
+        var existingSet = new HashSet<DateOnly>(existingDates); // O(1) lookup per iteration; List.Contains would be O(n) over potentially hundreds of dates
         var generated = 0;
 
         for (var date = from; date <= to; date = date.AddDays(1))
@@ -129,7 +129,7 @@ public class TrainingSeriesService : ITrainingSeriesService
                 _ => Weekdays.None
             };
 
-            if ((weekdays & dayFlag) == Weekdays.None || existingSet.Contains(date))
+            if ((weekdays & dayFlag) == Weekdays.None || existingSet.Contains(date)) // bitwise AND; None=0 means this day is not included in the stored mask
                 continue;
 
             var startDt = date.ToDateTime(series.StartTime);

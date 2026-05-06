@@ -88,7 +88,7 @@
             return;
         }
 
-        var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code));
+        var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code)); // token arrives in the URL as Base64Url (URL-safe, no +/= chars); must be decoded with the matching method
         var result = await UserManager.ConfirmEmailAsync(user, code);
 
         if (!result.Succeeded)
@@ -98,9 +98,9 @@
         }
 
         _success = true;
-        await SignInManager.SignInAsync(user, isPersistent: false);
+        await SignInManager.SignInAsync(user, isPersistent: false); // auto-sign-in after confirmation so the user does not have to log in manually
 
         var target = string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : ReturnUrl;
-        NavigationManager.NavigateTo(target, forceLoad: true);
+        NavigationManager.NavigateTo(target, forceLoad: true); // forceLoad required so Blazor SSR picks up the new auth cookie; without it the auth state stays stale
     }
 }

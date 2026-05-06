@@ -30,6 +30,9 @@ namespace ZISK.Services
 
         private static string Normalize(string input)
         {
+            // FormD decomposes a character like 'š' into 's' + combining caron.
+            // Filtering out NonSpacingMark then removes the diacritics, leaving only the base letter.
+            // A replace-dictionary was not used because this handles the full Slovak/Central-European alphabet automatically.
             var decomposed = input.Normalize(NormalizationForm.FormD);
             var sb = new StringBuilder();
             foreach (var c in decomposed)

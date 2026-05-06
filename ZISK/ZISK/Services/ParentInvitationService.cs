@@ -8,7 +8,8 @@ namespace ZISK.Services;
 
 public class ParentInvitationService : IParentInvitationService
 {
-    private const string ManualCodeAlphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O/I/1/L
+    // Characters 0, O, I, 1, L are excluded — they look identical in most fonts and cause typos when entering codes manually.
+    private const string ManualCodeAlphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
     private readonly ApplicationDbContext _context;
 
@@ -63,7 +64,7 @@ public class ParentInvitationService : IParentInvitationService
             ChildUserId = childUserId,
             InitiatorUserId = initiatorUserId,
             Type = ParentInvitationType.ManualCode,
-            CodeHash = HashCode(NormalizeCode(rawCode)),
+            CodeHash = HashCode(NormalizeCode(rawCode)), // stored hash is always of the normalized (uppercase, digits only) form so lookup works regardless of how user typed it
             ExpiresAt = DateTime.UtcNow.AddHours(ParentInvitation.LifetimeHours),
             CreatedAt = DateTime.UtcNow
         };
@@ -71,7 +72,7 @@ public class ParentInvitationService : IParentInvitationService
         _context.ParentInvitations.Add(invitation);
         await _context.SaveChangesAsync(ct);
 
-        var displayCode = $"{rawCode[..4]}-{rawCode[4..]}";
+        var displayCode = $"{rawCode[..4]}-{rawCode[4..]}"; // display format XXXX-XXXX; the dash is stripped by NormalizeCode before hashing, so it never needs to be stored
         return new InvitationIssueResult(InvitationIssueStatus.Success, invitation, displayCode);
     }
 
@@ -112,7 +113,7 @@ public class ParentInvitationService : IParentInvitationService
         if (invitation.AttemptCount >= ParentInvitation.MaxAttempts)
             return new InvitationRedeemResult(InvitationRedeemStatus.TooManyAttempts);
 
-        // Check if already linked
+        // AlreadyLinked check comes BEFORE incrementing AttemptCount so it does not consume an attempt on benign duplicate redemptions.
         var alreadyLinked = await _context.ParentChildren
             .AnyAsync(pc => pc.ParentId == redeemerUserId && pc.ChildId == invitation.ChildUserId, ct);
 
@@ -144,7 +145,7 @@ public class ParentInvitationService : IParentInvitationService
     {
         var bytes = new byte[32];
         RandomNumberGenerator.Fill(bytes);
-        return Convert.ToBase64String(bytes).Replace("+", "-").Replace("/", "_").TrimEnd('=');
+        return Convert.ToBase64String(bytes).Replace("+", "-").Replace("/", "_").TrimEnd('='); // URL-safe Base64: replace +/= so the token is safe in query strings and email links
     }
 
     private static string GenerateManualCode()
