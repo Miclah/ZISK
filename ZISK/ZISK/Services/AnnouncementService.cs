@@ -60,7 +60,7 @@ public class AnnouncementService : IAnnouncementService
                 $"{a.AuthorUser.FirstName} {a.AuthorUser.LastName}",
                 a.PublishDate,
                 a.Attachments.Count,
-                false // TODO: Implementovať sledovanie prečítaných oznamov
+                false // IsRead is not yet tracked per user — always returns false until read-tracking is implemented
             ))
             .ToListAsync();
     }
@@ -172,7 +172,8 @@ public class AnnouncementService : IAnnouncementService
 
     public async Task<int> GetUnreadCountAsync()
     {
-        // TODO: Implementovať správne sledovanie prečítaných oznamov
+        // Placeholder: returns count of announcements from the last 7 days as a proxy for "unread".
+        // Real per-user read-tracking is not implemented yet, so this number is not accurate.
         return await _context.Announcements.CountAsync(a => a.PublishDate >= DateTime.UtcNow.AddDays(-7));
     }
 

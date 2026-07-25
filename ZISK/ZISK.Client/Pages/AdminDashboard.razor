@@ -1,17 +1,23 @@
 ﻿@page "/admin"
+@using ZISK.Client.Layout
 @using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Announcements
 @using ZISK.Shared.DTOs.Stats
+@using ZISK.Shared.DTOs.Trainings
 @using ZISK.Shared.DTOs.Users
+@using ZISK.Shared.Enums
 @inject IExcusesApi ExcusesApi
 @inject IStatsApi StatsApi
 @inject IUsersApi UsersApi
+@inject ITrainingsApi TrainingsApi
+@inject IAnnouncementsApi AnnouncementsApi
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
 @attribute [Authorize(Roles = "Admin")]
 
 <PageTitle>Nástenka administrátora</PageTitle>
 
-<MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 px-0" />
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
     <MudIcon Icon="@Icons.Material.Filled.Dashboard" Size="Size.Large" Color="Color.Primary" />
@@ -24,7 +30,15 @@
 
 @if (_isLoading)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+    <MudGrid Spacing="3" Class="mb-4">
+        @for (int i = 0; i < 4; i++)
+        {
+            <MudItem xs="12" sm="6" lg="3">
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="120px" />
+            </MudItem>
+        }
+    </MudGrid>
+    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="300px" />
 }
 else if (_dashboardStats != null)
 {
@@ -83,6 +97,104 @@ else if (_dashboardStats != null)
         </MudItem>
     </MudGrid>
 
+    <MudGrid Class="mb-4">
+        @* Tento týždeň *@
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-5" Elevation="2" Style="height: 100%;">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.InsertChart" Color="Color.Primary" />
+                    <MudText Typo="Typo.h6">Tento týždeň</MudText>
+                </MudStack>
+
+                <MudStack Spacing="0">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="py-3">
+                        <MudPaper Elevation="0" Class="d-flex align-center justify-center flex-shrink-0"
+                                  Style="@($"width:44px;height:44px;border-radius:10px;background:{_cPrimary}1A;")">
+                            <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Color="Color.Primary" />
+                        </MudPaper>
+                        <div style="flex:1; min-width:0;">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Tréningov</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Style="font-size:11px;">za aktuálny týždeň</MudText>
+                        </div>
+                        <MudText Typo="Typo.h4" Style="font-weight:700;">@_weeklyTrainings</MudText>
+                    </MudStack>
+
+                    <MudDivider />
+
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="py-3">
+                        <MudPaper Elevation="0" Class="d-flex align-center justify-center flex-shrink-0"
+                                  Style="@($"width:44px;height:44px;border-radius:10px;background:{_cSuccess}1A;")">
+                            <MudIcon Icon="@Icons.Material.Filled.HowToReg" Color="Color.Success" />
+                        </MudPaper>
+                        <div style="flex:1; min-width:0;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Priemerná účasť</MudText>
+                                <MudText Typo="Typo.h4" Style="font-weight:700;">@_weeklyAttendance%</MudText>
+                            </MudStack>
+                            <MudProgressLinear Value="@_weeklyAttendance" Max="100" Rounded="true" Size="Size.Small"
+                                              Color="Color.Success" Class="mt-1" />
+                        </div>
+                    </MudStack>
+
+                    <MudDivider />
+
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="py-3">
+                        <MudPaper Elevation="0" Class="d-flex align-center justify-center flex-shrink-0"
+                                  Style="@($"width:44px;height:44px;border-radius:10px;background:{_cWarning}1A;")">
+                            <MudIcon Icon="@Icons.Material.Filled.Description" Color="Color.Warning" />
+                        </MudPaper>
+                        <div style="flex:1; min-width:0;">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Ospravedlnenky</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Style="font-size:11px;">za aktuálny týždeň</MudText>
+                        </div>
+                        <MudText Typo="Typo.h4" Style="font-weight:700;">@_weeklyExcuses</MudText>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        @* Najbližšie tréningy *@
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-5" Elevation="2" Style="height: 100%;">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.Event" Color="Color.Primary" />
+                        <MudText Typo="Typo.h6">Najbližšie tréningy</MudText>
+                    </MudStack>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                               OnClick='() => NavigateTo("/admin/treningy")'>
+                        Všetky
+                    </MudButton>
+                </MudStack>
+                @if (!_upcomingTrainings.Any())
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne tréningy v najbližších 7 dňoch.</MudText>
+                }
+                else
+                {
+                    <MudStack Spacing="2">
+                        @foreach (var t in _upcomingTrainings)
+                        {
+                            <MudPaper Class="pa-2" Elevation="0" Outlined="true">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.body2"><strong>@t.Title</strong></MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @t.TeamName · @t.StartTime.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                                        </MudText>
+                                    </MudStack>
+                                    <MudChip T="string" Size="Size.Small" Color="@GetTrainingTypeColor(t.Type)">
+                                        @GetTrainingTypeText(t.Type)
+                                    </MudChip>
+                                </MudStack>
+                            </MudPaper>
+                        }
+                    </MudStack>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
     <MudGrid>
         <MudItem xs="12" md="7">
             <MudPaper Class="pa-5" Elevation="2" Style="height: 100%;">
@@ -132,33 +244,89 @@ else if (_dashboardStats != null)
             <MudPaper Class="pa-5" Elevation="2" Style="height: 100%;">
                 <MudText Typo="Typo.h6" Class="mb-2">Rýchle akcie</MudText>
                 <MudList T="string" Dense="true" Clickable="true">
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.PersonAdd" OnClick='() => NavigateTo("/admin/pouzivatelia")'>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.PersonAdd" OnClick='() => NavigateTo("/admin/pouzivatelia?action=create")'>
                         Pridať používateľa
                     </MudListItem>
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.GroupAdd" OnClick='() => NavigateTo("/admin/timy")'>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.GroupAdd" OnClick='() => NavigateTo("/admin/timy?action=create")'>
                         Vytvoriť nový tím
                     </MudListItem>
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.Campaign" OnClick='() => NavigateTo("/admin/systemove-oznamy")'>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Campaign" OnClick='() => NavigateTo("/admin/systemove-oznamy?action=create")'>
                         Zverejniť globálny oznam
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.FitnessCenter" OnClick='() => NavigateTo("/admin/treningy?action=create")'>
+                        Vytvoriť tréning
                     </MudListItem>
                 </MudList>
             </MudPaper>
         </MudItem>
     </MudGrid>
+
+    @* Najnovšie oznamy *@
+    <MudGrid Class="mt-2">
+        <MudItem xs="12">
+            <MudPaper Class="pa-5" Elevation="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.Campaign" Color="Color.Secondary" />
+                        <MudText Typo="Typo.h6">Najnovšie oznamy</MudText>
+                    </MudStack>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                               OnClick='() => NavigateTo("/admin/systemove-oznamy")'>
+                        Všetky oznamy
+                    </MudButton>
+                </MudStack>
+                @if (!_recentAnnouncements.Any())
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Zatiaľ neboli zverejnené žiadne oznamy.</MudText>
+                }
+                else
+                {
+                    <MudStack Spacing="2">
+                        @foreach (var a in _recentAnnouncements)
+                        {
+                            <MudPaper Class="pa-3" Elevation="0" Outlined="true"
+                                      Style="@($"border-left: 4px solid {GetPriorityBorderColor(a.Priority)};")">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                                    <MudStack Spacing="0" Style="min-width: 0; flex: 1;">
+                                        <MudText Typo="Typo.subtitle2"><strong>@a.Title</strong></MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @a.AuthorName · @a.PublishDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                                            @if (a.TargetTeamName is not null)
+                                            {
+                                                <span> · @a.TargetTeamName</span>
+                                            }
+                                        </MudText>
+                                    </MudStack>
+                                    <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(a.Priority)">
+                                        @GetPriorityText(a.Priority)
+                                    </MudChip>
+                                </MudStack>
+                            </MudPaper>
+                        }
+                    </MudStack>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
 }
+</MudContainer>
 
 @code {
+    private static readonly string _cPrimary = (string)AppTheme.SportClubTheme.PaletteLight.Primary;
+    private static readonly string _cSuccess = (string)AppTheme.SportClubTheme.PaletteLight.Success;
+    private static readonly string _cWarning = (string)AppTheme.SportClubTheme.PaletteLight.Warning;
+
     private bool _isLoading = true;
     private DashboardStatsDto? _dashboardStats;
     private List<TeamStatsDto> _teamStats = new();
     private List<UserListDto> _latestUsers = new();
     private int _coachCount;
 
-    private List<BreadcrumbItem> _breadcrumbs = new()
-    {
-        new BreadcrumbItem("Domov", href: "/"),
-        new BreadcrumbItem("Administrácia", href: null, disabled: true)
-    };
+    private List<TrainingEventDto> _upcomingTrainings = new();
+    private List<AnnouncementListDto> _recentAnnouncements = new();
+    private int _weeklyTrainings;
+    private int _weeklyAttendance;
+    private int _weeklyExcuses;
 
     protected override async Task OnInitializedAsync()
     {
@@ -174,15 +342,45 @@ else if (_dashboardStats != null)
             var teamStatsTask = StatsApi.GetTeamStatsAsync();
             var usersTask = UsersApi.GetUsersAsync();
             var coachesTask = UsersApi.GetUsersAsync("Coach");
+            var now = DateTime.Now;
+            // .NET DayOfWeek starts on Sunday (0). This formula shifts the week to start on Monday:
+            // Sunday gets -6 offset (back to previous Monday); all other days get +1 offset.
+            var weekStart = now.Date.AddDays(-(int)now.DayOfWeek + (now.DayOfWeek == DayOfWeek.Sunday ? -6 : 1));
+            var weekEnd = weekStart.AddDays(7);
+            var trainingsTask = TrainingsApi.GetTrainingsAsync(null, weekStart, now.AddDays(7));
+            var announcementsTask = AnnouncementsApi.GetAnnouncementsAsync(null, null);
+            var excusesTask = ExcusesApi.GetExcusesAsync();
 
-            await Task.WhenAll(dashboardTask, teamStatsTask, usersTask, coachesTask);
+            await Task.WhenAll(dashboardTask, teamStatsTask, usersTask, coachesTask, trainingsTask, announcementsTask, excusesTask);
 
             _dashboardStats = await dashboardTask;
             _teamStats = await teamStatsTask;
             _coachCount = (await coachesTask).Count;
-            _latestUsers = (await usersTask)
+            var allUsers = await usersTask;
+            _latestUsers = allUsers
                 .OrderByDescending(u => u.CreatedAt)
                 .Take(5)
+                .ToList();
+
+            var allTrainings = await trainingsTask;
+            _weeklyTrainings = allTrainings.Count(t => t.StartTime >= weekStart && t.StartTime < weekEnd);
+            // Average across all teams; if no team stats exist, default to 0 to avoid DivideByZeroException from .Average() on empty sequence.
+            _weeklyAttendance = _teamStats.Any()
+                ? (int)Math.Round(_teamStats.Average(ts => (double)ts.AverageAttendance))
+                : 0;
+
+            var allExcuses = await excusesTask;
+            _weeklyExcuses = allExcuses.Count(e => e.CreatedAt >= weekStart && e.CreatedAt < weekEnd);
+
+            _upcomingTrainings = allTrainings
+                .Where(t => t.StartTime >= now)
+                .OrderBy(t => t.StartTime)
+                .Take(5)
+                .ToList();
+
+            _recentAnnouncements = (await announcementsTask)
+                .OrderByDescending(a => a.PublishDate)
+                .Take(3)
                 .ToList();
         }
         catch (Exception ex)
@@ -208,5 +406,44 @@ else if (_dashboardStats != null)
         "Athlete" => "Športovec",
         "Child" => "Dieťa",
         _ => role
+    };
+
+    private static Color GetTrainingTypeColor(TrainingType type) => type switch
+    {
+        TrainingType.Conditioning => Color.Primary,
+        TrainingType.Technical => Color.Secondary,
+        TrainingType.Match => Color.Tertiary,
+        TrainingType.Recovery => Color.Info,
+        _ => Color.Default
+    };
+
+    private static string GetTrainingTypeText(TrainingType type) => type switch
+    {
+        TrainingType.Conditioning => "Kondičný",
+        TrainingType.Technical => "Technický",
+        TrainingType.Match => "Herný",
+        TrainingType.Recovery => "Regeneračný",
+        _ => "Iný"
+    };
+
+    private static Color GetPriorityColor(AnnouncementPriority p) => p switch
+    {
+        AnnouncementPriority.High => Color.Error,
+        AnnouncementPriority.Medium => Color.Warning,
+        _ => Color.Info
+    };
+
+    private static string GetPriorityText(AnnouncementPriority p) => p switch
+    {
+        AnnouncementPriority.High => "Vysoká",
+        AnnouncementPriority.Medium => "Stredná",
+        _ => "Nízka"
+    };
+
+    private static string GetPriorityBorderColor(AnnouncementPriority p) => p switch
+    {
+        AnnouncementPriority.High => "var(--mud-palette-error)",
+        AnnouncementPriority.Medium => "var(--mud-palette-warning)",
+        _ => "var(--mud-palette-info)"
     };
 }

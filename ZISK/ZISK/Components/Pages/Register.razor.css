@@ -1,0 +1,301 @@
+.register-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--zisk-slate-900) 0%, var(--zisk-primary-pressed) 50%, var(--zisk-primary) 100%);
+    padding: 1.5rem;
+    font-family: 'Inter', 'Segoe UI', 'Roboto', system-ui, sans-serif;
+}
+
+.register-card {
+    background: var(--zisk-surface);
+    width: 100%;
+    max-width: 640px;
+    border-radius: var(--zisk-radius-xl);
+    padding: 2.5rem 2.25rem;
+    box-shadow: var(--zisk-shadow-modal), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    animation: card-in 0.4s ease-out;
+    box-sizing: border-box;
+}
+
+@keyframes card-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.register-brand {
+    text-align: center;
+    margin-bottom: 1.75rem;
+}
+
+.register-brand h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--zisk-text-primary);
+    margin: 0 0 0.25rem 0;
+    letter-spacing: -0.5px;
+}
+
+.register-brand p {
+    font-size: 0.8rem;
+    color: var(--zisk-text-tertiary);
+    margin: 0;
+    font-weight: 400;
+}
+
+.register-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    background: var(--zisk-error-tint);
+    border: 1px solid #FECACA;
+    color: var(--zisk-error);
+    border-radius: var(--zisk-radius-lg);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.25rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.register-alert svg {
+    flex-shrink: 0;
+}
+
+.form-section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--zisk-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 1.5rem 0 0.85rem;
+    padding-bottom: 0.45rem;
+    border-bottom: 1px solid var(--zisk-border-default);
+}
+
+.form-section-title:first-of-type {
+    margin-top: 0;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.9rem;
+}
+
+@media (max-width: 520px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+.form-field {
+    margin-bottom: 1rem;
+}
+
+.form-field label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--zisk-slate-600);
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-optional {
+    color: var(--zisk-text-tertiary);
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+::deep .form-field input,
+::deep .form-field select {
+    width: 100%;
+    padding: 0.7rem 0.875rem;
+    font-size: 0.9375rem;
+    color: var(--zisk-text-primary);
+    background: var(--zisk-slate-50);
+    border: 1.5px solid var(--zisk-border-default);
+    border-radius: var(--zisk-radius-lg);
+    outline: none;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    box-sizing: border-box;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+::deep .form-field select {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2364748B'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1.25rem;
+    padding-right: 2.25rem;
+    cursor: pointer;
+}
+
+::deep .form-field input:focus,
+::deep .form-field select:focus {
+    border-color: var(--zisk-primary);
+    background-color: var(--zisk-surface);
+    box-shadow: var(--zisk-shadow-focus-primary);
+}
+
+::deep .form-field input::placeholder {
+    color: var(--zisk-slate-300);
+}
+
+::deep .form-field input.invalid,
+::deep .form-field input.modified.invalid,
+::deep .form-field select.invalid,
+::deep .form-field select.modified.invalid {
+    border-color: var(--zisk-error);
+    background-color: #FFF5F5;
+}
+
+.dob-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.5fr;
+    gap: 0.5rem;
+}
+
+::deep .dob-grid input {
+    text-align: center;
+    background-image: none;
+    padding-right: 0.875rem;
+    -moz-appearance: textfield;
+}
+
+::deep .dob-grid input::-webkit-outer-spin-button,
+::deep .dob-grid input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.form-help {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--zisk-text-tertiary);
+    margin-top: 0.35rem;
+    font-weight: 400;
+}
+
+::deep .validation-message {
+    color: var(--zisk-error);
+    font-size: 0.75rem;
+    margin-top: 0.3rem;
+    font-weight: 500;
+    display: block;
+}
+
+.form-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    margin: 0.5rem 0 0.4rem;
+}
+
+::deep .form-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0.15rem 0 0 0;
+    border-radius: 5px;
+    border: 1.5px solid var(--zisk-slate-300);
+    cursor: pointer;
+    accent-color: var(--zisk-primary);
+    flex-shrink: 0;
+}
+
+.form-checkbox label {
+    font-size: 0.875rem;
+    color: var(--zisk-slate-600);
+    cursor: pointer;
+    user-select: none;
+    margin: 0;
+    text-transform: none;
+    letter-spacing: 0;
+    line-height: 1.45;
+    font-weight: 400;
+}
+
+.form-checkbox label a {
+    color: var(--zisk-primary);
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+.form-checkbox label a:hover {
+    color: var(--zisk-primary-hover);
+}
+
+.btn-register {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.85rem 1.5rem;
+    margin-top: 1.5rem;
+    background: var(--zisk-gradient-primary);
+    color: var(--zisk-text-on-dark);
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: none;
+    border-radius: var(--zisk-radius-lg);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    letter-spacing: 0.2px;
+}
+
+.btn-register:hover {
+    background: linear-gradient(135deg, var(--zisk-primary-pressed), var(--zisk-primary-hover));
+    box-shadow: 0 4px 12px rgba(30, 58, 95, 0.35);
+    transform: translateY(-1px);
+}
+
+.btn-register:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(30, 58, 95, 0.25);
+}
+
+.register-footer {
+    margin-top: 1.75rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--zisk-slate-100);
+    text-align: center;
+}
+
+.footer-link {
+    color: var(--zisk-primary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.footer-link:hover {
+    color: var(--zisk-primary-hover);
+    text-decoration: underline;
+}
+
+.register-copyright {
+    color: var(--zisk-text-on-dark-subtle);
+    font-size: 0.7rem;
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+@media (max-width: 520px) {
+    .register-card {
+        padding: 2rem 1.5rem;
+        border-radius: var(--zisk-radius-lg);
+    }
+
+    .register-brand h1 {
+        font-size: 1.35rem;
+    }
+}

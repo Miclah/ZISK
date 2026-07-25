@@ -29,6 +29,8 @@ public class FileService : IFileService
         var uploadsFolder = Path.Combine(_environment.WebRootPath ?? "wwwroot", "uploads", subfolder);
         Directory.CreateDirectory(uploadsFolder);
 
+        // Guid prefix makes the filename globally unique — prevents collisions when multiple users upload files with the same name.
+        // Path.GetExtension includes the leading dot (e.g. ".pdf"), so no separator is needed before it.
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
         var uniqueFileName = $"{Guid.NewGuid()}{extension}";
         var filePath = Path.Combine(uploadsFolder, uniqueFileName);

@@ -9,6 +9,7 @@ public interface ITrainingService
     Task<TrainingEventDetailDto> GetTrainingAsync(Guid id, ClaimsPrincipal user);
     Task<TrainingEventDto> CreateTrainingAsync(CreateTrainingEventRequest request, ClaimsPrincipal user);
     Task UpdateTrainingAsync(Guid id, UpdateTrainingEventRequest request, ClaimsPrincipal user);
+    Task CancelTrainingAsync(Guid id, CancelTrainingRequest request, ClaimsPrincipal user);
     Task LockTrainingAsync(Guid id, ClaimsPrincipal user);
     Task UnlockTrainingAsync(Guid id, ClaimsPrincipal user);
     Task DeleteTrainingAsync(Guid id, ClaimsPrincipal user);

@@ -1,13 +1,20 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
+using System.Globalization;
+using System.Threading.RateLimiting;
 using ZISK.Components;
 using ZISK.Components.Account;
 using ZISK.Client.Services;
 using ZISK.Data;
 using ZISK.Extensions;
 using ZISK.Services;
+
+var slovakCulture = new CultureInfo("sk-SK");
+CultureInfo.DefaultThreadCurrentCulture = slovakCulture;
+CultureInfo.DefaultThreadCurrentUICulture = slovakCulture;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,18 +55,22 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 // Identity
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
 {
-    options.SignIn.RequireConfirmedAccount = false;
-    options.Password.RequireDigit = false;
-    options.Password.RequireLowercase = false;
-    options.Password.RequireUppercase = false;
+    options.SignIn.RequireConfirmedAccount = true;
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
     options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequiredLength = 4;
+    options.Password.RequiredLength = 8;
 })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddClaimsPrincipalFactory<CustomClaimsPrincipalFactory>()
     .AddSignInManager()
-    .AddDefaultTokenProviders();
+    .AddDefaultTokenProviders()
+    .AddErrorDescriber<SlovakIdentityErrorDescriber>();
+
+builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
+    options.TokenLifespan = TimeSpan.FromHours(1));
 
 // Cookie konfiguracia
 builder.Services.ConfigureApplicationCookie(options =>
@@ -74,21 +85,53 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
-builder.Services.AddTransient<IEmailSender<ApplicationUser>, SmtpEmailSender>();
-builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
+builder.Services.AddTransient<SmtpEmailSender>();
+builder.Services.AddTransient<IEmailSender<ApplicationUser>>(sp => sp.GetRequiredService<SmtpEmailSender>());
+builder.Services.AddTransient<IEmailSender>(sp => sp.GetRequiredService<SmtpEmailSender>());
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ITeamAccessService, TeamAccessService>();
 builder.Services.AddScoped<DatabaseInitializer>();
 builder.Services.AddScoped<UsernameGenerator>();
+builder.Services.AddScoped<RegistrationDraftService>();
+builder.Services.AddHostedService<ChildUpgradeService>();
+builder.Services.AddHostedService<TrainingSeriesGeneratorService>();
+builder.Services.AddHostedService<AttendanceAutoCloseService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<ForwardAuthHeaderHandler>();
 
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("forgot-password", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromHours(1),
+                QueueLimit = 0
+            }));
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+
 builder.Services.AddMudServices();
 builder.Services.AddScoped<UserContextService>();
+builder.Services.AddScoped<OnlineStatusService>();
+builder.Services.AddSingleton<HttpActivityTracker>();
 builder.Services.AddApplicationServices();
 builder.Services.AddRefitClients(builder.Configuration);
 
+builder.Services.Configure<Microsoft.AspNetCore.Builder.RequestLocalizationOptions>(options =>
+{
+    var supported = new[] { slovakCulture };
+    options.DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture(slovakCulture);
+    options.SupportedCultures = supported;
+    options.SupportedUICultures = supported;
+});
+
 var app = builder.Build();
+
+app.UseRequestLocalization();
 
 if (app.Environment.IsDevelopment())
 {
@@ -102,6 +145,7 @@ else
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.UseAntiforgery();
 
 app.MapControllers();

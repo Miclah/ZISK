@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using ZISK.Data;
 using ZISK.Data.Entities;
@@ -14,12 +15,21 @@ public class TrainingService : ITrainingService
     private readonly ApplicationDbContext _context;
     private readonly ITeamAccessService _teamAccessService;
     private readonly IAuditService _auditService;
+    private readonly IEmailSender _emailSender;
+    private readonly ILogger<TrainingService> _logger;
 
-    public TrainingService(ApplicationDbContext context, ITeamAccessService teamAccessService, IAuditService auditService)
+    public TrainingService(
+        ApplicationDbContext context,
+        ITeamAccessService teamAccessService,
+        IAuditService auditService,
+        IEmailSender emailSender,
+        ILogger<TrainingService> logger)
     {
         _context = context;
         _teamAccessService = teamAccessService;
         _auditService = auditService;
+        _emailSender = emailSender;
+        _logger = logger;
     }
 
     public async Task<List<TrainingEventDto>> GetTrainingsAsync(Guid? teamId, DateTime? from, DateTime? to, ClaimsPrincipal user)
@@ -38,7 +48,8 @@ public class TrainingService : ITrainingService
             .OrderByDescending(t => t.StartTime)
             .Select(t => new TrainingEventDto(
                 t.Id, t.TeamId, t.Team.Name, t.Title, t.StartTime, t.EndTime,
-                t.Location, (TrainingType)(int)t.Type, t.CoachNote, t.IsLocked))
+                t.Location, (TrainingType)(int)t.Type, t.CoachNote, t.IsLocked,
+                t.IsCancelled, t.CancelledReason))
             .ToListAsync();
     }
 
@@ -55,26 +66,27 @@ public class TrainingService : ITrainingService
         if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(training.TeamId))
             throw new UnauthorizedAccessException();
 
-        var teamMembers = await _context.ChildProfiles
-            .Where(c => c.TeamId == training.TeamId && c.IsActive)
+        var teamMembers = await _context.TeamMembers
+            .Include(tm => tm.User)
+            .Where(tm => tm.TeamId == training.TeamId)
             .ToListAsync();
 
         var excuses = await _context.AbsenceRequests
             .Where(ar => ar.TrainingEventId == id && ar.Status == AbsenceRequestStatus.Received)
             .ToListAsync();
 
-        // Use dictionaries to avoid O(n²) lookup in the loop
+        // Pre-index into dictionaries so the Select below does O(1) lookups per member instead of O(n) scans.
         var attendanceByChild = training.AttendanceRecords.ToDictionary(ar => ar.ChildId);
         var excuseByChild = excuses.ToDictionary(e => e.ChildId);
 
         var attendance = teamMembers.Select(member =>
         {
-            attendanceByChild.TryGetValue(member.Id, out var record);
-            excuseByChild.TryGetValue(member.Id, out var excuse);
+            attendanceByChild.TryGetValue(member.UserId, out var record);
+            excuseByChild.TryGetValue(member.UserId, out var excuse);
 
             return new TrainingAttendanceDto(
-                member.Id,
-                $"{member.FirstName} {member.LastName}",
+                member.UserId,
+                $"{member.User.FirstName} {member.User.LastName}",
                 record != null ? (AttendanceStatus)(int)record.Status : AttendanceStatus.Absent,
                 record?.Note,
                 record?.CoachComment,
@@ -87,6 +99,7 @@ public class TrainingService : ITrainingService
             training.Id, training.TeamId, training.Team.Name, training.Title,
             training.StartTime, training.EndTime, training.Location,
             (TrainingType)(int)training.Type, training.CoachNote, training.IsLocked,
+            training.IsCancelled, training.CancelledReason,
             training.CreatedAt, attendance
         );
     }
@@ -109,10 +122,22 @@ public class TrainingService : ITrainingService
         if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(request.TeamId))
             throw new UnauthorizedAccessException();
 
+        var trainingDate = DateOnly.FromDateTime(request.StartTime);
+        // Season resolution cascade: (1) season whose date range contains the training date (prefer active),
+        // (2) any active season, (3) most recent season by start date, (4) throw if no season exists at all.
+        var season = await _context.Seasons
+                         .Where(s => s.StartDate <= trainingDate && s.EndDate >= trainingDate)
+                         .OrderByDescending(s => s.IsActive)
+                         .FirstOrDefaultAsync()
+                     ?? await _context.Seasons.FirstOrDefaultAsync(s => s.IsActive)
+                     ?? await _context.Seasons.OrderByDescending(s => s.StartDate).FirstOrDefaultAsync()
+                     ?? throw new InvalidOperationException("V systéme nie je definovaná žiadna sezóna.");
+
         var training = new TrainingEvent
         {
             Id = Guid.NewGuid(),
             TeamId = request.TeamId,
+            SeasonId = season.Id,
             Title = request.Title,
             StartTime = request.StartTime,
             EndTime = request.EndTime,
@@ -129,7 +154,8 @@ public class TrainingService : ITrainingService
         return new TrainingEventDto(
             training.Id, training.TeamId, team.Name, training.Title,
             training.StartTime, training.EndTime, training.Location,
-            (TrainingType)(int)training.Type, training.CoachNote, training.IsLocked
+            (TrainingType)(int)training.Type, training.CoachNote, training.IsLocked,
+            training.IsCancelled, training.CancelledReason
         );
     }
 
@@ -161,6 +187,23 @@ public class TrainingService : ITrainingService
 
         await _context.SaveChangesAsync();
         _auditService.Log("Update", "Training", training.Id.ToString(), user, new { training.Title, training.StartTime, training.IsLocked });
+    }
+
+    public async Task CancelTrainingAsync(Guid id, CancelTrainingRequest request, ClaimsPrincipal user)
+    {
+        var training = await _context.TrainingEvents
+            .Include(t => t.Team)
+            .FirstOrDefaultAsync(t => t.Id == id)
+            ?? throw new KeyNotFoundException();
+
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
+        if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(training.TeamId))
+            throw new UnauthorizedAccessException();
+
+        training.IsCancelled = true;
+        training.CancelledReason = request.Reason;
+        await _context.SaveChangesAsync();
+        _auditService.Log("Cancel", "Training", training.Id.ToString(), user, new { training.Title, training.StartTime, request.Reason });
     }
 
     public async Task LockTrainingAsync(Guid id, ClaimsPrincipal user)

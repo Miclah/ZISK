@@ -31,26 +31,26 @@ public record TeamMemberDto(
 );
 
 public record CreateTeamRequest(
-    [property: Required(ErrorMessage = "Názov tímu je povinný.")]
-    [property: StringLength(100, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 100 znakov.")]
+    [Required(ErrorMessage = "Názov tímu je povinný.")]
+    [StringLength(100, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 100 znakov.")]
     string Name,
 
-    [property: StringLength(50, ErrorMessage = "Skratka môže mať max 50 znakov.")]
+    [StringLength(50, ErrorMessage = "Skratka môže mať max 50 znakov.")]
     string? ShortName,
 
-    [property: StringLength(500, ErrorMessage = "Popis môže mať max 500 znakov.")]
+    [StringLength(500, ErrorMessage = "Popis môže mať max 500 znakov.")]
     string? Description
 );
 
 public record UpdateTeamRequest(
-    [property: Required(ErrorMessage = "Názov tímu je povinný.")]
-    [property: StringLength(100, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 100 znakov.")]
+    [Required(ErrorMessage = "Názov tímu je povinný.")]
+    [StringLength(100, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 100 znakov.")]
     string Name,
 
-    [property: StringLength(50, ErrorMessage = "Skratka môže mať max 50 znakov.")]
+    [StringLength(50, ErrorMessage = "Skratka môže mať max 50 znakov.")]
     string? ShortName,
 
-    [property: StringLength(500, ErrorMessage = "Popis môže mať max 500 znakov.")]
+    [StringLength(500, ErrorMessage = "Popis môže mať max 500 znakov.")]
     string? Description,
 
     bool IsActive

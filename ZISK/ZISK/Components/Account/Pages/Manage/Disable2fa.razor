@@ -1,11 +1,18 @@
-﻿@page "/Account/Manage/Disable2fa"
+@page "/Account/Manage/Disable2fa"
 
+@inject IdentityRedirectManager RedirectManager
+
+@code {
+    protected override void OnInitialized()
+        => RedirectManager.RedirectTo("/profil");
+}
+
+@*
 @using Microsoft.AspNetCore.Identity
 @using ZISK.Data
 
 @inject UserManager<ApplicationUser> UserManager
 @inject IdentityUserAccessor UserAccessor
-@inject IdentityRedirectManager RedirectManager
 @inject ILogger<Disable2fa> Logger
 
 <PageTitle>Disable two-factor authentication (2FA)</PageTitle>
@@ -62,3 +69,4 @@
             HttpContext);
     }
 }
+*@

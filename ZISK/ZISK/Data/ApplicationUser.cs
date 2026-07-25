@@ -29,6 +29,8 @@ namespace ZISK.Data
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public ICollection<ParentChild> Children { get; set; } = [];
+        public ICollection<ParentChild> Parents { get; set; } = [];
         public ICollection<CoachTeam> CoachTeams { get; set; } = [];
+        public ICollection<TeamMember> TeamMemberships { get; set; } = [];
     }
 }

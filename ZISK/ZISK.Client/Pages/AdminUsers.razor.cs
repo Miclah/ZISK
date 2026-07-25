@@ -12,6 +12,7 @@ public partial class AdminUsers
     [Inject] private IUsersApi UsersApi { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private IDialogService DialogService { get; set; } = default!;
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
     private bool _isLoading = true;
     private bool _isSaving;
@@ -30,14 +31,7 @@ public partial class AdminUsers
     private HashSet<string> _selectedParentIds = new();
     private string _parentSearch = string.Empty;
 
-    private readonly List<BreadcrumbItem> _breadcrumbs =
-    [
-        new BreadcrumbItem("Domov", href: "/"),
-        new BreadcrumbItem("Administrácia", href: "/admin"),
-        new BreadcrumbItem("Používatelia", href: null, disabled: true)
-    ];
-
-    private IEnumerable<UserListDto> FilteredUsers => _users
+private IEnumerable<UserListDto> FilteredUsers => _users
         .Where(u => string.IsNullOrWhiteSpace(_searchText)
             || ($"{u.FirstName} {u.LastName}").Contains(_searchText, StringComparison.OrdinalIgnoreCase)
             || (!string.IsNullOrWhiteSpace(u.PhoneNumber) && u.PhoneNumber.Contains(_searchText, StringComparison.OrdinalIgnoreCase)))
@@ -51,6 +45,8 @@ public partial class AdminUsers
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
+        if (NavigationManager.Uri.Contains("action=create", StringComparison.OrdinalIgnoreCase))
+            await OpenCreateDialog();
     }
 
     private async Task LoadData()
@@ -83,8 +79,7 @@ public partial class AdminUsers
         {
             [nameof(AddUserDialog.Model)] = new AddUserDialog.AddUserDialogModel()
             {
-                Role = "Parent",
-                GeneratePassword = true
+                Role = "Parent"
             }
         };
 
@@ -92,15 +87,14 @@ public partial class AdminUsers
         var dialog = await DialogService.ShowAsync<AddUserDialog>("Pridať používateľa", parameters, options);
         var result = await dialog.Result;
 
-        if (result.Canceled || result.Data is not AddUserDialog.AddUserDialogModel model)
+        if (result is null || result.Canceled || result.Data is not AddUserDialog.AddUserDialogModel model)
             return;
 
         _isSaving = true;
         try
         {
             var createEmail = BuildCreateEmail(model);
-            var initialPassword = GenerateInitialPassword(model);
-            var request = model.ToRequest(initialPassword, createEmail);
+            var request = model.ToRequest(createEmail);
 
             await UsersApi.CreateUserAsync(request);
             Snackbar.Add("Používateľ bol vytvorený.", Severity.Success);
@@ -156,6 +150,13 @@ public partial class AdminUsers
         if (_editModel.Role == "Child" && _selectedParentIds.Count == 0)
         {
             Snackbar.Add("Pre dieťa je potrebné vybrať aspoň jedného rodiča.", Severity.Warning);
+            return;
+        }
+
+        // Business rule: a child can have at most 2 parents. Enforced here on the client; server also validates via EnsureChildParentLinksAsync.
+        if (_editModel.Role == "Child" && _selectedParentIds.Count > 2)
+        {
+            Snackbar.Add("Dieťa môže mať maximálne 2 rodičov.", Severity.Warning);
             return;
         }
 
@@ -247,6 +248,16 @@ public partial class AdminUsers
         _ => Color.Default
     };
 
+    private static string GetRoleBorderColor(string role) => role switch
+    {
+        "Admin" => "var(--mud-palette-error)",
+        "Coach" => "var(--mud-palette-primary)",
+        "Parent" => "var(--mud-palette-secondary)",
+        "Athlete" => "var(--mud-palette-info)",
+        "Child" => "var(--mud-palette-success)",
+        _ => "var(--mud-palette-default)"
+    };
+
     private static string GetUserInitials(UserListDto user)
     {
         var first = string.IsNullOrWhiteSpace(user.FirstName) ? "?" : user.FirstName.Trim()[0].ToString().ToUpperInvariant();
@@ -264,21 +275,46 @@ public partial class AdminUsers
         return $"{suffix}@zisk.local";
     }
 
-    private static string GenerateInitialPassword(AddUserDialog.AddUserDialogModel model)
-    {
-        var phoneDigits = new string((model.PhoneNumber ?? string.Empty).Where(char.IsDigit).ToArray());
-
-        if (model.GeneratePassword)
-            return $"Zisk!{Random.Shared.Next(1000, 9999)}";
-
-        var datePart = model.DateOfBirth?.ToString("ddMMyyyy") ?? "01011990";
-        var phonePart = phoneDigits.Length >= 4 ? phoneDigits[^4..] : phoneDigits.PadLeft(4, '0');
-        return $"{datePart}{phonePart}";
-    }
+    // Zatial pre testovanie vypnute - heslo sa zadava priamo v dialogu
+    // private static string GenerateInitialPassword(AddUserDialog.AddUserDialogModel model)
+    // {
+    //     var phoneDigits = new string((model.PhoneNumber ?? string.Empty).Where(char.IsDigit).ToArray());
+    //
+    //     if (model.GeneratePassword)
+    //         return $"Zisk!{Random.Shared.Next(1000, 9999)}";
+    //
+    //     var datePart = model.DateOfBirth?.ToString("ddMMyyyy") ?? "01011990";
+    //     var phonePart = phoneDigits.Length >= 4 ? phoneDigits[^4..] : phoneDigits.PadLeft(4, '0');
+    //     return $"{datePart}{phonePart}";
+    // }
 
     private void OnSelectedParentsChanged(IEnumerable<string> parentIds)
     {
         _selectedParentIds = parentIds.ToHashSet();
+    }
+
+    private async Task ConfirmUpgradeToAthlete(UserListDto user)
+    {
+        bool? result = await DialogService.ShowMessageBoxAsync(
+            "Povýšiť na športovca",
+            $"Naozaj chcete povýšiť '{user.FirstName} {user.LastName}' z roly Dieťa na Športovca?",
+            yesText: "Áno, povýšiť",
+            cancelText: "Zrušiť",
+            options: new DialogOptions { MaxWidth = MaxWidth.Small });
+
+        if (result != true)
+            return;
+
+        try
+        {
+            await UsersApi.UpgradeToAthleteAsync(user.Id);
+            Snackbar.Add("Používateľ bol povýšený na Športovca.", Severity.Success);
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
     }
 
     public class EditUserFormModel
@@ -297,7 +333,8 @@ public partial class AdminUsers
         [Phone(ErrorMessage = "Neplatný formát telefónneho čísla.")]
         public string? Phone { get; set; }
 
-        [StringLength(20, ErrorMessage = "Rodné číslo môže mať max 20 znakov.")]
+        [Required(ErrorMessage = "Rodné číslo je povinné.")]
+        [RegularExpression(@"^\d{6}[/]?\d{3,4}$", ErrorMessage = "Formát: 991231/1234")]
         public string? RodneCislo { get; set; }
 
         [StringLength(300, ErrorMessage = "Bydlisko môže mať max 300 znakov.")]

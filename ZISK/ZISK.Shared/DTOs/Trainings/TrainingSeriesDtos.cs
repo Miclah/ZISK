@@ -22,14 +22,14 @@ public record TrainingSeriesDto(
 );
 
 public record CreateTrainingSeriesRequest(
-    [property: Required(ErrorMessage = "Tím je povinný.")]
+    [Required(ErrorMessage = "Tím je povinný.")]
     Guid TeamId,
 
-    [property: Required(ErrorMessage = "Sezóna je povinná.")]
+    [Required(ErrorMessage = "Sezóna je povinná.")]
     Guid SeasonId,
 
-    [property: Required(ErrorMessage = "Názov je povinný.")]
-    [property: StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2–200 znakov.")]
+    [Required(ErrorMessage = "Názov je povinný.")]
+    [StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2–200 znakov.")]
     string Title,
 
     int DaysOfWeek,
@@ -38,18 +38,18 @@ public record CreateTrainingSeriesRequest(
 
     TimeOnly EndTime,
 
-    [property: StringLength(200, ErrorMessage = "Miesto môže mať max 200 znakov.")]
+    [StringLength(200, ErrorMessage = "Miesto môže mať max 200 znakov.")]
     string? Location,
 
     string Type,
 
-    [property: StringLength(1000, ErrorMessage = "Poznámka môže mať max 1000 znakov.")]
+    [StringLength(1000, ErrorMessage = "Poznámka môže mať max 1000 znakov.")]
     string? CoachNote
 );
 
 public record UpdateTrainingSeriesRequest(
-    [property: Required(ErrorMessage = "Názov je povinný.")]
-    [property: StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2–200 znakov.")]
+    [Required(ErrorMessage = "Názov je povinný.")]
+    [StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2–200 znakov.")]
     string Title,
 
     int DaysOfWeek,
@@ -58,21 +58,21 @@ public record UpdateTrainingSeriesRequest(
 
     TimeOnly EndTime,
 
-    [property: StringLength(200, ErrorMessage = "Miesto môže mať max 200 znakov.")]
+    [StringLength(200, ErrorMessage = "Miesto môže mať max 200 znakov.")]
     string? Location,
 
     string Type,
 
-    [property: StringLength(1000, ErrorMessage = "Poznámka môže mať max 1000 znakov.")]
+    [StringLength(1000, ErrorMessage = "Poznámka môže mať max 1000 znakov.")]
     string? CoachNote,
 
     bool IsActive
 );
 
 public record GenerateInstancesRequest(
-    [property: Required]
+    [Required]
     DateOnly From,
 
-    [property: Required]
+    [Required]
     DateOnly To
 );

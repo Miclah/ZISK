@@ -1,4 +1,4 @@
-﻿@page "/oznamy"
+@page "/oznamy"
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Announcements
 @using ZISK.Shared.Enums
@@ -8,112 +8,120 @@
 
 <PageTitle>Oznamy</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
-    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
-        <MudText Typo="Typo.h4">Oznamy</MudText>
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-2">
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="mb-4">
+    <MudText Typo="Typo.h4">Oznamy</MudText>
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+        <MudSelect T="AnnouncementPriority?" @bind-Value="_filterPriority" Label="Priorita"
+                   Variant="Variant.Outlined" Dense="true" Clearable="true" Style="min-width:200px;">
+            <MudSelectItem T="AnnouncementPriority?" Value="@(AnnouncementPriority.High)">Vysoká</MudSelectItem>
+            <MudSelectItem T="AnnouncementPriority?" Value="@(AnnouncementPriority.Medium)">Stredná</MudSelectItem>
+            <MudSelectItem T="AnnouncementPriority?" Value="@(AnnouncementPriority.Low)">Nízka</MudSelectItem>
+        </MudSelect>
         <AuthorizeView Roles="Admin,Coach">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/oznamy/vytvorit">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Rounded.Add" Href="/oznamy/vytvorit">
                 Nový oznam
             </MudButton>
         </AuthorizeView>
     </MudStack>
+</MudStack>
 
-    @* Filter *@
-    <MudPaper Class="pa-4 mb-4" Elevation="2">
-        <MudGrid>
-            <MudItem xs="12" sm="6" md="4">
-                <MudSelect T="AnnouncementPriority?" @bind-Value="_filterPriority" Label="Priorita" Variant="Variant.Outlined" Clearable="true">
-                    <MudSelectItem T="AnnouncementPriority?" Value="@(AnnouncementPriority.High)">Vysoká</MudSelectItem>
-                    <MudSelectItem T="AnnouncementPriority?" Value="@(AnnouncementPriority.Medium)">Stredná</MudSelectItem>
-                    <MudSelectItem T="AnnouncementPriority?" Value="@(AnnouncementPriority.Low)">Nízka</MudSelectItem>
-                </MudSelect>
+@if (_isLoading)
+{
+    <MudGrid Spacing="3">
+        @for (int i = 0; i < 6; i++)
+        {
+            <MudItem xs="12" lg="6">
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="160px" />
             </MudItem>
-            <MudItem xs="12" sm="6" md="4" Class="d-flex align-end">
-                <MudButton Variant="Variant.Outlined" OnClick="LoadAnnouncements">Filtrovať</MudButton>
-            </MudItem>
-        </MudGrid>
+        }
+    </MudGrid>
+}
+else if (!FilteredAnnouncements.Any())
+{
+    <MudPaper Class="card-standard empty-state" Elevation="0">
+        <MudIcon Icon="@Icons.Material.Rounded.Announcement" Class="empty-state__icon" />
+        <div class="empty-state__title">Žiadne oznamy</div>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @(_filterPriority.HasValue ? "Pre vybraný filter neexistujú žiadne oznamy." : "Zatiaľ neboli zverejnené žiadne oznamy.")
+        </MudText>
     </MudPaper>
-
-    @if (_isLoading)
-    {
-        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
-    }
-    else if (!_announcements.Any())
-    {
-        <MudPaper Class="pa-6" Elevation="1">
-            <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Default">
-                Zatiaľ neboli zverejnené žiadne oznamy
-            </MudText>
-        </MudPaper>
-    }
-    else
-    {
-        <MudStack Spacing="3">
-            @foreach (var announcement in _announcements)
-            {
-            <MudCard Elevation="1" Class="mb-3">
-                <MudCardContent>
+}
+else
+{
+    <MudGrid Spacing="3">
+        @foreach (var announcement in FilteredAnnouncements)
+        {
+            <MudItem xs="12" lg="6" Class="d-flex">
+                <MudPaper Class="card-standard pa-4 h-100" Elevation="0" Style="@($"width:100%;{GetAnnouncementStyle(announcement)}")">
                     <MudStack Spacing="2">
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
-                        <MudStack Spacing="0">
-                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                                @if (announcement.IsPinned)
-                                {
-                                    <MudIcon Icon="@Icons.Material.Filled.PushPin" Size="Size.Small" Color="Color.Primary" />
-                                }
-                                <MudText Typo="Typo.h6">@announcement.Title</MudText>
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start" Spacing="2">
+                            <MudStack Spacing="0" Style="min-width:0;flex:1;">
+                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                    @if (announcement.IsPinned)
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Rounded.PushPin" Size="Size.Small" Color="Color.Primary" />
+                                    }
+                                    <MudText Typo="Typo.h6" Style="font-weight:600;">@announcement.Title</MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @announcement.AuthorName • @announcement.PublishDate.ToString("dd.MM.yyyy HH:mm")
+                                    @if (!string.IsNullOrEmpty(announcement.TargetTeamName))
+                                    {
+                                        <text> • @announcement.TargetTeamName</text>
+                                    }
+                                </MudText>
                             </MudStack>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                @announcement.AuthorName • @announcement.PublishDate.ToString("dd.MM.yyyy HH:mm")
-                                @if (!string.IsNullOrEmpty(announcement.TargetTeamName))
-                                {
-                                    <text> • @announcement.TargetTeamName</text>
-                                }
-                            </MudText>
-                        </MudStack>
-                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
                             <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(announcement.Priority)">
                                 @GetPriorityText(announcement.Priority)
                             </MudChip>
+                        </MudStack>
+
+                        <MudText Typo="Typo.body2" Color="Color.Default">@announcement.ContentPreview</MudText>
+
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mt-1">
+                            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                @if (announcement.AttachmentCount > 0)
+                                {
+                                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Rounded.AttachFile" Size="Size.Small" Color="Color.Secondary" />
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@announcement.AttachmentCount</MudText>
+                                    </MudStack>
+                                }
+                                @if (announcement.ValidUntil.HasValue)
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        Platí do @announcement.ValidUntil.Value.ToString("dd.MM.yyyy")
+                                    </MudText>
+                                }
+                            </MudStack>
                             <AuthorizeView Roles="Admin,Coach">
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" 
-                                               Href="@($"/oznamy/upravit/{announcement.Id}")" />
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                                               OnClick="@(() => DeleteAnnouncement(announcement.Id))" />
+                                <MudStack Row="true" Spacing="0">
+                                    <MudIconButton Icon="@Icons.Material.Rounded.Edit" Size="Size.Small"
+                                                   Href="@($"/oznamy/upravit/{announcement.Id}")" />
+                                    <MudIconButton Icon="@Icons.Material.Rounded.Delete" Size="Size.Small" Color="Color.Error"
+                                                   OnClick="@(() => DeleteAnnouncement(announcement.Id))" />
+                                </MudStack>
                             </AuthorizeView>
                         </MudStack>
                     </MudStack>
-
-                        <MudDivider />
-
-                        <MudText Typo="Typo.body1" Color="Color.Default">@announcement.ContentPreview</MudText>
-
-                        @if (announcement.AttachmentCount > 0)
-                        {
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                <MudIcon Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small" />
-                                @announcement.AttachmentCount prílohy
-                            </MudText>
-                        }
-
-                        @if (announcement.ValidUntil.HasValue)
-                        {
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                Platí do: @announcement.ValidUntil.Value.ToString("dd.MM.yyyy")
-                            </MudText>
-                        }
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-            }
-        </MudStack>
-    }
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+}
 </MudContainer>
 
 @code {
     private bool _isLoading = true;
     private List<AnnouncementListDto> _announcements = new();
     private AnnouncementPriority? _filterPriority;
+
+    private IEnumerable<AnnouncementListDto> FilteredAnnouncements =>
+        _filterPriority.HasValue
+            ? _announcements.Where(a => a.Priority == _filterPriority.Value)
+            : _announcements;
 
     protected override async Task OnInitializedAsync()
     {
@@ -126,11 +134,6 @@
         {
             _isLoading = true;
             _announcements = await AnnouncementsApi.GetAnnouncementsAsync(null, null);
-            
-            if (_filterPriority.HasValue)
-            {
-                _announcements = _announcements.Where(a => a.Priority == _filterPriority.Value).ToList();
-            }
         }
         catch (Exception ex)
         {
@@ -162,24 +165,24 @@
     };
 
     private string GetPriorityText(AnnouncementPriority priority) => priority switch
-        {
-            AnnouncementPriority.High => "Dôležité",
-            AnnouncementPriority.Medium => "Stredná",
-            AnnouncementPriority.Low => "Informačné",
-            _ => "?"
-        };
+    {
+        AnnouncementPriority.High => "Dôležité",
+        AnnouncementPriority.Medium => "Stredná",
+        AnnouncementPriority.Low => "Informačné",
+        _ => "?"
+    };
 
-        private async Task DeleteAnnouncement(Guid id)
+    private async Task DeleteAnnouncement(Guid id)
+    {
+        try
         {
-            try
-            {
-                await AnnouncementsApi.DeleteAnnouncementAsync(id);
-                Snackbar.Add("Oznam vymazaný", Severity.Success);
-                await LoadAnnouncements();
-            }
-            catch (Exception ex)
-            {
-                Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
-            }
+            await AnnouncementsApi.DeleteAnnouncementAsync(id);
+            Snackbar.Add("Oznam vymazaný", Severity.Success);
+            await LoadAnnouncements();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
+}

@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>aspnet-ZISK-0f639f72-1611-4f94-b4b5-4d1810ea966c</UserSecretsId>
+    <NoWarn>$(NoWarn);CS8669;MUD0002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,13 +18,13 @@
   <ItemGroup>
     <ProjectReference Include="..\ZISK.Client\ZISK.Client.csproj" />
     <ProjectReference Include="..\ZISK.Shared\ZISK.Shared.csproj" />
-    <PackageReference Include="MailKit" Version="4.15.1" />
+    <PackageReference Include="MailKit" Version="4.16.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.5" />
-    <PackageReference Include="MudBlazor" Version="9.2.0" />
+    <PackageReference Include="MudBlazor" Version="9.4.0" />
     <PackageReference Include="Refit.HttpClientFactory" Version="10.1.6" />
   </ItemGroup>
 

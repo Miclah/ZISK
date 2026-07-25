@@ -1,0 +1,243 @@
+@page "/overenie/email"
+@attribute [ExcludeFromInteractiveRouting]
+@attribute [AllowAnonymous]
+@layout ZISK.Components.Layout.LoginLayout
+
+@using System.ComponentModel.DataAnnotations
+@using System.Text.Encodings.Web
+@using Microsoft.AspNetCore.Identity
+@using ZISK.Data
+@using ZISK.Services
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject RegistrationDraftService Drafts
+@inject Microsoft.AspNetCore.Identity.UI.Services.IEmailSender EmailSender
+@inject NavigationManager NavigationManager
+@inject ILogger<VerifyEmail> Logger
+
+<PageTitle>Overenie e-mailu - ZISK</PageTitle>
+
+<div class="verify-page">
+    <div class="verify-card">
+        <div class="verify-brand">
+            <div class="verify-icon">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+            </div>
+            <h1>Overte svoj e-mail</h1>
+            <p>Posledný krok pred prihlásením</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_infoMessage))
+        {
+            <div class="verify-alert info">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                <span>@_infoMessage</span>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="verify-alert error">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <span>@_errorMessage</span>
+            </div>
+        }
+
+        <p class="verify-description">
+            Poslali sme šesťmiestny kód na <strong>@(_draftEmail ?? "váš e-mail")</strong>.
+            Zadajte ho nižšie pre dokončenie registrácie.
+        </p>
+
+        <EditForm Model="VerifyInput" FormName="verify-email" OnValidSubmit="VerifyCodeAsync" method="post" novalidate>
+            <DataAnnotationsValidator />
+
+            <div class="code-field">
+                <label for="verify-code">Overovací kód</label>
+                <InputText @bind-Value="VerifyInput.Code"
+                           id="verify-code"
+                           placeholder="••••••"
+                           inputmode="numeric"
+                           autocomplete="one-time-code"
+                           maxlength="6" />
+                <ValidationMessage For="() => VerifyInput.Code" />
+            </div>
+
+            <button type="submit" class="btn-verify">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                Overiť a vytvoriť účet
+            </button>
+        </EditForm>
+
+        <div class="verify-secondary">
+            <EditForm Model="ResendInput" FormName="verify-email-resend" OnValidSubmit="ResendCodeAsync" method="post">
+                <button type="submit" class="btn-resend">Poslať nový kód</button>
+            </EditForm>
+        </div>
+
+        <div class="verify-divider"></div>
+
+        <div class="verify-actions">
+            <a href="/registracia" class="action-link primary">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                Späť na úpravu údajov
+            </a>
+            <a href="/login" class="action-link">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                Späť na prihlásenie
+            </a>
+        </div>
+    </div>
+
+    <p class="verify-copyright">© 2026 ZISK</p>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "email")]
+    private string? Email { get; set; }
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    private string? ReturnUrl { get; set; }
+
+    private string? _infoMessage;
+    private string? _errorMessage;
+    private string? _draftEmail;
+
+    private VerifyModel? _verifyInput;
+    private ResendModel? _resendInput;
+
+    [SupplyParameterFromForm(FormName = "verify-email")]
+    private VerifyModel VerifyInput
+    {
+        get => _verifyInput ??= new VerifyModel();
+        set => _verifyInput = value;
+    }
+
+    [SupplyParameterFromForm(FormName = "verify-email-resend")]
+    private ResendModel ResendInput
+    {
+        get => _resendInput ??= new ResendModel();
+        set => _resendInput = value;
+    }
+
+    protected override void OnInitialized()
+    {
+        var draft = Drafts.Get();
+        _draftEmail = draft?.Email ?? Email;
+    }
+
+    private async Task VerifyCodeAsync()
+    {
+        var result = Drafts.ValidateAndConsumeCode(VerifyInput.Code?.Trim() ?? string.Empty, out var draft);
+
+        switch (result)
+        {
+            case DraftCodeResult.NotFound:
+                _errorMessage = "Vaša registrácia expirovala. Vráťte sa späť na registráciu a začnite znovu.";
+                return;
+            case DraftCodeResult.Expired:
+                _errorMessage = "Kód expiroval. Požiadajte o nový kód.";
+                return;
+            case DraftCodeResult.TooManyAttempts:
+                _errorMessage = "Prekročili ste povolený počet pokusov. Požiadajte o nový kód.";
+                return;
+            case DraftCodeResult.Invalid:
+                _errorMessage = "Nesprávny kód.";
+                return;
+            case DraftCodeResult.Success when draft is not null:
+                await CreateUserAndSignInAsync(draft);
+                return;
+            default:
+                _errorMessage = "Nepodarilo sa overiť kód.";
+                return;
+        }
+    }
+
+    private async Task CreateUserAndSignInAsync(RegistrationDraft draft)
+    {
+        var user = new ApplicationUser
+        {
+            UserName = draft.Username,
+            Email = draft.Email,
+            FirstName = draft.FirstName,
+            LastName = draft.LastName,
+            PhoneNumber = draft.PhoneNumber,
+            RodneCislo = draft.RodneCislo,
+            Bydlisko = draft.Bydlisko,
+            DateOfBirth = draft.DateOfBirth,
+            EmailConfirmed = true,
+            IsActive = true
+        };
+
+        var create = await UserManager.CreateAsync(user, draft.Password);
+        if (!create.Succeeded)
+        {
+            _errorMessage = string.Join(" ", create.Errors.Select(e => e.Description));
+            Logger.LogWarning("User creation failed for {Email}: {Errors}", draft.Email,
+                string.Join("; ", create.Errors.Select(e => e.Code + ":" + e.Description)));
+            return;
+        }
+
+        await UserManager.AddToRoleAsync(user, "Parent");
+
+        Drafts.Clear();
+        Logger.LogInformation("Registered new user {UserId} ({Email})", user.Id, user.Email);
+
+        await SignInManager.SignInAsync(user, isPersistent: false);
+        var target = string.IsNullOrWhiteSpace(draft.ReturnUrl) ? "/" : draft.ReturnUrl;
+        NavigationManager.NavigateTo(target, forceLoad: true);
+    }
+
+    private async Task ResendCodeAsync()
+    {
+        var draft = Drafts.Get();
+        if (draft is null)
+        {
+            _errorMessage = "Vaša registrácia expirovala. Vráťte sa späť na registráciu a začnite znovu.";
+            return;
+        }
+
+        var newCode = Drafts.GenerateCode();
+        draft.CodeHash = RegistrationDraftService.HashCode(newCode);
+        draft.ExpiresAt = DateTime.UtcNow.AddMinutes(RegistrationDraft.LifetimeMinutes);
+        draft.AttemptCount = 0;
+        Drafts.Save(draft);
+
+        try
+        {
+            await EmailSender.SendEmailAsync(
+                draft.Email,
+                "ZISK – Nový overovací kód",
+                BuildResendEmailBody(newCode));
+            _infoMessage = "Nový kód sme odoslali na váš e-mail.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Resend code email failed for {Email}", draft.Email);
+            _errorMessage = "Nepodarilo sa odoslať nový kód. Skúste to prosím o chvíľu.";
+        }
+    }
+
+    private static string BuildResendEmailBody(string code)
+    {
+        return $"""
+            <h2>Nový overovací kód</h2>
+            <p>Na žiadosť vám posielame nový overovací kód:</p>
+            <p style="text-align: center; font-size: 28px; letter-spacing: 8px; font-weight: 700; color: #1E3A5F; margin: 24px 0;">
+                {code}
+            </p>
+            <p style="color: #666; font-size: 13px; text-align: center;">Kód je platný 30 minút.</p>
+            """;
+    }
+
+    private sealed class VerifyModel
+    {
+        [Required(ErrorMessage = "Zadajte overovací kód.")]
+        [RegularExpression("^[0-9]{6}$", ErrorMessage = "Kód musí mať 6 číslic.")]
+        public string Code { get; set; } = string.Empty;
+    }
+
+    private sealed class ResendModel
+    {
+    }
+}

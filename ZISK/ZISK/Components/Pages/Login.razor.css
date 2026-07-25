@@ -4,18 +4,18 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #1E1B4B 0%, #312E81 50%, #4F46E5 100%);
+    background: linear-gradient(135deg, var(--zisk-slate-900) 0%, var(--zisk-primary-pressed) 50%, var(--zisk-primary) 100%);
     padding: 1.5rem;
-    font-family: 'Roboto', 'Segoe UI', sans-serif;
+    font-family: 'Inter', 'Segoe UI', 'Roboto', system-ui, sans-serif;
 }
 
 .login-card {
-    background: #ffffff;
+    background: var(--zisk-surface);
     width: 100%;
     max-width: 420px;
-    border-radius: 16px;
+    border-radius: var(--zisk-radius-xl);
     padding: 2.5rem 2rem;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255,255,255,0.05);
+    box-shadow: var(--zisk-shadow-modal), 0 0 0 1px rgba(255, 255, 255, 0.05);
     animation: card-in 0.4s ease-out;
 }
 
@@ -32,14 +32,14 @@
 .login-brand h1 {
     font-size: 1.5rem;
     font-weight: 700;
-    color: #1E293B;
+    color: var(--zisk-text-primary);
     margin: 0 0 0.25rem 0;
     letter-spacing: -0.5px;
 }
 
 .login-brand p {
     font-size: 0.8rem;
-    color: #94A3B8;
+    color: var(--zisk-text-tertiary);
     margin: 0;
     font-weight: 400;
 }
@@ -48,10 +48,10 @@
     display: flex;
     align-items: center;
     gap: 0.625rem;
-    background: #FEF2F2;
+    background: var(--zisk-error-tint);
     border: 1px solid #FECACA;
-    color: #DC2626;
-    border-radius: 10px;
+    color: var(--zisk-error);
+    border-radius: var(--zisk-radius-lg);
     padding: 0.75rem 1rem;
     margin-bottom: 1.5rem;
     font-size: 0.85rem;
@@ -59,15 +59,15 @@
 }
 
 .login-alert-success {
-    background: rgba(76, 175, 80, 0.1);
-    border: 1px solid rgba(76, 175, 80, 0.3);
-    color: #2e7d32;
+    background: var(--zisk-success-tint);
+    border: 1px solid rgba(22, 163, 74, 0.25);
+    color: var(--zisk-success);
 }
 
 .login-alert-info {
-    background: rgba(33, 150, 243, 0.08);
-    border: 1px solid rgba(33, 150, 243, 0.3);
-    color: #1565c0;
+    background: var(--zisk-info-tint);
+    border: 1px solid #BFDBFE;
+    color: var(--zisk-info);
 }
 
 .login-alert svg {
@@ -82,7 +82,7 @@
     display: block;
     font-size: 0.8rem;
     font-weight: 600;
-    color: #475569;
+    color: var(--zisk-slate-600);
     margin-bottom: 0.4rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -97,7 +97,7 @@
 .input-icon {
     position: absolute;
     left: 0.875rem;
-    color: #94A3B8;
+    color: var(--zisk-text-tertiary);
     pointer-events: none;
     z-index: 1;
     transition: color 0.2s;
@@ -107,32 +107,55 @@
     width: 100%;
     padding: 0.75rem 0.875rem 0.75rem 2.75rem;
     font-size: 0.95rem;
-    color: #1E293B;
-    background: #F8FAFC;
-    border: 1.5px solid #E2E8F0;
-    border-radius: 10px;
+    color: var(--zisk-text-primary);
+    background: var(--zisk-slate-50);
+    border: 1.5px solid var(--zisk-border-default);
+    border-radius: var(--zisk-radius-lg);
     outline: none;
     transition: all 0.2s ease;
     font-family: inherit;
 }
 
+::deep .has-toggle input {
+    padding-right: 2.75rem;
+}
+
+.pwd-toggle {
+    position: absolute;
+    right: 0.65rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    color: var(--zisk-slate-600);
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+    line-height: 0;
+    z-index: 2;
+}
+
+.pwd-toggle:hover {
+    color: var(--zisk-primary);
+}
+
 ::deep .input-wrapper input:focus {
-    border-color: #4F46E5;
-    background: #fff;
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+    border-color: var(--zisk-primary);
+    background: var(--zisk-surface);
+    box-shadow: var(--zisk-shadow-focus-primary);
 }
 
 ::deep .input-wrapper input:focus ~ .input-icon,
 .input-wrapper:focus-within .input-icon {
-    color: #4F46E5;
+    color: var(--zisk-primary);
 }
 
 ::deep .input-wrapper input::placeholder {
-    color: #CBD5E1;
+    color: var(--zisk-slate-300);
 }
 
 ::deep .validation-message {
-    color: #DC2626;
+    color: var(--zisk-error);
     font-size: 0.75rem;
     margin-top: 0.3rem;
     font-weight: 500;
@@ -150,15 +173,15 @@
     width: 18px;
     height: 18px;
     border-radius: 5px;
-    border: 1.5px solid #CBD5E1;
+    border: 1.5px solid var(--zisk-slate-300);
     cursor: pointer;
-    accent-color: #4F46E5;
+    accent-color: var(--zisk-primary);
     margin: 0;
 }
 
 .form-checkbox label {
     font-size: 0.85rem;
-    color: #64748B;
+    color: var(--zisk-text-secondary);
     cursor: pointer;
     user-select: none;
     margin: 0;
@@ -171,12 +194,12 @@
     gap: 0.5rem;
     width: 100%;
     padding: 0.8rem 1.5rem;
-    background: linear-gradient(135deg, #4338CA, #4F46E5);
-    color: #ffffff;
+    background: var(--zisk-gradient-primary);
+    color: var(--zisk-text-on-dark);
     font-weight: 600;
     font-size: 0.95rem;
     border: none;
-    border-radius: 10px;
+    border-radius: var(--zisk-radius-lg);
     cursor: pointer;
     transition: all 0.2s ease;
     font-family: inherit;
@@ -184,14 +207,14 @@
 }
 
 .btn-login:hover {
-    background: linear-gradient(135deg, #312E81, #4338CA);
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+    background: linear-gradient(135deg, var(--zisk-primary-pressed), var(--zisk-primary-hover));
+    box-shadow: 0 4px 12px rgba(30, 58, 95, 0.35);
     transform: translateY(-1px);
 }
 
 .btn-login:active {
     transform: translateY(0);
-    box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+    box-shadow: 0 2px 6px rgba(30, 58, 95, 0.25);
 }
 
 .btn-login:disabled {
@@ -204,7 +227,7 @@
 .login-footer {
     margin-top: 1.75rem;
     padding-top: 1.5rem;
-    border-top: 1px solid #F1F5F9;
+    border-top: 1px solid var(--zisk-slate-100);
     text-align: center;
 }
 
@@ -212,7 +235,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
-    color: #4F46E5;
+    color: var(--zisk-primary);
     text-decoration: none;
     font-size: 0.875rem;
     font-weight: 600;
@@ -220,7 +243,7 @@
 }
 
 .register-link:hover {
-    color: #6366F1;
+    color: var(--zisk-primary-hover);
     gap: 0.5rem;
 }
 
@@ -233,7 +256,7 @@
 }
 
 .login-copyright {
-    color: rgba(255, 255, 255, 0.35);
+    color: var(--zisk-text-on-dark-subtle);
     font-size: 0.7rem;
     margin-top: 1.5rem;
     text-align: center;
@@ -242,7 +265,7 @@
 @media (max-width: 480px) {
     .login-card {
         padding: 2rem 1.5rem;
-        border-radius: 12px;
+        border-radius: var(--zisk-radius-lg);
     }
 
     .login-logo {

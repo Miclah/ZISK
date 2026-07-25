@@ -21,8 +21,9 @@ public class TeamService : ITeamService
 
     public async Task<List<TeamDto>> GetTeamsAsync(bool? activeOnly, ClaimsPrincipal user)
     {
-        var query = _context.Teams.Include(t => t.Members).AsNoTracking();
+        var query = _context.Teams.Include(t => t.Memberships).AsNoTracking();
 
+        // null = Admin (unrestricted, no filter applied); non-null = scoped to specific teams only.
         var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
         if (accessibleTeamIds is not null)
             query = query.Where(t => accessibleTeamIds.Contains(t.Id));
@@ -32,14 +33,14 @@ public class TeamService : ITeamService
 
         return await query
             .OrderBy(t => t.Name)
-            .Select(t => new TeamDto(t.Id, t.Name, t.ShortName, t.Description, t.IsActive, t.Members.Count(m => m.IsActive)))
+            .Select(t => new TeamDto(t.Id, t.Name, t.ShortName, t.Description, t.IsActive, t.Memberships.Count))
             .ToListAsync();
     }
 
     public async Task<TeamDetailDto> GetTeamAsync(Guid id, ClaimsPrincipal user)
     {
         var team = await _context.Teams
-            .Include(t => t.Members.Where(m => m.IsActive))
+            .Include(t => t.Memberships).ThenInclude(tm => tm.User)
             .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == id)
             ?? throw new KeyNotFoundException();
@@ -48,19 +49,24 @@ public class TeamService : ITeamService
         if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(team.Id))
             throw new UnauthorizedAccessException();
 
-        var memberIds = team.Members.Select(m => m.Id).ToList();
+        var memberUserIds = team.Memberships.Select(m => m.UserId).ToList();
         var parentLinks = await _context.ParentChildren
             .Include(pc => pc.Parent)
-            .Where(pc => memberIds.Contains(pc.ChildId))
+            .Where(pc => memberUserIds.Contains(pc.ChildId))
             .AsNoTracking()
             .ToListAsync();
 
         return new TeamDetailDto(
             team.Id, team.Name, team.ShortName, team.Description, team.IsActive, team.CreatedAt,
-            team.Members.Select(m => new TeamMemberDto(
-                m.Id, m.FirstName, m.LastName, m.Email, m.DateOfBirth,
+            team.Memberships.Select(m => new TeamMemberDto(
+                m.User.Id,
+                m.User.FirstName,
+                m.User.LastName,
+                m.User.Email,
+                m.User.DateOfBirth,
+                // Distinct because a parent can appear via multiple DB paths; "(bez telefónu)" is the display fallback when no phone is set.
                 parentLinks
-                    .Where(p => p.ChildId == m.Id)
+                    .Where(p => p.ChildId == m.User.Id)
                     .Select(p => $"{p.Parent.FirstName} {p.Parent.LastName} ({(string.IsNullOrWhiteSpace(p.Parent.PhoneNumber) ? "bez telefónu" : p.Parent.PhoneNumber)})")
                     .Distinct().ToList()
             )).OrderBy(m => m.LastName).ToList()
@@ -117,10 +123,10 @@ public class TeamService : ITeamService
 
     public async Task DeleteTeamAsync(Guid id, ClaimsPrincipal user)
     {
-        var team = await _context.Teams.Include(t => t.Members).FirstOrDefaultAsync(t => t.Id == id)
+        var team = await _context.Teams.Include(t => t.Memberships).FirstOrDefaultAsync(t => t.Id == id)
             ?? throw new KeyNotFoundException();
 
-        if (team.Members.Any())
+        if (team.Memberships.Any())
             throw new InvalidOperationException("Nemožno vymazať tím s členmi. Najprv presuňte členov do iného tímu.");
 
         _context.Teams.Remove(team);
@@ -128,34 +134,43 @@ public class TeamService : ITeamService
         _auditService.Log("Delete", "Team", team.Id.ToString(), user, new { team.Name });
     }
 
-    public async Task AddMemberAsync(Guid teamId, Guid childId, ClaimsPrincipal user)
+    public async Task AddMemberAsync(Guid teamId, string userId, ClaimsPrincipal user)
     {
         var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
         if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(teamId))
             throw new UnauthorizedAccessException();
 
         var team = await _context.Teams.FindAsync(teamId) ?? throw new KeyNotFoundException("Tím neexistuje");
-        var child = await _context.ChildProfiles.FindAsync(childId) ?? throw new KeyNotFoundException("Člen neexistuje");
+        var member = await _context.Users.FindAsync(userId) ?? throw new KeyNotFoundException("Člen neexistuje");
 
-        child.TeamId = teamId;
-        await _context.SaveChangesAsync();
-        _auditService.Log("AssignMember", "Team", teamId.ToString(), user, new { ChildId = childId });
+        var alreadyMember = await _context.TeamMembers.AnyAsync(tm => tm.TeamId == teamId && tm.UserId == userId);
+        if (!alreadyMember)
+        {
+            _context.TeamMembers.Add(new TeamMember
+            {
+                TeamId = teamId,
+                UserId = userId,
+                JoinedAt = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync();
+        }
+
+        _auditService.Log("AssignMember", "Team", teamId.ToString(), user, new { UserId = userId });
     }
 
-    public async Task RemoveMemberAsync(Guid teamId, Guid childId, ClaimsPrincipal user)
+    public async Task RemoveMemberAsync(Guid teamId, string userId, ClaimsPrincipal user)
     {
         var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
         if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(teamId))
             throw new UnauthorizedAccessException();
 
-        var child = await _context.ChildProfiles.FindAsync(childId) ?? throw new KeyNotFoundException("Člen neexistuje");
+        var membership = await _context.TeamMembers
+            .FirstOrDefaultAsync(tm => tm.TeamId == teamId && tm.UserId == userId)
+            ?? throw new KeyNotFoundException("Člen nie je v tomto tíme");
 
-        if (child.TeamId != teamId)
-            throw new ArgumentException("Člen nie je v tomto tíme");
-
-        child.TeamId = null;
+        _context.TeamMembers.Remove(membership);
         await _context.SaveChangesAsync();
-        _auditService.Log("RemoveMember", "Team", teamId.ToString(), user, new { ChildId = childId });
+        _auditService.Log("RemoveMember", "Team", teamId.ToString(), user, new { UserId = userId });
     }
 
     private async Task EnsureUniqueNameAsync(string name, Guid? excludeId = null)

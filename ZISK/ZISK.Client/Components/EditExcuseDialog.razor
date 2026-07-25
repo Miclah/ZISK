@@ -35,23 +35,16 @@
                               Variant="Variant.Outlined"
                               Lines="3" />
 
-                <MudButton ButtonType="ButtonType.Submit"
-                           Color="Color.Primary"
-                           Variant="Variant.Filled"
-                           Disabled="@_isSubmitting"
-                           FullWidth="true">
-                    @if (_isSubmitting)
-                    {
-                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                    }
+                <LoadingButton ButtonType="ButtonType.Submit"
+                              Color="Color.Primary"
+                              Variant="Variant.Filled"
+                              Loading="_isSubmitting"
+                              FullWidth="true">
                     Uložiť
-                </MudButton>
+                </LoadingButton>
             </MudStack>
         </EditForm>
     </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="Cancel">Zrušiť</MudButton>
-    </DialogActions>
 </MudDialog>
 
 @code {

@@ -23,9 +23,13 @@ public record UserAttendanceDto(
     DateTime Date,
     AttendanceStatus Status,
     string? Note,
-    string? CoachComment
+    string? CoachComment,
+    string ChildId,
+    string ChildName
 );
 
+// Used in two different contexts: in AttendanceService the int fields are absolute counts,
+// in StatsService they are percentages (decimal). The meaning depends on the caller — not obvious without reading both usages.
 public record AttendanceStatsDto(
     int Present,
     int Absent,
@@ -44,27 +48,27 @@ public record MemberAttendanceStatsDto(
 );
 
 public record MarkAttendanceRequest(
-    [property: Required(ErrorMessage = "Tréning je povinný.")]
+    [Required(ErrorMessage = "Tréning je povinný.")]
     Guid TrainingEventId,
 
-    [property: Required(ErrorMessage = "Člen je povinný.")]
+    [Required(ErrorMessage = "Člen je povinný.")]
     string ChildId,
 
     AttendanceStatus Status,
 
-    [property: StringLength(500, ErrorMessage = "Poznámka môže mať max 500 znakov.")]
+    [StringLength(500, ErrorMessage = "Poznámka môže mať max 500 znakov.")]
     string? Note,
 
-    [property: StringLength(500, ErrorMessage = "Komentár trénera môže mať max 500 znakov.")]
+    [StringLength(500, ErrorMessage = "Komentár trénera môže mať max 500 znakov.")]
     string? CoachComment
 );
 
 public record BulkMarkAttendanceRequest(
-    [property: Required(ErrorMessage = "Tréning je povinný.")]
+    [Required(ErrorMessage = "Tréning je povinný.")]
     Guid TrainingEventId,
 
-    [property: Required(ErrorMessage = "Záznamy sú povinné.")]
-    [property: MinLength(1, ErrorMessage = "Musí byť aspoň jeden záznam.")]
+    [Required(ErrorMessage = "Záznamy sú povinné.")]
+    [MinLength(1, ErrorMessage = "Musí byť aspoň jeden záznam.")]
     List<AttendanceEntryDto> Entries
 );
 
@@ -72,6 +76,6 @@ public record AttendanceEntryDto(
     string ChildId,
     AttendanceStatus Status,
 
-    [property: StringLength(500, ErrorMessage = "Poznámka môže mať max 500 znakov.")]
+    [StringLength(500, ErrorMessage = "Poznámka môže mať max 500 znakov.")]
     string? Note
 );

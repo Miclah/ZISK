@@ -1,126 +1,487 @@
-﻿@page "/dochadzka"
+@page "/dochadzka"
+@using System.Globalization
+@using ZISK.Client.Components
 @using ZISK.Client.Services
-@using ZISK.Shared.DTOs.Teams
-@using ZISK.Shared.DTOs.Trainings
 @using ZISK.Shared.DTOs.Attendance
+@using ZISK.Shared.DTOs.Excuses
+@using ZISK.Shared.DTOs.Trainings
 @using ZISK.Shared.Enums
-@inject ITeamsApi TeamsApi
-@inject ITrainingsApi TrainingsApi
 @inject IAttendanceApi AttendanceApi
+@inject IExcusesApi ExcusesApi
+@inject IChildrenApi ChildrenApi
+@inject ITrainingsApi TrainingsApi
+@inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
-@attribute [Authorize(Roles = "Admin,Coach")]
+@inject IDialogService DialogService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize(Roles = "Parent,Athlete")]
 
 <PageTitle>Dochádzka</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Označenie dochádzky</MudText>
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-2">
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="mb-3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Rounded.EventNote" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h4">Dochádzka</MudText>
+        </MudStack>
+        @if (_canCreateExcuse)
+        {
+            <MudHidden Breakpoint="Breakpoint.SmAndDown">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Rounded.Add"
+                           OnClick="OpenCreateExcuseDialog">
+                    Nová ospravedlnenka
+                </MudButton>
+            </MudHidden>
+        }
+    </MudStack>
 
-<MudPaper Class="pa-4 mb-4" Elevation="2">
-    <MudGrid>
-        <MudItem xs="12" sm="6">
-            <MudSelect T="Guid?" @bind-Value="_selectedTeamId" @bind-Value:after="LoadTrainings"
-                       Label="Tím" Variant="Variant.Outlined">
-                @foreach (var team in _teams)
+    @if (_childFilterOptions.Count > 1)
+    {
+        <MudPaper Elevation="0" Class="pa-2 mb-3">
+            <MudToggleGroup T="string" @bind-Value="_selectedChildId" Color="Color.Primary"
+                            SelectionMode="SelectionMode.SingleSelection" CheckMark="true">
+                @foreach (var opt in _childFilterOptions)
                 {
-                    <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
+                    <MudToggleItem Value="@opt.Key" Text="@opt.Label" />
                 }
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="6">
-            <MudSelect T="Guid?" @bind-Value="_selectedTrainingId" @bind-Value:after="LoadAttendance"
-                       Label="Tréning" Variant="Variant.Outlined" Disabled="@(_selectedTeamId == null)">
-                @foreach (var training in _trainings)
-                {
-                    <MudSelectItem Value="@((Guid?)training.Id)">
-                        @training.StartTime.ToString("dd.MM.yyyy HH:mm") - @training.Title
-                    </MudSelectItem>
-                }
-            </MudSelect>
-        </MudItem>
-    </MudGrid>
-</MudPaper>
+            </MudToggleGroup>
+        </MudPaper>
+    }
 
-@if (_isLoading)
+    <MudTabs @bind-ActivePanelIndex="_activeTab" Rounded="true" Elevation="0" PanelClass="pt-4"
+             ApplyEffectsToContainer="true" Class="card-standard">
+        <MudTabPanel Text="Prehľad" Icon="@Icons.Material.Rounded.Dashboard">
+            @if (_isLoading)
+            {
+                <MudGrid Spacing="3">
+                    @for (int i = 0; i < 3; i++)
+                    {
+                        <MudItem xs="12" sm="4">
+                            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="100px" />
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+            else
+            {
+                <MudGrid Spacing="3" Class="mb-4">
+                    <MudItem xs="12" sm="4">
+                        <MudPaper Class="card-standard pa-4" Elevation="0">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudIcon Icon="@Icons.Material.Rounded.CheckCircle" Color="Color.Success" Size="Size.Large" />
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.h4" Style="font-weight:700;">@GetCount(AttendanceStatus.Present)</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Prítomný</MudText>
+                                </MudStack>
+                            </MudStack>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudPaper Class="card-standard pa-4" Elevation="0">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudIcon Icon="@Icons.Material.Rounded.Cancel" Color="Color.Error" Size="Size.Large" />
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.h4" Style="font-weight:700;">@GetCount(AttendanceStatus.Absent)</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Neospravedlnený</MudText>
+                                </MudStack>
+                            </MudStack>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudPaper Class="card-standard pa-4" Elevation="0">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudIcon Icon="@Icons.Material.Rounded.PauseCircle" Color="Color.Warning" Size="Size.Large" />
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.h4" Style="font-weight:700;">@GetCount(AttendanceStatus.Excused)</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Ospravedlnený</MudText>
+                                </MudStack>
+                            </MudStack>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+
+                <MudText Typo="Typo.h6" Class="mb-3">Nadchádzajúce tréningy</MudText>
+                @if (!FilteredUpcoming.Any())
+                {
+                    <MudPaper Class="card-standard empty-state" Elevation="0">
+                        <MudIcon Icon="@Icons.Material.Rounded.Event" Class="empty-state__icon" />
+                        <div class="empty-state__title">Žiadne nadchádzajúce tréningy</div>
+                    </MudPaper>
+                }
+                else
+                {
+                    <MudStack Spacing="2">
+                        @foreach (var item in FilteredUpcoming.Take(8))
+                        {
+                            <MudPaper Class="card-standard pa-3" Elevation="0">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.body1" Style="font-weight:500;">@item.Training.Title</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @item.Training.StartTime.ToString("dd.MM.yyyy HH:mm") – @item.Training.EndTime.ToString("HH:mm")
+                                            @if (!string.IsNullOrWhiteSpace(item.Training.Location))
+                                            {
+                                                <text> · @item.Training.Location</text>
+                                            }
+                                        </MudText>
+                                    </MudStack>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary">@item.ForName</MudChip>
+                                </MudStack>
+                            </MudPaper>
+                        }
+                    </MudStack>
+                }
+            }
+        </MudTabPanel>
+
+        <MudTabPanel Text="História" Icon="@Icons.Material.Rounded.History">
+            <MudPaper Class="card-standard pa-4 mb-4" Elevation="0">
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="4">
+                        <MudDatePicker @bind-Date="_dateFrom" Label="Od dátumu" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudDatePicker @bind-Date="_dateTo" Label="Do dátumu" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4" Class="d-flex align-end">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadAttendance">
+                            Filtrovať
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+
+            @if (_isLoading)
+            {
+                <MudStack Spacing="2">
+                    @for (int i = 0; i < 4; i++)
+                    {
+                        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="64px" />
+                    }
+                </MudStack>
+            }
+            else if (!FilteredAttendance.Any())
+            {
+                <MudPaper Class="card-standard empty-state" Elevation="0">
+                    <MudIcon Icon="@Icons.Material.Rounded.EventBusy" Class="empty-state__icon" />
+                    <div class="empty-state__title">Žiadne záznamy o dochádzke</div>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Vo vybranom období nie sú evidované žiadne tréningy.</MudText>
+                </MudPaper>
+            }
+            else
+            {
+                <MudHidden Breakpoint="Breakpoint.SmAndDown">
+                    <MudPaper Class="card-standard pa-2" Elevation="0">
+                        <MudTable Items="@FilteredAttendance" Hover="true" Elevation="0" Breakpoint="Breakpoint.None">
+                            <HeaderContent>
+                                <MudTh>Dátum</MudTh>
+                                <MudTh>Dieťa</MudTh>
+                                <MudTh>Tréning</MudTh>
+                                <MudTh>Stav</MudTh>
+                                <MudTh>Poznámka trénera</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd>
+                                    <MudText Typo="Typo.body2">@context.Date.ToString("dd.MM.yyyy")</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @context.Date.ToString("dddd", new CultureInfo("sk-SK"))
+                                    </MudText>
+                                </MudTd>
+                                <MudTd>@context.ChildName</MudTd>
+                                <MudTd>@context.TrainingName</MudTd>
+                                <MudTd>
+                                    <MudChip T="string" Size="Size.Small" Class="@GetStatusChipClass(context.Status)">
+                                        @GetStatusText(context.Status)
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd>
+                                    @if (!string.IsNullOrEmpty(context.Note))
+                                    {
+                                        <MudText Typo="Typo.body2">@context.Note</MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">—</MudText>
+                                    }
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </MudPaper>
+                </MudHidden>
+
+                <MudHidden Breakpoint="Breakpoint.MdAndUp">
+                    <MudStack Spacing="2">
+                        @foreach (var item in FilteredAttendance)
+                        {
+                            <MudPaper Class="card-standard pa-3" Elevation="0">
+                                <MudStack Spacing="1">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudText Typo="Typo.subtitle2">@item.TrainingName</MudText>
+                                        <MudChip T="string" Size="Size.Small" Class="@GetStatusChipClass(item.Status)">
+                                            @GetStatusText(item.Status)
+                                        </MudChip>
+                                    </MudStack>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @item.ChildName · @item.Date.ToString("dd.MM.yyyy") · @item.Date.ToString("dddd", new CultureInfo("sk-SK"))
+                                    </MudText>
+                                    <MudText Typo="Typo.body2">
+                                        @(string.IsNullOrWhiteSpace(item.Note) ? "Bez poznámky trénera" : item.Note)
+                                    </MudText>
+                                    @if (item.Status == AttendanceStatus.Absent && _canCreateExcuse)
+                                    {
+                                        <MudStack Row="true" Justify="Justify.FlexEnd">
+                                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                                       OnClick="OpenCreateExcuseDialog">
+                                                Podať ospravedlnenku
+                                            </MudButton>
+                                        </MudStack>
+                                    }
+                                </MudStack>
+                            </MudPaper>
+                        }
+                    </MudStack>
+                </MudHidden>
+            }
+        </MudTabPanel>
+
+        <MudTabPanel Text="Ospravedlnenky" Icon="@Icons.Material.Rounded.Description">
+            @if (_isLoadingExcuses)
+            {
+                <MudStack Spacing="2">
+                    @for (int i = 0; i < 4; i++)
+                    {
+                        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="64px" />
+                    }
+                </MudStack>
+            }
+            else if (_excusesError != null)
+            {
+                <MudAlert Severity="Severity.Error">@_excusesError</MudAlert>
+            }
+            else if (!FilteredExcuses.Any())
+            {
+                <MudPaper Class="card-standard empty-state" Elevation="0">
+                    <MudIcon Icon="@Icons.Material.Rounded.EventAvailable" Class="empty-state__icon" />
+                    <div class="empty-state__title">Zatiaľ nemáte žiadne ospravedlnenky</div>
+                    @if (_canCreateExcuse)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-2"
+                                   StartIcon="@Icons.Material.Rounded.Add"
+                                   OnClick="OpenCreateExcuseDialog">
+                            Vytvoriť prvú ospravedlnenku
+                        </MudButton>
+                    }
+                </MudPaper>
+            }
+            else
+            {
+                <MudHidden Breakpoint="Breakpoint.SmAndDown">
+                    <MudPaper Class="card-standard pa-2" Elevation="0">
+                        <MudTable Items="@FilteredExcuses" Hover="true" Elevation="0" Breakpoint="Breakpoint.None">
+                            <HeaderContent>
+                                <MudTh>Koho</MudTh>
+                                <MudTh>Dátum</MudTh>
+                                <MudTh>Dôvod</MudTh>
+                                <MudTh>Stav</MudTh>
+                                <MudTh Style="text-align:right;">Akcie</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd>@context.ChildName</MudTd>
+                                <MudTd>@FormatDateRange(context.DateFrom, context.DateTo)</MudTd>
+                                <MudTd>@(string.IsNullOrWhiteSpace(context.Reason) ? "—" : context.Reason)</MudTd>
+                                <MudTd>
+                                    <MudChip T="string" Size="Size.Small" Color="@GetExcuseStatusColor(context.Status)">
+                                        @GetExcuseStatusText(context.Status)
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd Style="text-align:right;">
+                                    @if (_canCreateExcuse)
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Rounded.Edit" Color="Color.Primary" Size="Size.Small"
+                                                       OnClick="@(() => OpenEditExcuseDialog(context))" />
+                                        <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" Size="Size.Small"
+                                                       OnClick="@(() => DeleteExcuse(context.Id))" />
+                                    }
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </MudPaper>
+                </MudHidden>
+
+                <MudHidden Breakpoint="Breakpoint.MdAndUp">
+                    <MudStack Spacing="2">
+                        @foreach (var excuse in FilteredExcuses)
+                        {
+                            <MudPaper Class="card-standard pa-3" Elevation="0">
+                                <MudStack Spacing="1">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudText Typo="Typo.subtitle2">@excuse.ChildName</MudText>
+                                        <MudChip T="string" Size="Size.Small" Color="@GetExcuseStatusColor(excuse.Status)">
+                                            @GetExcuseStatusText(excuse.Status)
+                                        </MudChip>
+                                    </MudStack>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                        @FormatDateRange(excuse.DateFrom, excuse.DateTo)
+                                    </MudText>
+                                    <MudText Typo="Typo.body2">
+                                        @(string.IsNullOrWhiteSpace(excuse.Reason) ? "Bez dôvodu" : excuse.Reason)
+                                    </MudText>
+                                    @if (_canCreateExcuse)
+                                    {
+                                        <MudStack Row="true" Justify="Justify.FlexEnd">
+                                            <MudIconButton Icon="@Icons.Material.Rounded.Edit"
+                                                           Color="Color.Primary" Size="Size.Small"
+                                                           OnClick="@(() => OpenEditExcuseDialog(excuse))" />
+                                            <MudIconButton Icon="@Icons.Material.Rounded.Delete"
+                                                           Color="Color.Error" Size="Size.Small"
+                                                           OnClick="@(() => DeleteExcuse(excuse.Id))" />
+                                        </MudStack>
+                                    }
+                                </MudStack>
+                            </MudPaper>
+                        }
+                    </MudStack>
+                </MudHidden>
+            }
+        </MudTabPanel>
+    </MudTabs>
+</MudContainer>
+
+@if (_canCreateExcuse)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <MudHidden Breakpoint="Breakpoint.MdAndUp">
+        <MudFab StartIcon="@Icons.Material.Rounded.Add" Color="Color.Primary"
+                OnClick="OpenCreateExcuseDialog" Class="dochadzka-fab" />
+    </MudHidden>
 }
-else if (_selectedTraining != null)
-{
-    <MudTable Items="@_selectedTraining.Attendance" Hover="true">
-        <HeaderContent>
-            <MudTh>Meno</MudTh>
-            <MudTh>Stav</MudTh>
-            <MudTh>Akcie</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd>@context.ChildName</MudTd>
-            <MudTd>
-                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
-                    @GetStatusText(context.Status)
-                </MudChip>
-            </MudTd>
-            <MudTd>
-                <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
-                    <MudTooltip Text="Prítomný"><MudButton Color="Color.Success" OnClick="@(() => MarkStatus(context.ChildId, AttendanceStatus.Present))">P</MudButton></MudTooltip>
-                    <MudTooltip Text="Neprítomný"><MudButton Color="Color.Error" OnClick="@(() => MarkStatus(context.ChildId, AttendanceStatus.Absent))">N</MudButton></MudTooltip>
-                    <MudTooltip Text="Ospravedlnený"><MudButton Color="Color.Warning" OnClick="@(() => MarkStatus(context.ChildId, AttendanceStatus.Excused))">O</MudButton></MudTooltip>
-                </MudButtonGroup>
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
-}
-else
-{
-    <MudAlert Severity="Severity.Info">Vyberte tím a tréning</MudAlert>
-}
+
+<style>
+    .dochadzka-fab {
+        position: fixed;
+        right: 20px;
+        bottom: 90px;
+        z-index: 1201;
+    }
+</style>
 
 @code {
-    private bool _isLoading = false;
-    private List<TeamDto> _teams = new();
-    private List<TrainingEventDto> _trainings = new();
-    private TrainingEventDetailDto? _selectedTraining;
-    
-    private Guid? _selectedTeamId;
-    private Guid? _selectedTrainingId;
+    private record UpcomingItem(TrainingEventDto Training, string ForName, string TeamName, string ChildId);
+    private record FilterOption(string Key, string Label);
+
+    private const string AllChildrenKey = "all";
+
+    private bool _isLoading = true;
+    private bool _isLoadingExcuses = true;
+    private string? _excusesError;
+    private bool _canCreateExcuse = true;
+    private int _activeTab;
+
+    private List<UserAttendanceDto> _attendance = new();
+    private List<UpcomingItem> _upcoming = new();
+    private List<ExcuseListDto> _excuses = new();
+    private List<ChildDto> _children = new();
+    private List<FilterOption> _childFilterOptions = new();
+    private string _selectedChildId = AllChildrenKey;
+    private DateTime? _dateFrom = DateTime.Now.AddDays(-30);
+    private DateTime? _dateTo = DateTime.Now;
+    private bool _openCreateOnLoad;
+
+    private IEnumerable<UpcomingItem> FilteredUpcoming =>
+        _selectedChildId == AllChildrenKey
+            ? _upcoming
+            : _upcoming.Where(u => u.ChildId == _selectedChildId);
+
+    private IEnumerable<UserAttendanceDto> FilteredAttendance =>
+        _selectedChildId == AllChildrenKey
+            ? _attendance
+            : _attendance.Where(a => a.ChildId == _selectedChildId);
+
+    private IEnumerable<ExcuseListDto> FilteredExcuses =>
+        _selectedChildId == AllChildrenKey
+            ? _excuses
+            : _excuses.Where(e => e.ChildId == _selectedChildId);
 
     protected override async Task OnInitializedAsync()
     {
-        try
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _canCreateExcuse = !authState.User.IsInRole("Child");
+
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var query = uri.Query;
+        _activeTab = ResolveInitialTab(query);
+        _openCreateOnLoad = QueryHasFlag(query, "create");
+
+        _children = await ChildrenApi.GetMyChildrenAsync();
+        BuildFilterOptions();
+
+        await LoadAttendance();
+        await LoadUpcoming();
+        await LoadExcuses();
+    }
+
+    // Dialog must be opened in OnAfterRenderAsync, not OnInitializedAsync —
+    // MudBlazor dialogs require the component tree to be fully rendered before ShowAsync works correctly.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _openCreateOnLoad && _canCreateExcuse)
         {
-            _teams = await TeamsApi.GetTeamsAsync(true);
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+            _openCreateOnLoad = false;
+            await OpenCreateExcuseDialog();
+            NavigationManager.NavigateTo(NavigationManager.Uri.Split('?')[0], replace: true); // strip ?create from URL after opening so a page refresh does not re-open the dialog
         }
     }
 
-    private async Task LoadTrainings()
+    private void BuildFilterOptions()
     {
-        _trainings = new();
-        _selectedTrainingId = null;
-        _selectedTraining = null;
-        
-        if (_selectedTeamId == null) return;
+        // IsOwnProfile=true means the user is an Athlete viewing their own profile as a "child" entry — exclude them from the parent's child filter list.
+        var realChildren = _children.Where(c => !c.IsOwnProfile).ToList();
+        if (realChildren.Count <= 1)
+        {
+            _childFilterOptions = new(); // only one child — no filter needed, skip the selector entirely
+            return;
+        }
 
+        var options = new List<FilterOption> { new(AllChildrenKey, "Všetky deti") };
+        options.AddRange(realChildren
+            .OrderBy(c => c.LastName).ThenBy(c => c.FirstName)
+            .Select(c => new FilterOption(c.Id, c.FirstName)));
+        _childFilterOptions = options;
+    }
+
+    private async Task LoadUpcoming()
+    {
         try
         {
-            _trainings = await TrainingsApi.GetTrainingsAsync(_selectedTeamId, null, null);
+            var tasks = _children
+                .Where(p => p.TeamId.HasValue)
+                .Select(async p => new
+                {
+                    Person = p,
+                    Trainings = await TrainingsApi.GetTrainingsAsync(p.TeamId, DateTime.Now, DateTime.Now.AddMonths(1))
+                });
+
+            var results = await Task.WhenAll(tasks);
+            _upcoming = results
+                .SelectMany(r => r.Trainings.Select(t => new UpcomingItem(t,
+                    r.Person.IsOwnProfile ? "Seba" : $"{r.Person.FirstName} {r.Person.LastName}",
+                    r.Person.TeamName ?? "Bez tímu",
+                    r.Person.Id)))
+                .OrderBy(x => x.Training.StartTime)
+                .ToList();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Chyba pri načítaní rozvrhu: {ex.Message}", Severity.Error);
         }
     }
 
     private async Task LoadAttendance()
     {
-        _selectedTraining = null;
-        if (_selectedTrainingId == null) return;
-
         try
         {
             _isLoading = true;
-            _selectedTraining = await TrainingsApi.GetTrainingAsync(_selectedTrainingId.Value);
+            _attendance = await AttendanceApi.GetMyAttendanceAsync(_dateFrom, _dateTo);
         }
         catch (Exception ex)
         {
@@ -132,21 +493,70 @@ else
         }
     }
 
-    private async Task MarkStatus(Guid childId, AttendanceStatus status)
+    private async Task LoadExcuses()
     {
-        if (_selectedTrainingId == null) return;
-
         try
         {
-            await AttendanceApi.MarkAttendanceAsync(new MarkAttendanceRequest(
-                _selectedTrainingId.Value,
-                childId,
-                status,
-                null,
-                null
-            ));
-            Snackbar.Add("Uložené", Severity.Success);
+            _isLoadingExcuses = true;
+            _excusesError = null;
+            _excuses = await ExcusesApi.GetMyExcusesAsync();
+        }
+        catch (Exception ex)
+        {
+            _excusesError = ex.Message;
+        }
+        finally
+        {
+            _isLoadingExcuses = false;
+        }
+    }
+
+    private int GetCount(AttendanceStatus status) => FilteredAttendance.Count(a => a.Status == status);
+
+    private async Task OpenCreateExcuseDialog()
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<AddExcuseDialog>("Nová ospravedlnenka", options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadExcuses();
             await LoadAttendance();
+        }
+    }
+
+    private async Task OpenEditExcuseDialog(ExcuseListDto excuse)
+    {
+        ExcuseDto detail;
+        try
+        {
+            detail = await ExcusesApi.GetExcuseAsync(excuse.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri načítaní ospravedlnenky: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            return;
+        }
+
+        var parameters = new DialogParameters { [nameof(EditExcuseDialog.Excuse)] = detail };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<EditExcuseDialog>("Upraviť ospravedlnenku", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadExcuses();
+        }
+    }
+
+    private async Task DeleteExcuse(Guid id)
+    {
+        try
+        {
+            await ExcusesApi.DeleteExcuseAsync(id);
+            Snackbar.Add("Ospravedlnenka vymazaná", Severity.Success);
+            await LoadExcuses();
         }
         catch (Exception ex)
         {
@@ -154,12 +564,12 @@ else
         }
     }
 
-    private Color GetStatusColor(AttendanceStatus status) => status switch
+    private string GetStatusChipClass(AttendanceStatus status) => status switch
     {
-        AttendanceStatus.Present => Color.Success,
-        AttendanceStatus.Absent => Color.Error,
-        AttendanceStatus.Excused => Color.Warning,
-        _ => Color.Default
+        AttendanceStatus.Present => "attendance-chip-present",
+        AttendanceStatus.Absent => "attendance-chip-absent",
+        AttendanceStatus.Excused => "attendance-chip-excused",
+        _ => string.Empty
     };
 
     private string GetStatusText(AttendanceStatus status) => status switch
@@ -167,6 +577,57 @@ else
         AttendanceStatus.Present => "Prítomný",
         AttendanceStatus.Absent => "Neprítomný",
         AttendanceStatus.Excused => "Ospravedlnený",
-        _ => "?"
+        _ => "Neznámy"
     };
+
+    private Color GetExcuseStatusColor(ExcuseStatus status) => status switch
+    {
+        ExcuseStatus.Received => Color.Info,
+        _ => Color.Default
+    };
+
+    private string GetExcuseStatusText(ExcuseStatus status) => status switch
+    {
+        ExcuseStatus.Received => "Prijaté",
+        _ => "Neznámy"
+    };
+
+    private static string FormatDateRange(DateTime? from, DateTime? to)
+    {
+        if (from.HasValue && to.HasValue)
+            return $"{from.Value:dd.MM.yyyy} – {to.Value:dd.MM.yyyy}";
+        if (from.HasValue)
+            return from.Value.ToString("dd.MM.yyyy");
+        return "—";
+    }
+
+    private static int ResolveInitialTab(string query)
+    {
+        var tab = ReadQueryValue(query, "tab");
+        return tab?.ToLowerInvariant() switch
+        {
+            "history" or "historia" => 1,
+            "excuses" or "ospravedlnenky" => 2,
+            _ => 0
+        };
+    }
+
+    private static bool QueryHasFlag(string query, string key)
+    {
+        var v = ReadQueryValue(query, key);
+        return v is not null && v.Equals("true", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string? ReadQueryValue(string query, string key)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return null;
+        var trimmed = query.TrimStart('?');
+        foreach (var part in trimmed.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var kvp = part.Split('=', 2);
+            if (kvp.Length == 2 && kvp[0].Equals(key, StringComparison.OrdinalIgnoreCase))
+                return kvp[1];
+        }
+        return null;
+    }
 }

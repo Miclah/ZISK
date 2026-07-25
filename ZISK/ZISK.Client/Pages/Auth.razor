@@ -1,13 +1,14 @@
-﻿@page "/auth"
-
+@page "/auth"
 @using Microsoft.AspNetCore.Authorization
-
+@inject NavigationManager Nav
 @attribute [Authorize]
 
-<PageTitle>Auth</PageTitle>
+@code {
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
 
-<h1>You are authenticated</h1>
-
-<AuthorizeView>
-    Hello @context.User.Identity?.Name!
-</AuthorizeView>
+    protected override void OnInitialized()
+    {
+        Nav.NavigateTo(string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl);
+    }
+}

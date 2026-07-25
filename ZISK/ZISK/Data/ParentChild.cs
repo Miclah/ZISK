@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ZISK.Data
 {
@@ -9,10 +9,10 @@ namespace ZISK.Data
         [ForeignKey(nameof(ParentId))]
         public ApplicationUser Parent { get; set; } = null!;
 
-        public Guid ChildId { get; set; }
+        public string ChildId { get; set; } = string.Empty;
 
         [ForeignKey(nameof(ChildId))]
-        public ChildProfile Child { get; set; } = null!;
+        public ApplicationUser Child { get; set; } = null!;
 
         public bool IsPrimary { get; set; } = false;
     }

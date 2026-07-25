@@ -1,0 +1,252 @@
+@using System.ComponentModel.DataAnnotations
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Children
+@using ZISK.Shared.DTOs.Teams
+@inject IChildrenApi ChildrenApi
+@inject ITeamsApi TeamsApi
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject UserContextService UserContextService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Pridať dieťa</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else
+        {
+            <EditForm @ref="_editForm" Model="@_model" OnValidSubmit="Submit">
+                <DataAnnotationsValidator />
+                <MudStack Spacing="3">
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_model.FirstName"
+                                          For="@(() => _model.FirstName)"
+                                          Label="Meno"
+                                          Variant="Variant.Outlined"
+                                          Immediate="true"
+                                          OnInput="UpdateUsernamePreview" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_model.LastName"
+                                          For="@(() => _model.LastName)"
+                                          Label="Priezvisko"
+                                          Variant="Variant.Outlined"
+                                          Immediate="true"
+                                          OnInput="UpdateUsernamePreview" />
+                        </MudItem>
+                    </MudGrid>
+
+                    @if (!string.IsNullOrWhiteSpace(_usernamePreview))
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Používateľské meno: </MudText>
+                            @if (_editingUsername)
+                            {
+                                <MudTextField @bind-Value="_model.OverrideUsername"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
+                                              Style="max-width:200px;" />
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.caption">@_usernamePreview</MudText>
+                            }
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                           OnClick="@(() => _editingUsername = !_editingUsername)" />
+                        </MudStack>
+                    }
+
+                    <MudDatePicker @bind-Date="_dobDate"
+                                   For="@(() => _dobDate)"
+                                   Label="Dátum narodenia"
+                                   Variant="Variant.Outlined"
+                                   DateFormat="dd.MM.yyyy"
+                                   MaxDate="DateTime.Today"
+                                   MinDate="DateTime.Today.AddYears(-18).AddDays(1)"
+                                   HelperText="Dieťa musí byť mladšie ako 18 rokov." />
+
+                    <MudTextField @bind-Value="_model.Email"
+                                  For="@(() => _model.Email)"
+                                  Label="Email (voliteľný)"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Email" />
+
+                    <MudCheckBox @bind-Value="_model.SameAddressAsParent" Label="Bydlisko rovnaké ako moje" />
+
+                    @if (!_model.SameAddressAsParent)
+                    {
+                        <MudTextField @bind-Value="_model.Bydlisko"
+                                      Label="Bydlisko"
+                                      Variant="Variant.Outlined"
+                                      MaxLength="300" />
+                    }
+
+                    <MudSelect T="Guid?" @bind-Value="_model.TeamId" Label="Tím (voliteľný)" Variant="Variant.Outlined" Clearable="true">
+                        @foreach (var team in _teams)
+                        {
+                            <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudCheckBox @bind-Value="_model.CreateCredentials" Label="Vytvoriť prihlasovacie údaje" />
+
+                    @if (_model.CreateCredentials)
+                    {
+                        <MudTextField @bind-Value="_model.Password"
+                                      For="@(() => _model.Password)"
+                                      Label="Heslo"
+                                      Variant="Variant.Outlined"
+                                      InputType="InputType.Password"
+                                      HelperText="Minimálne 6 znakov." />
+                    }
+                </MudStack>
+            </EditForm>
+        }
+    </DialogContent>
+    <DialogActions>
+        <LoadingButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitForm"
+                       Loading="_isSubmitting" Disabled="_isLoading" LoadingText="Pridávam...">
+            Pridať dieťa
+        </LoadingButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private AddChildFormModel _model = new();
+    private EditForm? _editForm;
+    private bool _isLoading = true;
+    private bool _isSubmitting;
+    private bool _editingUsername;
+    private string _usernamePreview = string.Empty;
+    private DateTime? _dobDate;
+    private List<TeamDto> _teams = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _teams = await TeamsApi.GetTeamsAsync(activeOnly: true);
+        }
+        catch { }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void UpdateUsernamePreview()
+    {
+        if (!string.IsNullOrWhiteSpace(_model.FirstName) && !string.IsNullOrWhiteSpace(_model.LastName))
+            _usernamePreview = BuildUsernamePreview(_model.FirstName, _model.LastName);
+    }
+
+    private static string BuildUsernamePreview(string first, string last)
+    {
+        static string Normalize(string s)
+        {
+            var decomposed = s.Normalize(System.Text.NormalizationForm.FormD);
+            var sb = new System.Text.StringBuilder();
+            foreach (var c in decomposed)
+                if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
+                    sb.Append(c);
+            var result = System.Text.RegularExpressions.Regex.Replace(sb.ToString().ToLowerInvariant(), @"[^a-z0-9]", "");
+            return string.IsNullOrEmpty(result) ? "user" : result;
+        }
+        return $"{Normalize(first)}.{Normalize(last)}";
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitForm()
+    {
+        if (_editForm?.EditContext is null) return;
+        if (_editForm.EditContext.Validate())
+            await Submit();
+    }
+
+    private async Task Submit()
+    {
+        if (_dobDate is null)
+        {
+            Snackbar.Add("Dátum narodenia je povinný.", Severity.Warning);
+            return;
+        }
+
+        var dob = DateOnly.FromDateTime(_dobDate.Value);
+        if (dob > DateOnly.FromDateTime(DateTime.Today) || dob <= DateOnly.FromDateTime(DateTime.Today).AddYears(-18))
+        {
+            Snackbar.Add("Dieťa musí byť mladšie ako 18 rokov.", Severity.Warning);
+            return;
+        }
+
+        _isSubmitting = true;
+        try
+        {
+            var request = new CreateChildRequest(
+                FirstName: _model.FirstName,
+                LastName: _model.LastName,
+                DateOfBirth: dob,
+                Email: string.IsNullOrWhiteSpace(_model.Email) ? null : _model.Email,
+                SameAddressAsParent: _model.SameAddressAsParent,
+                Bydlisko: string.IsNullOrWhiteSpace(_model.Bydlisko) ? null : _model.Bydlisko,
+                TeamId: _model.TeamId,
+                CreateCredentials: _model.CreateCredentials,
+                Password: _model.CreateCredentials ? _model.Password : null,
+                OverrideUsername: _editingUsername && !string.IsNullOrWhiteSpace(_model.OverrideUsername) ? _model.OverrideUsername : null
+            );
+
+            var created = await ChildrenApi.CreateAsync(request);
+            Snackbar.Add("Dieťa pridané", Severity.Success);
+
+            var children = await ChildrenApi.GetMyChildrenAsync();
+            UserContextService.SetOptions(children.Select(c => new UserContextOption(
+                c.Id, $"{c.FirstName} {c.LastName}", c.Id, c.TeamId, c.IsOwnProfile)));
+
+            MudDialog.Close(DialogResult.Ok(created));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    public class AddChildFormModel
+    {
+        [Required(ErrorMessage = "Meno je povinné.")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Meno musí mať 2–100 znakov.")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Priezvisko je povinné.")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Priezvisko musí mať 2–100 znakov.")]
+        public string LastName { get; set; } = string.Empty;
+
+        [EmailAddress(ErrorMessage = "Neplatný formát emailu.")]
+        public string? Email { get; set; }
+
+        public bool SameAddressAsParent { get; set; } = true;
+
+        [StringLength(300)]
+        public string? Bydlisko { get; set; }
+
+        public Guid? TeamId { get; set; }
+
+        public bool CreateCredentials { get; set; }
+
+        [MinLength(6, ErrorMessage = "Heslo musí mať aspoň 6 znakov.")]
+        public string? Password { get; set; }
+
+        public string? OverrideUsername { get; set; }
+    }
+}

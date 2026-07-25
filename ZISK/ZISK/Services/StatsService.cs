@@ -18,7 +18,7 @@ public class StatsService : IStatsService
     public async Task<DashboardStatsDto> GetDashboardStatsAsync()
     {
         var teams = await _context.Teams.AsNoTracking().ToListAsync();
-        var members = await _context.ChildProfiles.AsNoTracking().ToListAsync();
+        var totalMembers = await _context.TeamMembers.AsNoTracking().Select(tm => tm.UserId).Distinct().CountAsync();
         var users = await _context.Users.CountAsync();
         var pendingExcuses = await _context.AbsenceRequests.CountAsync(ar => ar.Status == AbsenceRequestStatus.Received);
 
@@ -27,8 +27,8 @@ public class StatsService : IStatsService
         return new DashboardStatsDto(
             TotalTeams: teams.Count,
             ActiveTeams: teams.Count(t => t.IsActive),
-            TotalMembers: members.Count,
-            ActiveMembers: members.Count(m => m.IsActive),
+            TotalMembers: totalMembers,
+            ActiveMembers: totalMembers,
             TotalUsers: users,
             PendingExcuses: pendingExcuses,
             AttendanceStats: attendanceStats
@@ -44,7 +44,7 @@ public class StatsService : IStatsService
                 t.Id,
                 t.Name,
                 t.IsActive,
-                MemberCount = t.Members.Count(m => m.IsActive),
+                MemberCount = t.Memberships.Count,
                 TrainingCount = t.TrainingEvents.Count
             })
             .ToListAsync();
@@ -85,6 +85,57 @@ public class StatsService : IStatsService
     public async Task<AttendanceStatsDto> GetAttendanceStatsAsync(int days)
     {
         return await GetAttendanceStatsInternalAsync(days);
+    }
+
+    public async Task<List<TrainingTypeStatDto>> GetTrainingTypeStatsAsync(int days)
+    {
+        var fromDate = DateTime.UtcNow.AddDays(-days);
+        var grouped = await _context.TrainingEvents
+            .AsNoTracking()
+            .Where(t => t.StartTime >= fromDate)
+            .GroupBy(t => t.Type)
+            .Select(g => new TrainingTypeStatDto(g.Key.ToString(), g.Count()))
+            .ToListAsync();
+
+        return grouped.OrderByDescending(t => t.Count).ToList();
+    }
+
+    public async Task<List<AttendanceTrendPointDto>> GetAttendanceTrendAsync(int days)
+    {
+        var fromDate = DateTime.UtcNow.AddDays(-days).Date;
+        var records = await _context.AttendanceRecords
+            .AsNoTracking()
+            .Where(a => a.RecordedAt >= fromDate)
+            .Select(a => new { a.RecordedAt, a.Status })
+            .ToListAsync();
+
+        
+        // More than 60 days would produce 60+ data points on a daily chart, which is unreadable — switch to weekly buckets automatically.
+        bool weekly = days > 60;
+
+        DateOnly Bucket(DateTime dt)
+        {
+            var d = DateOnly.FromDateTime(dt);
+            if (!weekly) return d;
+            var diff = ((int)d.DayOfWeek + 6) % 7; // .NET DayOfWeek starts on Sunday (0); this formula shifts it to Monday (0) per ISO 8601
+            return d.AddDays(-diff);
+        }
+
+        var result = records
+            .GroupBy(r => Bucket(r.RecordedAt))
+            .OrderBy(g => g.Key)
+            .Select(g =>
+            {
+                var total = g.Count();
+                var present = g.Count(x => x.Status == AttendanceStatus.Present);
+                return new AttendanceTrendPointDto(
+                    g.Key,
+                    AttendanceCalculator.CalculatePercentageDecimal(present, total),
+                    total);
+            })
+            .ToList();
+
+        return result;
     }
 
     private async Task<AttendanceStatsDto> GetAttendanceStatsInternalAsync(int days)

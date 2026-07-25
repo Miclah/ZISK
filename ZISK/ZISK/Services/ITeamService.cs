@@ -10,6 +10,6 @@ public interface ITeamService
     Task<TeamDto> CreateTeamAsync(CreateTeamRequest request, ClaimsPrincipal user);
     Task UpdateTeamAsync(Guid id, UpdateTeamRequest request, ClaimsPrincipal user);
     Task DeleteTeamAsync(Guid id, ClaimsPrincipal user);
-    Task AddMemberAsync(Guid teamId, Guid childId, ClaimsPrincipal user);
-    Task RemoveMemberAsync(Guid teamId, Guid childId, ClaimsPrincipal user);
+    Task AddMemberAsync(Guid teamId, string userId, ClaimsPrincipal user);
+    Task RemoveMemberAsync(Guid teamId, string userId, ClaimsPrincipal user);
 }

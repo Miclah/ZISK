@@ -1,0 +1,246 @@
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Trainings
+@using ZISK.Shared.DTOs.Teams
+@inject ITrainingSeriesApi TrainingSeriesApi
+@inject ITeamsApi TeamsApi
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2" />
+}
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="mb-3">
+    <MudText Typo="Typo.h6">Opakované tréningy</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Rounded.Add" OnClick="OpenCreateDialog">
+        Pridať sériu
+    </MudButton>
+</MudStack>
+
+@if (!_isLoading && !_series.Any())
+{
+    <MudAlert Severity="Severity.Info">Zatiaľ nie sú definované žiadne opakované tréningy.</MudAlert>
+}
+else if (!_isLoading)
+{
+    <MudHidden Breakpoint="Breakpoint.SmAndDown">
+        <MudTable Items="@_series" Hover="true" Dense="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Názov</MudTh>
+                <MudTh>Tím</MudTh>
+                <MudTh>Dni</MudTh>
+                <MudTh>Čas</MudTh>
+                <MudTh>Miesto</MudTh>
+                <MudTh>Sezóna</MudTh>
+                <MudTh>Stav</MudTh>
+                <MudTh Style="text-align: right;">Akcie</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Title</MudTd>
+                <MudTd>@context.TeamName</MudTd>
+                <MudTd>@FormatDays(context.DaysOfWeek)</MudTd>
+                <MudTd>@context.StartTime.ToString("HH:mm") – @context.EndTime.ToString("HH:mm")</MudTd>
+                <MudTd>@(context.Location ?? "—")</MudTd>
+                <MudTd>@context.SeasonName</MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Color="@(context.IsActive ? Color.Success : Color.Default)">
+                        @(context.IsActive ? "Aktívna" : "Neaktívna")
+                    </MudChip>
+                </MudTd>
+                <MudTd Style="text-align: right;">
+                    <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd">
+                        <MudIconButton Icon="@Icons.Material.Rounded.Edit" Size="Size.Small" OnClick="() => OpenEditDialog(context)" />
+                        <MudIconButton Icon="@Icons.Material.Rounded.EventRepeat" Size="Size.Small" Color="Color.Tertiary"
+                                       Title="Vygenerovať tréningy na najbližších 14 dní"
+                                       OnClick="() => GenerateAsync(context)" />
+                        @if (context.IsActive)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Rounded.PauseCircle" Size="Size.Small" Color="Color.Warning"
+                                           Title="Deaktivovať sériu (existujúce tréningy zostanú)"
+                                           OnClick="() => DeactivateAsync(context)" />
+                        }
+                        else
+                        {
+                            <MudIconButton Icon="@Icons.Material.Rounded.PlayCircle" Size="Size.Small" Color="Color.Success"
+                                           Title="Aktivovať sériu"
+                                           OnClick="() => ActivateAsync(context)" />
+                        }
+                    </MudStack>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudHidden>
+
+    <MudHidden Breakpoint="Breakpoint.MdAndUp">
+        <MudStack Spacing="2">
+            @foreach (var s in _series)
+            {
+                <MudPaper Class="pa-3" Elevation="1">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start" Spacing="2" Class="mb-2">
+                        <div style="min-width:0;flex:1;">
+                            <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@s.Title</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@s.TeamName · @s.SeasonName</MudText>
+                        </div>
+                        <MudChip T="string" Size="Size.Small"
+                                 Color="@(s.IsActive ? Color.Success : Color.Default)">
+                            @(s.IsActive ? "Aktívna" : "Neaktívna")
+                        </MudChip>
+                    </MudStack>
+                    <MudStack Row="true" Spacing="2" Class="mb-1" AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@Icons.Material.Rounded.Schedule" Size="Size.Small" Color="Color.Secondary" />
+                        <MudText Typo="Typo.body2">
+                            @FormatDays(s.DaysOfWeek) · @s.StartTime.ToString("HH:mm")–@s.EndTime.ToString("HH:mm")
+                        </MudText>
+                    </MudStack>
+                    @if (!string.IsNullOrWhiteSpace(s.Location))
+                    {
+                        <MudStack Row="true" Spacing="2" Class="mb-1" AlignItems="AlignItems.Center">
+                            <MudIcon Icon="@Icons.Material.Rounded.Place" Size="Size.Small" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2">@s.Location</MudText>
+                        </MudStack>
+                    }
+                    <MudDivider Class="my-2" />
+                    <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="1">
+                        <MudIconButton Icon="@Icons.Material.Rounded.Edit" Size="Size.Small" OnClick="() => OpenEditDialog(s)" />
+                        <MudIconButton Icon="@Icons.Material.Rounded.EventRepeat" Size="Size.Small" Color="Color.Tertiary"
+                                       Title="Vygenerovať tréningy na najbližších 14 dní"
+                                       OnClick="() => GenerateAsync(s)" />
+                        @if (s.IsActive)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Rounded.PauseCircle" Size="Size.Small" Color="Color.Warning"
+                                           Title="Deaktivovať sériu (existujúce tréningy zostanú)"
+                                           OnClick="() => DeactivateAsync(s)" />
+                        }
+                        else
+                        {
+                            <MudIconButton Icon="@Icons.Material.Rounded.PlayCircle" Size="Size.Small" Color="Color.Success"
+                                           Title="Aktivovať sériu"
+                                           OnClick="() => ActivateAsync(s)" />
+                        }
+                    </MudStack>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudHidden>
+}
+
+@code {
+    [Parameter] public bool IsAdmin { get; set; }
+    [Parameter] public Guid? TeamIdFilter { get; set; }
+
+    private bool _isLoading = true;
+    private List<TrainingSeriesDto> _series = [];
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            _series = await TrainingSeriesApi.GetSeriesAsync(TeamIdFilter, null);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri načítaní sérií: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters
+        {
+            ["IsAdmin"] = IsAdmin,
+            ["TeamIdFilter"] = TeamIdFilter
+        };
+        var dialog = await DialogService.ShowAsync<TrainingSeriesDialog>("Pridať sériu", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+            await LoadAsync();
+    }
+
+    private async Task OpenEditDialog(TrainingSeriesDto series)
+    {
+        var parameters = new DialogParameters
+        {
+            ["IsAdmin"] = IsAdmin,
+            ["TeamIdFilter"] = TeamIdFilter,
+            ["ExistingSeries"] = series
+        };
+        var dialog = await DialogService.ShowAsync<TrainingSeriesDialog>("Upraviť sériu", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (!result!.Canceled)
+            await LoadAsync();
+    }
+
+    private async Task GenerateAsync(TrainingSeriesDto series)
+    {
+        try
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var count = await TrainingSeriesApi.GenerateInstancesAsync(series.Id,
+                new GenerateInstancesRequest(today, today.AddDays(14)));
+            Snackbar.Add($"Vygenerovaných {count} nových tréningov.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri generovaní: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+    }
+
+    private async Task DeactivateAsync(TrainingSeriesDto series)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync("Deaktivovať sériu",
+            $"Naozaj deaktivovať sériu \"{series.Title}\"? Existujúce tréningy zostanú, nové sa nebudú generovať.",
+            yesText: "Deaktivovať", cancelText: "Zrušiť");
+        if (confirm != true) return;
+
+        try
+        {
+            var request = new UpdateTrainingSeriesRequest(
+                series.Title, series.DaysOfWeek, series.StartTime, series.EndTime,
+                series.Location, series.Type, series.CoachNote, IsActive: false);
+            await TrainingSeriesApi.UpdateSeriesAsync(series.Id, request);
+            Snackbar.Add("Séria deaktivovaná. Existujúce tréningy zostávajú.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+    }
+
+    private async Task ActivateAsync(TrainingSeriesDto series)
+    {
+        try
+        {
+            var request = new UpdateTrainingSeriesRequest(
+                series.Title, series.DaysOfWeek, series.StartTime, series.EndTime,
+                series.Location, series.Type, series.CoachNote, IsActive: true);
+            await TrainingSeriesApi.UpdateSeriesAsync(series.Id, request);
+            Snackbar.Add("Séria aktivovaná.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+    }
+
+    private static string FormatDays(int daysOfWeek)
+    {
+        var names = new (int flag, string sk)[]
+        {
+            (1, "Po"), (2, "Ut"), (4, "St"), (8, "Št"), (16, "Pi"), (32, "So"), (64, "Ne")
+        };
+        var parts = names.Where(n => (daysOfWeek & n.flag) != 0).Select(n => n.sk);
+        return string.Join(", ", parts);
+    }
+}

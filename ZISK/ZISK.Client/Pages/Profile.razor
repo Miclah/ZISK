@@ -1,84 +1,440 @@
 @page "/profil"
 @using System.Security.Claims
 @using System.Globalization
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Invitations
+@using ZISK.Shared.DTOs.Users
+@inject IInvitationsApi InvitationsApi
+@inject IMeApi MeApi
+@inject IChildrenApi ChildrenApi
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
 @attribute [Authorize]
 
 <PageTitle>Môj profil - ZISK</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
-    <MudPaper Elevation="1" Class="pa-4 mb-4 d-flex align-center">
-        <MudAvatar Color="Color.Primary" Style="height:60px; width:60px;" Class="mr-4">
-            @(_firstName?.Length > 0 ? _firstName[0].ToString().ToUpper() : "?")
-        </MudAvatar>
-        <MudStack Spacing="0">
-            <MudText Typo="Typo.h5">@_firstName @_lastName</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">@_email</MudText>
-        </MudStack>
-    </MudPaper>
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4 mb-8 px-2 px-sm-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4" />
+    }
+    else if (_profile is null)
+    {
+        <MudAlert Severity="Severity.Error">Profil sa nepodarilo načítať.</MudAlert>
+    }
+    else
+    {
+        <MudPaper Elevation="2" Class="profile-hero pa-4 mb-4" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-primary-darken) 100%); color: #fff;">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
+                <MudAvatar Color="Color.Secondary" Style="height:72px; width:72px; font-size:1.6rem;">
+                    @AvatarInitials
+                </MudAvatar>
+                <MudStack Spacing="0" Class="flex-grow-1">
+                    <MudText Typo="Typo.h5" Style="color:#fff;">@_profile.FirstName @_profile.LastName</MudText>
+                    <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.85);">@_profile.Email</MudText>
+                </MudStack>
+                @if (!string.IsNullOrEmpty(_profile.Role))
+                {
+                    <MudChip T="string" Color="Color.Secondary" Size="Size.Medium" Variant="Variant.Filled">@RoleLabel(_profile.Role)</MudChip>
+                }
+            </MudStack>
+        </MudPaper>
 
-    <MudGrid Spacing="3">
-        <MudItem xs="12" sm="6">
-            <MudCard Elevation="1">
-                <MudCardContent>
-                    <MudText Typo="Typo.subtitle2" Class="mb-2">Osobné údaje</MudText>
-                    <MudStack Spacing="1">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Meno</MudText>
-                        <MudText Typo="Typo.body2">@_firstName</MudText>
-                        <MudDivider />
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Priezvisko</MudText>
-                        <MudText Typo="Typo.body2">@_lastName</MudText>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="3">
+                <MudPaper Elevation="1" Class="pa-2">
+                    <MudList T="string" SelectedValue="@_section" SelectedValueChanged="OnSectionChanged" Dense="true">
+                        @foreach (var item in MenuItems)
+                        {
+                            <MudListItem T="string" Value="@item.Key" Icon="@item.Icon">@item.Label</MudListItem>
+                        }
+                    </MudList>
+                </MudPaper>
+            </MudItem>
 
-        <MudItem xs="12" sm="6">
-            <MudCard Elevation="1">
-                <MudCardContent>
-                    <MudText Typo="Typo.subtitle2" Class="mb-2">Kontakt</MudText>
-                    <MudStack Spacing="1">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Email</MudText>
-                        <MudText Typo="Typo.body2">@_email</MudText>
-                        <MudDivider />
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Rola v systéme</MudText>
-                        <MudText Typo="Typo.body2">@_role</MudText>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-    </MudGrid>
+            <MudItem xs="12" md="9">
+                <MudPaper Elevation="1" Class="pa-4">
+                    @if (_section == "overview")
+                    {
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Rounded.Person" Class="mr-2" />Základné údaje
+                        </MudText>
+                        <MudGrid Spacing="3">
+                            <MudItem xs="12" sm="6">
+                                <ReadOnlyField Label="Meno" Value="@_profile!.FirstName" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <ReadOnlyField Label="Priezvisko" Value="@_profile!.LastName" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <ReadOnlyField Label="Dátum narodenia" Value="@FormatDate(_profile!.DateOfBirth)" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <ReadOnlyField Label="Rodné číslo" Value="@(_profile!.RodneCislo ?? "—")" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <ReadOnlyField Label="Rola v systéme" Value="@RoleLabel(_profile!.Role)" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <ReadOnlyField Label="Účet vytvorený" Value="@FormatDateTime(_profile!.CreatedAt)" />
+                            </MudItem>
+                        </MudGrid>
 
-    <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
-        <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Rounded.Lock" Href="/Account/Manage/ChangePassword">
-            Zmeniť heslo
-        </MudButton>
-    </MudStack>
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-4" Dense="true">
+                            Údaje ako meno, priezvisko, rodné číslo a dátum narodenia môže zmeniť iba administrátor.
+                        </MudAlert>
+
+                        @if (_isParent)
+                        {
+                            <MudDivider Class="my-4" />
+                            <MudText Typo="Typo.subtitle1" Class="mb-2">Pripojiť sa k dieťaťu</MudText>
+                            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);" Class="mb-3">
+                                Zadajte kód, ktorý vám poskytol iný rodič, a prepojte sa s dieťaťom.
+                            </MudText>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+                                <MudTextField @bind-Value="_redeemCode"
+                                              Label="Kód pozvánky"
+                                              Variant="Variant.Outlined"
+                                              Placeholder="XXXX-XXXX"
+                                              Style="max-width:200px;"
+                                              Margin="Margin.Dense" />
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RedeemCode"
+                                           Disabled="@(_isRedeeming || string.IsNullOrWhiteSpace(_redeemCode))">
+                                    @if (_isRedeeming)
+                                    {
+                                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                    }
+                                    Pripojiť
+                                </MudButton>
+                            </MudStack>
+                        }
+                    }
+                    else if (_section == "contact")
+                    {
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Rounded.ContactPhone" Class="mr-2" />Kontaktné údaje
+                        </MudText>
+                        <MudStack Spacing="3" Style="max-width:520px;">
+                            <MudTextField @bind-Value="_contactPhone" Label="Telefónne číslo"
+                                          Variant="Variant.Outlined" Placeholder="+421 911 111 111"
+                                          InputType="InputType.Telephone" />
+                            <MudTextField @bind-Value="_contactBydlisko" Label="Bydlisko"
+                                          Variant="Variant.Outlined" Placeholder="Ulica, mesto, PSČ"
+                                          Lines="2" />
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Rounded.Save"
+                                       OnClick="SaveContact" Disabled="@_savingContact"
+                                       Style="align-self:flex-start;">
+                                @if (_savingContact)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                }
+                                Uložiť zmeny
+                            </MudButton>
+                        </MudStack>
+                    }
+                    else if (_section == "email")
+                    {
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Rounded.Email" Class="mr-2" />Emailová adresa
+                        </MudText>
+                        <MudStack Spacing="3" Style="max-width:520px;">
+                            <ReadOnlyField Label="Aktuálny email" Value="@_profile!.Email" />
+                            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                                Tento email používate aj na prihlásenie. Po zmene budete automaticky prihlásení s novým emailom.
+                            </MudText>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Rounded.Edit"
+                                       OnClick="OpenChangeEmailDialog"
+                                       Style="align-self:flex-start;">
+                                Zmeniť email
+                            </MudButton>
+                        </MudStack>
+                    }
+                    else if (_section == "password")
+                    {
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Rounded.Lock" Class="mr-2" />Heslo
+                        </MudText>
+                        <MudStack Spacing="3" Style="max-width:520px;">
+                            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                                Pre zmenu hesla budete potrebovať svoje súčasné heslo.
+                                Nové heslo musí mať aspoň 8 znakov, obsahovať malé aj veľké písmeno a číslicu.
+                            </MudText>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Rounded.Lock"
+                                       OnClick="OpenChangePasswordDialog"
+                                       Style="align-self:flex-start;">
+                                Zmeniť heslo
+                            </MudButton>
+                        </MudStack>
+                    }
+                    else if (_section == "personal")
+                    {
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Rounded.DataUsage" Class="mr-2" />Osobné údaje a účet
+                        </MudText>
+                        <MudStack Spacing="3" Style="max-width:520px;">
+                            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                                Odstránenie účtu trvalo zruší váš prístup do systému aj všetky uložené údaje.
+                                <strong>Túto akciu nemožno vrátiť späť.</strong>
+                            </MudAlert>
+                            <MudButton Variant="Variant.Filled" Color="Color.Error"
+                                       StartIcon="@Icons.Material.Rounded.DeleteForever"
+                                       OnClick="OpenDeleteAccountDialog"
+                                       Style="align-self:flex-start;">
+                                Odstrániť účet
+                            </MudButton>
+                        </MudStack>
+                    }
+                    else if (_section == "children")
+                    {
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Rounded.FamilyRestroom" Class="mr-2" />Moje deti
+                        </MudText>
+                        @if (_childrenLoading)
+                        {
+                            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                        }
+                        else if (_children.Count == 0)
+                        {
+                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                                Zatiaľ nemáte priradené žiadne dieťa. Pridať môžete cez sekciu „Prehľad" pomocou kódu pozvánky.
+                            </MudAlert>
+                        }
+                        else
+                        {
+                            @if (_children.Count > 1)
+                            {
+                                <MudSelect T="string" Value="_selectedChildId" ValueChanged="OnChildSelected"
+                                           Label="Vyberte dieťa" Variant="Variant.Outlined"
+                                           Class="mb-4" Style="max-width:360px;">
+                                    @foreach (var child in _children)
+                                    {
+                                        <MudSelectItem T="string" Value="@child.Id">@child.FirstName @child.LastName</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            }
+
+                            @if (_selectedChild is not null)
+                            {
+                                <MudGrid Spacing="3">
+                                    <MudItem xs="12" sm="6">
+                                        <ReadOnlyField Label="Meno" Value="@_selectedChild.FirstName" />
+                                    </MudItem>
+                                    <MudItem xs="12" sm="6">
+                                        <ReadOnlyField Label="Priezvisko" Value="@_selectedChild.LastName" />
+                                    </MudItem>
+                                    <MudItem xs="12" sm="6">
+                                        <ReadOnlyField Label="Dátum narodenia" Value="@FormatDate(_selectedChild.DateOfBirth)" />
+                                    </MudItem>
+                                    <MudItem xs="12" sm="6">
+                                        <ReadOnlyField Label="Tím" Value="@(_selectedChild.TeamName ?? "—")" />
+                                    </MudItem>
+                                </MudGrid>
+                            }
+                        }
+                    }
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
 </MudContainer>
 
 @code {
-    private string _firstName = string.Empty;
-    private string _lastName = string.Empty;
-    private string _email = string.Empty;
-    private string _role = string.Empty;
-    private string _joinedDateLabel = DateTime.Now.ToString("dd.MM.yyyy", CultureInfo.GetCultureInfo("sk-SK"));
+    private MyProfileDto? _profile;
+    private bool _loading = true;
+    private bool _isParent;
+
+    private string _contactPhone = string.Empty;
+    private string _contactBydlisko = string.Empty;
+    private bool _savingContact;
+
+    private string _redeemCode = string.Empty;
+    private bool _isRedeeming;
+
+    private List<ChildDto> _children = new();
+    private string? _selectedChildId;
+    private ChildDto? _selectedChild => _children.FirstOrDefault(c => c.Id == _selectedChildId);
+    private bool _childrenLoading;
+    private bool _childrenLoaded;
+
+    private string _section = "overview";
 
     [CascadingParameter]
     private Task<AuthenticationState> AuthState { get; set; } = default!;
 
+    private record MenuItem(string Key, string Label, string Icon);
+
+    private IEnumerable<MenuItem> MenuItems
+    {
+        get
+        {
+            yield return new("overview", "Prehľad", Icons.Material.Rounded.Person);
+            yield return new("contact", "Kontakt", Icons.Material.Rounded.ContactPhone);
+            yield return new("email", "Email", Icons.Material.Rounded.Email);
+            yield return new("password", "Heslo", Icons.Material.Rounded.Lock);
+            yield return new("personal", "Osobné údaje", Icons.Material.Rounded.DataUsage);
+            if (_isParent)
+                yield return new("children", "Moje deti", Icons.Material.Rounded.FamilyRestroom);
+        }
+    }
+
+    private string AvatarInitials =>
+        $"{Initial(_profile?.FirstName)}{Initial(_profile?.LastName)}".Trim() is { Length: > 0 } i ? i : "?";
+
+    private static string Initial(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim()[0].ToString().ToUpper();
+
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState;
-        var user = state.User;
+        _isParent = state.User.IsInRole("Parent");
 
-        _firstName = user.FindFirst(ClaimTypes.GivenName)?.Value ?? string.Empty;
-        _lastName = user.FindFirst(ClaimTypes.Surname)?.Value ?? string.Empty;
-        _email = user.FindFirst(ClaimTypes.Email)?.Value ?? user.Identity?.Name ?? string.Empty;
-        _role = user.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
-
-        var joinedDate = user.FindFirst("created_at")?.Value;
-        if (!string.IsNullOrWhiteSpace(joinedDate) && DateTime.TryParse(joinedDate, out var parsed))
+        try
         {
-            _joinedDateLabel = parsed.ToString("dd.MM.yyyy", CultureInfo.GetCultureInfo("sk-SK"));
+            _profile = await MeApi.GetMyProfileAsync();
+            _contactPhone = _profile.PhoneNumber ?? string.Empty;
+            _contactBydlisko = _profile.Bydlisko ?? string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri načítaní profilu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+
+        if (_isParent)
+        {
+            _ = LoadChildrenAsync();
         }
     }
+
+    private void OnSectionChanged(string section)
+    {
+        if (!string.IsNullOrEmpty(section))
+            _section = section;
+    }
+
+    private async Task LoadChildrenAsync()
+    {
+        if (_childrenLoaded) return;
+        _childrenLoading = true;
+        try
+        {
+            _children = await ChildrenApi.GetMyChildrenAsync();
+            _selectedChildId = _children.FirstOrDefault()?.Id;
+            _childrenLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba pri načítaní detí: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _childrenLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OnChildSelected(string id)
+    {
+        _selectedChildId = id;
+    }
+
+    private async Task SaveContact()
+    {
+        if (_profile is null) return;
+
+        _savingContact = true;
+        try
+        {
+            var request = new UpdateMyContactRequest(
+                string.IsNullOrWhiteSpace(_contactPhone) ? null : _contactPhone.Trim(),
+                string.IsNullOrWhiteSpace(_contactBydlisko) ? null : _contactBydlisko.Trim());
+
+            _profile = await MeApi.UpdateMyContactAsync(request);
+            _contactPhone = _profile.PhoneNumber ?? string.Empty;
+            _contactBydlisko = _profile.Bydlisko ?? string.Empty;
+            Snackbar.Add("Kontaktné údaje boli uložené.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _savingContact = false;
+        }
+    }
+
+    private async Task RedeemCode()
+    {
+        if (string.IsNullOrWhiteSpace(_redeemCode)) return;
+
+        _isRedeeming = true;
+        try
+        {
+            await InvitationsApi.RedeemCodeAsync(new RedeemCodeRequest(_redeemCode));
+            Snackbar.Add("Úspešne prepojené s dieťaťom!", Severity.Success);
+            _redeemCode = string.Empty;
+            _childrenLoaded = false;
+            await LoadChildrenAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _isRedeeming = false;
+        }
+    }
+
+    private async Task OpenChangePasswordDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        await DialogService.ShowAsync<ChangePasswordDialog>("Zmena hesla", options);
+    }
+
+    private async Task OpenChangeEmailDialog()
+    {
+        var parameters = new DialogParameters { ["CurrentEmail"] = _profile?.Email };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ChangeEmailDialog>("Zmena emailu", parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false } && _profile is not null)
+        {
+            try
+            {
+                _profile = await MeApi.GetMyProfileAsync();
+            }
+            catch { /* ignored — server stale read */ }
+        }
+    }
+
+    private async Task OpenDeleteAccountDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        await DialogService.ShowAsync<DeleteAccountDialog>("Odstránenie účtu", options);
+    }
+
+    private static string FormatDate(DateOnly? date) =>
+        date.HasValue ? date.Value.ToString("dd.MM.yyyy", CultureInfo.GetCultureInfo("sk-SK")) : "—";
+
+    private static string FormatDateTime(DateTime dt) =>
+        dt.ToLocalTime().ToString("dd.MM.yyyy", CultureInfo.GetCultureInfo("sk-SK"));
+
+    private static string RoleLabel(string role) => role switch
+    {
+        "Admin" => "Administrátor",
+        "Coach" => "Tréner",
+        "Parent" => "Rodič",
+        "Athlete" => "Športovec",
+        "Child" => "Dieťa",
+        _ => role
+    };
 }

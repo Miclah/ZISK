@@ -1,0 +1,138 @@
+@using ZISK.Client.Services
+@using ZISK.Shared.DTOs.Children
+@using ZISK.Shared.DTOs.Teams
+@inject IChildrenApi ChildrenApi
+@inject ITeamsApi TeamsApi
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<MudDialog>
+    <DialogContent>
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else
+        {
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="_firstName" Label="Meno" Required="true" Variant="Variant.Outlined" MaxLength="100" />
+                <MudTextField @bind-Value="_lastName" Label="Priezvisko" Required="true" Variant="Variant.Outlined" MaxLength="100" />
+                <MudTextField @bind-Value="_bydlisko" Label="Bydlisko" Variant="Variant.Outlined" MaxLength="300" />
+                <MudDatePicker @bind-Date="_dateOfBirth" Label="Dátum narodenia" Variant="Variant.Outlined" />
+                @if (_canEditTeam)
+                {
+                    <MudSelect T="Guid?" @bind-Value="_teamId" Label="Tím" Variant="Variant.Outlined">
+                        <MudSelectItem T="Guid?" Value="@((Guid?)null)">Bez tímu</MudSelectItem>
+                        @foreach (var team in _teams)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                else
+                {
+                    <MudTextField T="string" Value="@(_teamName ?? "Bez tímu")" Label="Tím" Variant="Variant.Outlined"
+                                  ReadOnly="true" Disabled="true"
+                                  HelperText="Zmenu tímu môže vykonať len tréner alebo administrátor." />
+                }
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <LoadingButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Loading="@_isSaving">
+            Uložiť
+        </LoadingButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
+    [Parameter] public string ChildId { get; set; } = string.Empty;
+
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private bool _canEditTeam;
+    private string _firstName = string.Empty;
+    private string _lastName = string.Empty;
+    private string? _bydlisko;
+    private DateTime? _dateOfBirth;
+    private Guid? _teamId;
+    private string? _teamName;
+    private List<TeamDto> _teams = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            _canEditTeam = authState.User.IsInRole("Admin") || authState.User.IsInRole("Coach");
+
+            var detail = await ChildrenApi.GetDetailAsync(ChildId);
+            _firstName = detail.FirstName;
+            _lastName = detail.LastName;
+            _bydlisko = detail.Bydlisko;
+            _dateOfBirth = detail.DateOfBirth.HasValue ? detail.DateOfBirth.Value.ToDateTime(TimeOnly.MinValue) : null;
+            _teamId = detail.TeamId;
+            _teamName = detail.TeamName;
+
+            if (_canEditTeam)
+            {
+                try { _teams = await TeamsApi.GetTeamsAsync(true); }
+                catch { _teams = new(); }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Dialog.Cancel();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(_firstName) || _firstName.Length < 2)
+        {
+            Snackbar.Add("Meno musí mať aspoň 2 znaky.", Severity.Warning);
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_lastName) || _lastName.Length < 2)
+        {
+            Snackbar.Add("Priezvisko musí mať aspoň 2 znaky.", Severity.Warning);
+            return;
+        }
+        if (!_dateOfBirth.HasValue)
+        {
+            Snackbar.Add("Dátum narodenia je povinný.", Severity.Warning);
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            var request = new UpdateChildRequest(
+                _firstName.Trim(),
+                _lastName.Trim(),
+                string.IsNullOrWhiteSpace(_bydlisko) ? null : _bydlisko.Trim(),
+                DateOnly.FromDateTime(_dateOfBirth.Value),
+                _teamId);
+
+            await ChildrenApi.UpdateAsync(ChildId, request);
+            Snackbar.Add("Zmeny boli uložené.", Severity.Success);
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}

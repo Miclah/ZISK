@@ -1,0 +1,103 @@
+.document-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0F172A 0%, #15304D 50%, #1E3A5F 100%);
+    padding: 1.5rem;
+    font-family: 'Inter', 'Roboto', 'Segoe UI', system-ui, sans-serif;
+}
+
+.document-card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 560px;
+    border-radius: 16px;
+    padding: 2.5rem 2rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255,255,255,0.05);
+    animation: card-in 0.4s ease-out;
+    box-sizing: border-box;
+}
+
+@keyframes card-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.document-brand {
+    text-align: center;
+    margin-bottom: 1.75rem;
+}
+
+.document-brand h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1E293B;
+    margin: 0 0 0.25rem 0;
+    letter-spacing: -0.5px;
+}
+
+.document-brand p {
+    font-size: 0.875rem;
+    color: #64748B;
+    margin: 0;
+    font-weight: 500;
+}
+
+.document-body {
+    color: #334155;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+}
+
+.document-body p {
+    margin: 0 0 1rem;
+}
+
+.document-body p:last-child {
+    margin-bottom: 0;
+}
+
+.document-body strong {
+    color: #1E3A5F;
+    font-weight: 600;
+}
+
+.document-footer {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #F1F5F9;
+    text-align: center;
+}
+
+.footer-link {
+    color: #1E3A5F;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.footer-link:hover {
+    color: #2B4A7A;
+    text-decoration: underline;
+}
+
+.document-copyright {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.7rem;
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+@media (max-width: 520px) {
+    .document-card {
+        padding: 2rem 1.5rem;
+        border-radius: 12px;
+    }
+
+    .document-brand h1 {
+        font-size: 1.35rem;
+    }
+}

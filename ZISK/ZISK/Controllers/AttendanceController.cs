@@ -42,9 +42,9 @@ public class AttendanceController : ControllerBase
         catch (UnauthorizedAccessException) { return Unauthorized(); }
     }
 
-    [HttpGet("stats/{childId:guid}")]
+    [HttpGet("stats/{childId}")]
     public async Task<ActionResult<AttendanceStatsDto>> GetMemberStats(
-        Guid childId,
+        string childId,
         [FromQuery] DateTime? from = null,
         [FromQuery] DateTime? to = null)
     {

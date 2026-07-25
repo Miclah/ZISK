@@ -76,9 +76,9 @@ public class TeamsController : ControllerBase
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
 
-    [HttpPost("{id:guid}/members/{childId:guid}")]
+    [HttpPost("{id:guid}/members/{childId}")]
     [Authorize(Roles = "Admin,Coach")]
-    public async Task<IActionResult> AddMember(Guid id, Guid childId)
+    public async Task<IActionResult> AddMember(Guid id, string childId)
     {
         try
         {
@@ -89,9 +89,9 @@ public class TeamsController : ControllerBase
         catch (UnauthorizedAccessException) { return Forbid(); }
     }
 
-    [HttpDelete("{id:guid}/members/{childId:guid}")]
+    [HttpDelete("{id:guid}/members/{childId}")]
     [Authorize(Roles = "Admin,Coach")]
-    public async Task<IActionResult> RemoveMember(Guid id, Guid childId)
+    public async Task<IActionResult> RemoveMember(Guid id, string childId)
     {
         try
         {

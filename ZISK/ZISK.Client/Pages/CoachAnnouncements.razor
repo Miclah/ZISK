@@ -1,5 +1,6 @@
 @page "/coach/oznamy"
 @using System.ComponentModel.DataAnnotations
+@using ZISK.Client.Layout
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Announcements
 @using ZISK.Shared.DTOs.Teams
@@ -11,14 +12,26 @@
 
 <PageTitle>Oznamy tímu</PageTitle>
 
-<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
-    <MudText Typo="Typo.h5">Oznamy pre tím</MudText>
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Filled.Campaign" Size="Size.Large" Color="Color.Primary" />
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h4">Oznamy pre tím</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Informácie pre rodičov a hráčov</MudText>
+        </MudStack>
+    </MudStack>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Rounded.Add" OnClick="OpenCreateDialog">Pridať oznam</MudButton>
 </MudStack>
 
 @if (_isLoading)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    <MudStack Spacing="2">
+        @for (int i = 0; i < 5; i++)
+        {
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="100px" />
+        }
+    </MudStack>
 }
 else if (!_announcements.Any())
 {
@@ -29,14 +42,28 @@ else
     <MudStack Spacing="2">
         @foreach (var ann in _announcements)
         {
-            <MudPaper Elevation="1" Class="pa-4 mb-3">
-                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">@ann.PublishDate.ToString("dd.MM.yyyy HH:mm")</MudText>
-                <MudText Typo="Typo.h6">@ann.Title</MudText>
-                <MudText Typo="Typo.body1">@ann.ContentPreview</MudText>
+            <MudPaper Elevation="0" Outlined="true" Class="pa-4"
+                      Style="@($"border-left:3px solid {_cPrimary};")">
+                <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="3">
+                    <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Medium">
+                        <MudIcon Icon="@Icons.Material.Filled.Campaign" />
+                    </MudAvatar>
+                    <MudStack Spacing="1" Style="flex:1; min-width:0;">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="2">
+                            <MudText Typo="Typo.h6" Style="font-weight:600;">@ann.Title</MudText>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" Color="Color.Secondary" />
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@ann.PublishDate.ToString("dd.MM.yyyy HH:mm")</MudText>
+                            </MudStack>
+                        </MudStack>
+                        <MudText Typo="Typo.body2">@ann.ContentPreview</MudText>
+                    </MudStack>
+                </MudStack>
             </MudPaper>
         }
     </MudStack>
 }
+</MudContainer>
 
 <MudDialog @bind-Visible="_createDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
     <TitleContent><MudText Typo="Typo.h6">Nový oznam</MudText></TitleContent>
@@ -57,12 +84,11 @@ else
             </MudStack>
         </EditForm>
     </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="() => _createDialogVisible = false">Zrušiť</MudButton>
-    </DialogActions>
 </MudDialog>
 
 @code {
+    private static readonly string _cPrimary = (string)AppTheme.SportClubTheme.PaletteLight.Primary;
+
     private bool _isLoading = true;
     private Guid? _teamId;
     private List<AnnouncementListDto> _announcements = [];

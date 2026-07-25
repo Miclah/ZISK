@@ -35,7 +35,8 @@ public class AttendanceService : IAttendanceService
         if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(training.TeamId))
             throw new UnauthorizedAccessException();
 
-        await EnsureAutomaticAttendance(trainingEventId);
+        // Side effect on GET: ensures every team member has a record before the attendance list is shown to the coach.
+        await AutoCompleteForTrainingAsync(trainingEventId, false);
 
         return await _context.AttendanceRecords
             .Include(ar => ar.Child)
@@ -59,7 +60,7 @@ public class AttendanceService : IAttendanceService
     public async Task<List<UserAttendanceDto>> GetMyAttendanceAsync(ClaimsPrincipal user, DateTime? from, DateTime? to)
     {
         var userId = user.GetRequiredUserId();
-        var childIds = new List<Guid>();
+        var childIds = new List<string>();
 
         if (user.IsInRole("Parent"))
         {
@@ -70,14 +71,7 @@ public class AttendanceService : IAttendanceService
         }
         else if (user.IsInRole("Athlete") || user.IsInRole("Child"))
         {
-            var userEmail = user.GetEmail();
-            if (!string.IsNullOrWhiteSpace(userEmail))
-            {
-                childIds = await _context.ChildProfiles
-                    .Where(c => c.IsActive && c.Email == userEmail)
-                    .Select(c => c.Id)
-                    .ToListAsync();
-            }
+            childIds = [userId];
         }
 
         if (!childIds.Any())
@@ -94,6 +88,7 @@ public class AttendanceService : IAttendanceService
             query = query.Where(ar => ar.TrainingEvent.StartTime <= to.Value);
 
         return await query
+            .Include(ar => ar.Child)
             .OrderByDescending(ar => ar.TrainingEvent.StartTime)
             .Select(ar => new UserAttendanceDto(
                 ar.Id,
@@ -102,12 +97,14 @@ public class AttendanceService : IAttendanceService
                 ar.TrainingEvent.StartTime,
                 (AttendanceStatus)(int)ar.Status,
                 ar.Note,
-                ar.CoachComment
+                ar.CoachComment,
+                ar.ChildId,
+                ar.Child.FirstName + " " + ar.Child.LastName
             ))
             .ToListAsync();
     }
 
-    public async Task<AttendanceStatsDto> GetMemberStatsAsync(Guid childId, DateTime? from, DateTime? to)
+    public async Task<AttendanceStatsDto> GetMemberStatsAsync(string childId, DateTime? from, DateTime? to)
     {
         var query = _context.AttendanceRecords
             .Include(ar => ar.TrainingEvent)
@@ -133,10 +130,15 @@ public class AttendanceService : IAttendanceService
 
     public async Task<List<MemberAttendanceStatsDto>> GetTeamStatsAsync(Guid teamId, DateTime? from, DateTime? to)
     {
+        var teamMemberIds = await _context.TeamMembers
+            .Where(tm => tm.TeamId == teamId)
+            .Select(tm => tm.UserId)
+            .ToListAsync();
+
         var query = _context.AttendanceRecords
             .Include(ar => ar.TrainingEvent)
             .Include(ar => ar.Child)
-            .Where(ar => ar.Child.TeamId == teamId && ar.Child.IsActive);
+            .Where(ar => teamMemberIds.Contains(ar.ChildId) && ar.Child.IsActive);
 
         if (from.HasValue)
             query = query.Where(ar => ar.TrainingEvent.StartTime >= from.Value);
@@ -159,16 +161,19 @@ public class AttendanceService : IAttendanceService
             .OrderByDescending(s => s.AttendancePercentage)
             .ToListAsync();
 
+        // Members with no attendance records are missing from the GROUP BY result above.
+        // They must be added manually with zero stats so they still appear in the overview.
         var membersWithRecords = stats.Select(s => s.ChildId).ToHashSet();
-        var allMembers = await _context.ChildProfiles
-            .Where(c => c.TeamId == teamId && c.IsActive)
-            .Select(c => new { c.Id, c.FirstName, c.LastName })
+        var allMembers = await _context.TeamMembers
+            .Include(tm => tm.User)
+            .Where(tm => tm.TeamId == teamId && tm.User.IsActive)
+            .Select(tm => new { tm.UserId, tm.User.FirstName, tm.User.LastName })
             .ToListAsync();
 
-        foreach (var member in allMembers.Where(m => !membersWithRecords.Contains(m.Id)))
+        foreach (var member in allMembers.Where(m => !membersWithRecords.Contains(m.UserId)))
         {
             stats.Add(new MemberAttendanceStatsDto(
-                member.Id,
+                member.UserId,
                 $"{member.FirstName} {member.LastName}",
                 0, 0, 0, 0
             ));
@@ -191,7 +196,7 @@ public class AttendanceService : IAttendanceService
         if (training.IsLocked)
             throw new InvalidOperationException("Dochádzka pre tento tréning je uzamknutá");
 
-        var child = await _context.ChildProfiles.FindAsync(request.ChildId)
+        var child = await _context.Users.FindAsync(request.ChildId)
             ?? throw new KeyNotFoundException("Člen neexistuje");
 
         var existingRecord = await _context.AttendanceRecords
@@ -283,22 +288,25 @@ public class AttendanceService : IAttendanceService
         _auditService.Log("BulkMarkAttendance", "Training", request.TrainingEventId.ToString(), user, new { Count = request.Entries.Count });
     }
 
-    private async Task EnsureAutomaticAttendance(Guid trainingEventId)
+    public async Task AutoCompleteForTrainingAsync(Guid trainingEventId, bool setLocked)
     {
         var training = await _context.TrainingEvents
-            .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == trainingEventId);
 
+        // AddMinutes(10) is an intentional grace period — auto-complete does not fire until the training has actually started.
         if (training == null || DateTime.UtcNow < training.StartTime.AddMinutes(10))
             return;
 
-        var teamMemberIds = await _context.ChildProfiles
-            .Where(c => c.TeamId == training.TeamId && c.IsActive)
-            .Select(c => c.Id)
+        var teamMemberIds = await _context.TeamMembers
+            .Where(tm => tm.TeamId == training.TeamId && tm.JoinedAt <= training.StartTime) // only members who were in the team before the training started
+            .Select(tm => tm.UserId)
             .ToListAsync();
 
         if (!teamMemberIds.Any())
+        {
+            if (setLocked) { training.IsLocked = true; await _context.SaveChangesAsync(); }
             return;
+        }
 
         var existingChildIds = await _context.AttendanceRecords
             .Where(ar => ar.TrainingEventId == trainingEventId)
@@ -306,31 +314,37 @@ public class AttendanceService : IAttendanceService
             .ToListAsync();
 
         var missingIds = teamMemberIds.Except(existingChildIds).ToList();
-        if (!missingIds.Any())
-            return;
 
-        var excuses = await _context.AbsenceRequests
-            .Where(ar => ar.Child.TeamId == training.TeamId
-                         && ar.Status == AbsenceRequestStatus.Received
-                         && (ar.TrainingEventId == trainingEventId
-                             || (ar.DateFrom.HasValue && ar.DateTo.HasValue
-                                 && ar.DateFrom.Value.Date <= training.StartTime.Date
-                                 && ar.DateTo.Value.Date >= training.StartTime.Date)))
-            .Select(ar => ar.ChildId)
-            .Distinct()
-            .ToListAsync();
-
-        foreach (var childId in missingIds)
+        if (missingIds.Any())
         {
-            _context.AttendanceRecords.Add(new AttendanceRecord
+            // An excuse matches either a specific training ID or a date range
+            // a parent can excuse an entire week without linking to individual training events.
+            var excuses = await _context.AbsenceRequests
+                .Where(ar => missingIds.Contains(ar.ChildId)
+                             && ar.Status == AbsenceRequestStatus.Received
+                             && (ar.TrainingEventId == trainingEventId
+                                 || (ar.DateFrom.HasValue && ar.DateTo.HasValue
+                                     && ar.DateFrom.Value.Date <= training.StartTime.Date
+                                     && ar.DateTo.Value.Date >= training.StartTime.Date)))
+                .Select(ar => ar.ChildId)
+                .Distinct()
+                .ToListAsync();
+
+            foreach (var childId in missingIds)
             {
-                Id = Guid.NewGuid(),
-                TrainingEventId = trainingEventId,
-                ChildId = childId,
-                Status = excuses.Contains(childId) ? Data.Entities.AttendanceStatus.Excused : Data.Entities.AttendanceStatus.Present,
-                RecordedAt = DateTime.UtcNow
-            });
+                _context.AttendanceRecords.Add(new AttendanceRecord
+                {
+                    Id = Guid.NewGuid(),
+                    TrainingEventId = trainingEventId,
+                    ChildId = childId,
+                    Status = excuses.Contains(childId) ? Data.Entities.AttendanceStatus.Excused : Data.Entities.AttendanceStatus.Present, // default is Present (optimistic); coach corrects if needed
+                    RecordedAt = DateTime.UtcNow
+                });
+            }
         }
+
+        if (setLocked)
+            training.IsLocked = true;
 
         await _context.SaveChangesAsync();
     }

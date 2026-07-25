@@ -13,5 +13,11 @@ namespace ZISK.Client.Services
 
         [Get("/api/stats/attendance")]
         Task<AttendanceStatsDto> GetAttendanceStatsAsync([Query] int? days = 30);
+
+        [Get("/api/stats/training-types")]
+        Task<List<TrainingTypeStatDto>> GetTrainingTypeStatsAsync([Query] int? days = 30);
+
+        [Get("/api/stats/attendance-trend")]
+        Task<List<AttendanceTrendPointDto>> GetAttendanceTrendAsync([Query] int? days = 30);
     }
 }

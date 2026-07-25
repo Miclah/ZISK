@@ -10,12 +10,14 @@
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.FirstName"
                                   Label="Meno"
+                                  Placeholder="Ján"
                                   For="@(() => Model.FirstName)"
                                   Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.LastName"
                                   Label="Priezvisko"
+                                  Placeholder="Novák"
                                   For="@(() => Model.LastName)"
                                   Variant="Variant.Outlined" />
                 </MudItem>
@@ -23,12 +25,14 @@
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.PhoneNumber"
                                   Label="Telefón"
+                                  Placeholder="+421 905 123 456"
                                   For="@(() => Model.PhoneNumber)"
                                   Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.Email"
                                   Label="Email"
+                                  Placeholder="jan.novak@email.com"
                                   For="@(() => Model.Email)"
                                   Variant="Variant.Outlined"
                                   InputType="InputType.Email" />
@@ -57,20 +61,57 @@
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.RodneCislo"
                                   Label="Rodné číslo"
+                                  Placeholder="991231/1234"
                                   For="@(() => Model.RodneCislo)"
                                   Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.Bydlisko"
                                   Label="Bydlisko"
+                                  Placeholder="Hlavná 1, 010 01 Žilina"
                                   For="@(() => Model.Bydlisko)"
                                   Variant="Variant.Outlined" />
                 </MudItem>
 
+                @* Zatial pre testovanie vypnute *@
+                @*
                 <MudItem xs="12">
                     <MudCheckBox @bind-Value="Model.GeneratePassword"
                                  Label="Vygenerovať náhodné heslo a poslať do SMS/Emailu"
                                  Color="Color.Primary" />
+                </MudItem>
+                *@
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.Password"
+                                  Label="Heslo"
+                                  For="@(() => Model.Password)"
+                                  Variant="Variant.Outlined"
+                                  InputType="@(_showPassword ? InputType.Text : InputType.Password)"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@(_showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                  OnAdornmentClick="@(() => _showPassword = !_showPassword)" />
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Min. 8 znakov, veľké aj malé písmeno, číslica.
+                    </MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.ConfirmPassword"
+                                  Label="Potvrdenie hesla"
+                                  For="@(() => Model.ConfirmPassword)"
+                                  Variant="Variant.Outlined"
+                                  InputType="@(_showConfirm ? InputType.Text : InputType.Password)"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@(_showConfirm ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                  OnAdornmentClick="@(() => _showConfirm = !_showConfirm)" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudProgressLinear Color="@PasswordStrengthColor"
+                                       Value="@PasswordStrengthValue"
+                                       Class="my-1"
+                                       Rounded="true" />
+                    <MudText Typo="Typo.caption" Color="@PasswordStrengthColor">@PasswordStrengthLabel</MudText>
                 </MudItem>
 
                 <MudItem xs="12">
@@ -83,9 +124,6 @@
         </EditForm>
     </DialogContent>
 
-    <DialogActions>
-        <MudButton OnClick="Cancel">Zrušiť</MudButton>
-    </DialogActions>
 </MudDialog>
 
 @code {
@@ -94,6 +132,39 @@
 
     [Parameter]
     public AddUserDialogModel Model { get; set; } = new();
+
+    private bool _showPassword;
+    private bool _showConfirm;
+
+    private int PasswordStrengthValue
+    {
+        get
+        {
+            var pwd = Model.Password ?? string.Empty;
+            int score = 0;
+            if (pwd.Length >= 8) score++;
+            if (pwd.Any(char.IsLower)) score++;
+            if (pwd.Any(char.IsUpper)) score++;
+            if (pwd.Any(char.IsDigit)) score++;
+            return score * 25;
+        }
+    }
+
+    private Color PasswordStrengthColor => PasswordStrengthValue switch
+    {
+        0 => Color.Default,
+        <= 50 => Color.Error,
+        <= 75 => Color.Warning,
+        _ => Color.Success
+    };
+
+    private string PasswordStrengthLabel => PasswordStrengthValue switch
+    {
+        0 => "Zadajte heslo",
+        <= 50 => "Slabé heslo",
+        <= 75 => "Stredne silné heslo",
+        _ => "Silné heslo"
+    };
 
     private void Cancel()
     {
@@ -126,22 +197,34 @@
         [Required(ErrorMessage = "Rola je povinná.")]
         public string Role { get; set; } = "Parent";
 
-        [StringLength(20, ErrorMessage = "Rodné číslo môže mať max 20 znakov.")]
+        [Required(ErrorMessage = "Rodné číslo je povinné.")]
+        [RegularExpression(@"^\d{6}[/]?\d{3,4}$", ErrorMessage = "Formát: 991231/1234")]
         public string? RodneCislo { get; set; }
 
         [StringLength(300, ErrorMessage = "Bydlisko môže mať max 300 znakov.")]
         public string? Bydlisko { get; set; }
 
-        public bool GeneratePassword { get; set; } = true;
+        // Zatial pre testovanie vypnute
+        public bool GeneratePassword { get; set; }
 
-        public CreateUserRequest ToRequest(string password, string resolvedEmail)
+        [Required(ErrorMessage = "Heslo je povinné.")]
+        [StringLength(100, MinimumLength = 8, ErrorMessage = "Heslo musí mať aspoň 8 znakov.")]
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$",
+            ErrorMessage = "Heslo musí obsahovať veľké aj malé písmeno a číslicu.")]
+        public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Potvrdenie hesla je povinné.")]
+        [Compare(nameof(Password), ErrorMessage = "Heslá sa nezhodujú.")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+
+        public CreateUserRequest ToRequest(string resolvedEmail)
         {
             var dateOfBirth = DateOfBirth.HasValue ? DateOnly.FromDateTime(DateOfBirth.Value) : (DateOnly?)null;
             return new CreateUserRequest(
                 FirstName,
                 LastName,
                 resolvedEmail,
-                password,
+                Password,
                 Role,
                 string.IsNullOrWhiteSpace(PhoneNumber) ? null : PhoneNumber,
                 string.IsNullOrWhiteSpace(RodneCislo) ? null : RodneCislo,

@@ -2,6 +2,9 @@ using System.Net.Http.Headers;
 
 namespace ZISK.Services;
 
+// Blazor SSR runs on the server and calls its own REST API via HttpClient.
+// Without this handler, those outgoing requests carry no auth cookie and the API returns 401.
+// This handler copies the Cookie and Authorization headers from the incoming Blazor HTTP request to every outgoing API call.
 public class ForwardAuthHeaderHandler : DelegatingHandler
 {
     private readonly IHttpContextAccessor _httpContextAccessor;

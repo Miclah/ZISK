@@ -4,6 +4,8 @@ namespace ZISK.Tests;
 
 public class UsernameGeneratorTests
 {
+    // Test inputs include Slovak/Hungarian names with full diacritics (Ľuboš, Žofia, Čierná, Müller)
+    // to verify that Normalize() works correctly for the entire Slovak and Central-European alphabet, not just basic Latin.
     [Theory]
     [InlineData("Ján", "Novák", "jan.novak")]
     [InlineData("Peter", "Horváth", "peter.horvath")]

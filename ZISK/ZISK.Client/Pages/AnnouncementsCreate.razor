@@ -8,9 +8,10 @@
 
 <PageTitle>Nový oznam</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Nový oznam</MudText>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Nový oznam</MudText>
 
-<MudGrid>
+    <MudGrid>
     <MudItem xs="12" md="8">
         <EditForm Model="@_announcementModel" OnValidSubmit="Submit">
             <DataAnnotationsValidator />
@@ -116,4 +117,5 @@
             </MudPaper>
         </EditForm>
     </MudItem>
-</MudGrid>
+    </MudGrid>
+</MudContainer>

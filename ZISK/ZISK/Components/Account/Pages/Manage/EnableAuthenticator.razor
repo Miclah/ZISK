@@ -1,5 +1,13 @@
-﻿@page "/Account/Manage/EnableAuthenticator"
+@page "/Account/Manage/EnableAuthenticator"
 
+@inject IdentityRedirectManager RedirectManager
+
+@code {
+    protected override void OnInitialized()
+        => RedirectManager.RedirectTo("/profil");
+}
+
+@*
 @using System.ComponentModel.DataAnnotations
 @using System.Globalization
 @using System.Text
@@ -10,10 +18,9 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject IdentityUserAccessor UserAccessor
 @inject UrlEncoder UrlEncoder
-@inject IdentityRedirectManager RedirectManager
 @inject ILogger<EnableAuthenticator> Logger
 
-<PageTitle>Configure authenticator app</PageTitle>
+<PageTitle>Nastavenie aplikácie autentifikátora</PageTitle>
 
 @if (recoveryCodes is not null)
 {
@@ -22,41 +29,41 @@
 else
 {
     <StatusMessage Message="@message" />
-    <h3>Configure authenticator app</h3>
+    <h3>Nastavenie aplikácie autentifikátora</h3>
     <div>
-        <p>To use an authenticator app go through the following steps:</p>
+        <p>Pre použitie aplikácie autentifikátora postupujte podľa nasledujúcich krokov:</p>
         <ol class="list">
             <li>
                 <p>
-                    Download a two-factor authenticator app like Microsoft Authenticator for
-                    <a href="https://go.microsoft.com/fwlink/?Linkid=825072">Android</a> and
-                    <a href="https://go.microsoft.com/fwlink/?Linkid=825073">iOS</a> or
-                    Google Authenticator for
-                    <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2&amp;hl=en">Android</a> and
+                    Stiahnite si aplikáciu dvojfázového overenia ako Microsoft Authenticator pre
+                    <a href="https://go.microsoft.com/fwlink/?Linkid=825072">Android</a> a
+                    <a href="https://go.microsoft.com/fwlink/?Linkid=825073">iOS</a> alebo
+                    Google Authenticator pre
+                    <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2&amp;hl=en">Android</a> a
                     <a href="https://itunes.apple.com/us/app/google-authenticator/id388497605?mt=8">iOS</a>.
                 </p>
             </li>
             <li>
-                <p>Scan the QR Code or enter this key <kbd>@sharedKey</kbd> into your two factor authenticator app. Spaces and casing do not matter.</p>
-                <div class="alert alert-info">Learn how to <a href="https://go.microsoft.com/fwlink/?Linkid=852423">enable QR code generation</a>.</div>
+                <p>Naskenujte QR kód alebo zadajte tento kľúč <kbd>@sharedKey</kbd> do aplikácie dvojfázového overenia. Na medzerách a veľkosti písmen nezáleží.</p>
+                <div class="alert alert-info">Zistite ako <a href="https://go.microsoft.com/fwlink/?Linkid=852423">zapnúť generovanie QR kódov</a>.</div>
                 <div></div>
                 <div data-url="@authenticatorUri"></div>
             </li>
             <li>
                 <p>
-                    Once you have scanned the QR code or input the key above, your two factor authentication app will provide you
-                    with a unique code. Enter the code in the confirmation box below.
+                    Po naskenovaní QR kódu alebo zadaní kľúča vám aplikácia dvojfázového overenia poskytne
+                    jedinečný kód. Zadajte ho do poľa nižšie.
                 </p>
                 <div class="row">
                     <div class="col-xl-6">
                         <EditForm Model="Input" FormName="send-code" OnValidSubmit="OnValidSubmitAsync" method="post">
                             <DataAnnotationsValidator />
                             <div class="form-floating mb-3">
-                                <InputText @bind-Value="Input.Code" id="Input.Code" class="form-control" autocomplete="off" placeholder="Enter the code" />
-                                <label for="Input.Code" class="control-label form-label">Verification Code</label>
+                                <InputText @bind-Value="Input.Code" id="Input.Code" class="form-control" autocomplete="off" placeholder="Zadajte kód" />
+                                <label for="Input.Code" class="control-label form-label">Overovací kód</label>
                                 <ValidationMessage For="() => Input.Code" class="text-danger" />
                             </div>
-                            <button type="submit" class="w-100 btn btn-lg btn-primary">Verify</button>
+                            <button type="submit" class="w-100 btn btn-lg btn-primary">Overiť</button>
                             <ValidationSummary class="text-danger" role="alert" />
                         </EditForm>
                     </div>
@@ -104,7 +111,7 @@ else
 
         if (!is2faTokenValid)
         {
-            message = "Error: Verification code is invalid.";
+            message = "Chyba: Overovací kód je neplatný.";
             return;
         }
 
@@ -112,7 +119,7 @@ else
         var userId = await UserManager.GetUserIdAsync(user);
         Logger.LogInformation("User with ID '{UserId}' has enabled 2FA with an authenticator app.", userId);
 
-        message = "Your authenticator app has been verified.";
+        message = "Vaša aplikácia autentifikátora bola overená.";
 
         if (await UserManager.CountRecoveryCodesAsync(user) == 0)
         {
@@ -170,9 +177,10 @@ else
     private sealed class InputModel
     {
         [Required]
-        [StringLength(7, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        [StringLength(7, ErrorMessage = "{0} musí mať aspoň {2} a najviac {1} znakov.", MinimumLength = 6)]
         [DataType(DataType.Text)]
-        [Display(Name = "Verification Code")]
+        [Display(Name = "Overovací kód")]
         public string Code { get; set; } = "";
     }
 }
+*@
