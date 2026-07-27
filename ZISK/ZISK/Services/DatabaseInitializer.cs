@@ -1,4 +1,3 @@
-using System.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ZISK.Data;
@@ -8,8 +7,6 @@ namespace ZISK.Services;
 
 public class DatabaseInitializer
 {
-    private const string SamplePrefix = "[SAMPLE]";
-
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
@@ -33,16 +30,22 @@ public class DatabaseInitializer
 
         await SeedRolesAsync();
 
-        var admin = await EnsureUserAsync("admin@zisk.sk", "Admin1234", "Admin", "Admin", "ZISK");
-        var coach = await EnsureUserAsync("trener@zisk.sk", "Trener1234", "Coach", "Ján", "Tréner");
-        var parent = await EnsureUserAsync("rodic@zisk.sk", "Rodic1234", "Parent", "Peter", "Rodič");
-        var child = await EnsureUserAsync("dieta@zisk.sk", "Dieta1234", "Child", "Tomáš", "Dieťa");
+        var admin  = await EnsureUserAsync("admin@zisk.sk",  "Admin1234",  "Admin",  "Miroslav", "Kráľ");
+        var coach  = await EnsureUserAsync("trener@zisk.sk", "Trener1234", "Coach",  "Marek",    "Kováčik");
+        var parent = await EnsureUserAsync("rodic@zisk.sk",  "Rodic1234",  "Parent", "Peter",    "Novák");
+        var child  = await EnsureUserAsync("dieta@zisk.sk",  "Dieta1234",  "Child",  "Tomáš",    "Novák");
+
+        if (child != null && child.DateOfBirth == null)
+        {
+            child.DateOfBirth = new DateOnly(2014, 5, 12);
+            await _userManager.UpdateAsync(child);
+        }
 
         await SeedTeamsAsync();
         await EnsureDefaultSeasonAsync();
         await EnsureChildSeedUserAsync(child, parent);
         await EnsureCoachTeamAssignmentsAsync(coach);
-        await SeedSampleDataAsync(admin, coach, parent);
+        await SeedSampleDataAsync(admin, coach, parent, child);
     }
 
     private sealed record SampleUserGroup(
@@ -66,17 +69,15 @@ public class DatabaseInitializer
         if (await _context.Seasons.AnyAsync())
             return;
 
-        var season = new Season
+        _context.Seasons.Add(new Season
         {
-            Id = Guid.NewGuid(),
-            Name = "Jar 2026",
+            Id        = Guid.NewGuid(),
+            Name      = "Jar 2026",
             StartDate = new DateOnly(2026, 1, 1),
-            EndDate = new DateOnly(2026, 6, 30),
-            IsActive = true,
+            EndDate   = new DateOnly(2026, 6, 30),
+            IsActive  = true,
             CreatedAt = DateTime.UtcNow
-        };
-
-        _context.Seasons.Add(season);
+        });
         await _context.SaveChangesAsync();
     }
 
@@ -85,28 +86,32 @@ public class DatabaseInitializer
         if (childUser == null)
             return;
 
-        // Ensure child has a team membership
         var hasTeam = await _context.TeamMembers.AnyAsync(tm => tm.UserId == childUser.Id);
         if (!hasTeam)
         {
+            // Tomáš Novák patrí do Prípravky
             var teamId = await _context.Teams
-                .Where(t => t.IsActive)
+                .Where(t => t.IsActive && t.Name == "Prípravka")
                 .Select(t => (Guid?)t.Id)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync()
+                ?? await _context.Teams
+                    .Where(t => t.IsActive)
+                    .OrderBy(t => t.Name)
+                    .Select(t => (Guid?)t.Id)
+                    .FirstOrDefaultAsync();
 
             if (teamId.HasValue)
             {
                 _context.TeamMembers.Add(new TeamMember
                 {
-                    TeamId = teamId.Value,
-                    UserId = childUser.Id,
+                    TeamId   = teamId.Value,
+                    UserId   = childUser.Id,
                     JoinedAt = DateTime.UtcNow
                 });
                 await _context.SaveChangesAsync();
             }
         }
 
-        // Ensure parent-child link
         if (parent != null)
         {
             var hasLink = await _context.ParentChildren
@@ -116,8 +121,8 @@ public class DatabaseInitializer
             {
                 _context.ParentChildren.Add(new ParentChild
                 {
-                    ParentId = parent.Id,
-                    ChildId = childUser.Id,
+                    ParentId  = parent.Id,
+                    ChildId   = childUser.Id,
                     IsPrimary = true
                 });
                 await _context.SaveChangesAsync();
@@ -125,25 +130,30 @@ public class DatabaseInitializer
         }
     }
 
-    private async Task<ApplicationUser?> EnsureUserAsync(string email, string password, string role, string firstName, string lastName)
+    private async Task<ApplicationUser?> EnsureUserAsync(
+        string email, string password, string role,
+        string firstName, string lastName,
+        DateOnly? dateOfBirth = null)
     {
         var user = await _userManager.FindByEmailAsync(email);
         if (user == null)
         {
             user = new ApplicationUser
             {
-                UserName = email,
-                Email = email,
-                FirstName = firstName,
-                LastName = lastName,
+                UserName       = email,
+                Email          = email,
+                FirstName      = firstName,
+                LastName       = lastName,
+                DateOfBirth    = dateOfBirth,
                 EmailConfirmed = true,
-                IsActive = true
+                IsActive       = true
             };
 
             var result = await _userManager.CreateAsync(user, password);
             if (!result.Succeeded)
             {
-                _logger.LogWarning("Unable to create seed user {Email}: {Error}", email, string.Join(", ", result.Errors.Select(e => e.Description)));
+                _logger.LogWarning("Unable to create seed user {Email}: {Error}",
+                    email, string.Join(", ", result.Errors.Select(e => e.Description)));
                 return await _userManager.FindByEmailAsync(email);
             }
         }
@@ -159,15 +169,12 @@ public class DatabaseInitializer
         if (await _context.Teams.AnyAsync())
             return;
 
-        var teams = new List<Team>
-        {
-            new() { Id = Guid.NewGuid(), Name = "A-tím", ShortName = "A", Description = "Hlavný seniorský tím", IsActive = true },
-            new() { Id = Guid.NewGuid(), Name = "B-tím", ShortName = "B", Description = "Záložný seniorský tím", IsActive = true },
-            new() { Id = Guid.NewGuid(), Name = "Žiaci", ShortName = "Ž", Description = "Mládežnícky tím", IsActive = true },
-            new() { Id = Guid.NewGuid(), Name = "Prípravka", ShortName = "P", Description = "Najmenší športovci", IsActive = true }
-        };
-
-        _context.Teams.AddRange(teams);
+        _context.Teams.AddRange(
+            new Team { Id = Guid.NewGuid(), Name = "A-tím",     ShortName = "A", Description = "Seniorský tím – III. liga, hlavná súťaž",       IsActive = true },
+            new Team { Id = Guid.NewGuid(), Name = "B-tím",     ShortName = "B", Description = "Záložný seniorský tím – prípravné zápasy",       IsActive = true },
+            new Team { Id = Guid.NewGuid(), Name = "Žiaci",     ShortName = "Ž", Description = "Mládežnícka kategória U15",                      IsActive = true },
+            new Team { Id = Guid.NewGuid(), Name = "Prípravka", ShortName = "P", Description = "Najmladší hráči, kategória U11",                 IsActive = true }
+        );
         await _context.SaveChangesAsync();
     }
 
@@ -176,42 +183,37 @@ public class DatabaseInitializer
         if (coach == null)
             return;
 
-        var activeTeamIds = await _context.Teams
-            .Where(t => t.IsActive)
-            .Select(t => t.Id)
-            .ToListAsync();
+        // Marek Kováčik je primárny tréner A-tímu
+        var aTeamId = await _context.Teams
+            .Where(t => t.IsActive && t.Name == "A-tím")
+            .Select(t => (Guid?)t.Id)
+            .FirstOrDefaultAsync();
 
-        if (!activeTeamIds.Any())
+        if (!aTeamId.HasValue)
             return;
 
-        var assignedTeamIds = await _context.CoachTeams
-            .Where(ct => ct.CoachId == coach.Id)
-            .Select(ct => ct.TeamId)
-            .ToListAsync();
+        var exists = await _context.CoachTeams
+            .AnyAsync(ct => ct.CoachId == coach.Id && ct.TeamId == aTeamId.Value);
 
-        var hasPrimary = await _context.CoachTeams
-            .AnyAsync(ct => ct.CoachId == coach.Id && ct.IsPrimary);
-
-        // firstNew flag: only the very first new team gets IsPrimary=true, and only if the coach has no primary team yet.
-        // The combination of !hasPrimary && firstNew ensures at most one team is promoted per call.
-        var firstNew = true;
-        foreach (var teamId in activeTeamIds.Where(teamId => !assignedTeamIds.Contains(teamId)))
+        if (!exists)
         {
             _context.CoachTeams.Add(new CoachTeam
             {
-                Id = Guid.NewGuid(),
-                CoachId = coach.Id,
-                TeamId = teamId,
-                IsPrimary = !hasPrimary && firstNew,
+                Id         = Guid.NewGuid(),
+                CoachId    = coach.Id,
+                TeamId     = aTeamId.Value,
+                IsPrimary  = true,
                 AssignedAt = DateTime.UtcNow
             });
-            firstNew = false;
+            await _context.SaveChangesAsync();
         }
-
-        await _context.SaveChangesAsync();
     }
 
-    private async Task SeedSampleDataAsync(ApplicationUser? admin, ApplicationUser? defaultCoach, ApplicationUser? defaultParent)
+    private async Task SeedSampleDataAsync(
+        ApplicationUser? admin,
+        ApplicationUser? defaultCoach,
+        ApplicationUser? defaultParent,
+        ApplicationUser? coreChild)
     {
         var teams = await _context.Teams
             .Where(t => t.IsActive)
@@ -221,162 +223,207 @@ public class DatabaseInitializer
         if (!teams.Any())
             return;
 
-        var sampleUsers = await EnsureSampleUsersAsync();
+        var sampleUsers   = await EnsureSampleUsersAsync();
         var sampleChildren = await EnsureSampleChildrenAsync(teams, sampleUsers);
 
-        await EnsureSampleParentLinksAsync(defaultParent, sampleUsers, sampleChildren);
-        await EnsureSampleCoachAssignmentsAsync(defaultCoach, sampleUsers, teams);
+        // Zahrnúť aj hlavného testovacie dieťa do zoznamu pre dochádzku
+        if (coreChild != null && !sampleChildren.Any(c => c.Id == coreChild.Id))
+            sampleChildren.Insert(0, coreChild);
+
+        await EnsureSampleParentLinksAsync(defaultParent, sampleUsers, coreChild);
+        await EnsureSampleCoachAssignmentsAsync(sampleUsers, teams);
 
         var sampleTrainings = await EnsureSampleTrainingsAsync(teams);
-        var attendanceUser = defaultCoach ?? sampleUsers.Coaches.FirstOrDefault() ?? admin;
+        var attendanceUser  = defaultCoach ?? sampleUsers.Coaches.FirstOrDefault() ?? admin;
 
         await EnsureSampleAttendanceAsync(sampleTrainings, sampleChildren, attendanceUser);
 
         var sampleParent = sampleUsers.Parents.FirstOrDefault() ?? defaultParent;
         await EnsureSampleAbsenceRequestsAsync(sampleTrainings, sampleChildren, sampleParent);
 
-        // Bohata vzorka pre grafy a statistiky - generuje treningy/dochadzku/ospravedlnenky za posledne 3 mesiace
         await EnsureRichSampleHistoryAsync(teams, sampleChildren, attendanceUser, sampleParent);
 
         var announcementAuthor = admin ?? defaultCoach ?? sampleUsers.Coaches.FirstOrDefault();
         await EnsureSampleAnnouncementsAsync(announcementAuthor, teams);
-        await EnsureSampleDocumentsAsync();
+        await EnsureSampleDocumentsAsync(admin);
     }
 
     private async Task<SampleUserGroup> EnsureSampleUsersAsync()
     {
-        var coaches = new List<ApplicationUser>();
-        var parents = new List<ApplicationUser>();
+        var coaches  = new List<ApplicationUser>();
+        var parents  = new List<ApplicationUser>();
         var athletes = new List<ApplicationUser>();
         var children = new List<ApplicationUser>();
 
-        var coach1 = await EnsureUserAsync("coach.marek.sample@zisk.sk", "Sample1234", "Coach", "Marek", "SampleCoach");
-        var coach2 = await EnsureUserAsync("coach.lukas.sample@zisk.sk", "Sample1234", "Coach", "Lukáš", "SampleCoach");
-        var parent1 = await EnsureUserAsync("parent.jana.sample@zisk.sk", "Sample1234", "Parent", "Jana", "SampleParent");
-        var parent2 = await EnsureUserAsync("parent.milan.sample@zisk.sk", "Sample1234", "Parent", "Milan", "SampleParent");
-        var athlete1 = await EnsureUserAsync("athlete.adam.sample@zisk.sk", "Sample1234", "Athlete", "Adam", "SampleAthlete");
-        var child1 = await EnsureUserAsync("child.nina.sample@zisk.sk", "Sample1234", "Child", "Nina", "SampleChild");
+        // Tréneri
+        foreach (var (email, pw, fn, ln) in new[]
+        {
+            ("rastislav.horvath@zisk.sk", "Trener1234", "Rastislav", "Horváth"),
+            ("tomas.balaz@zisk.sk",       "Trener1234", "Tomáš",     "Baláž"),
+            ("jan.minac@zisk.sk",         "Trener1234", "Ján",       "Mináč")
+        })
+        {
+            var u = await EnsureUserAsync(email, pw, "Coach", fn, ln);
+            if (u != null) coaches.Add(u);
+        }
 
-        if (coach1 != null) coaches.Add(coach1);
-        if (coach2 != null) coaches.Add(coach2);
-        if (parent1 != null) parents.Add(parent1);
-        if (parent2 != null) parents.Add(parent2);
-        if (athlete1 != null) athletes.Add(athlete1);
-        if (child1 != null) children.Add(child1);
+        // Rodičia
+        foreach (var (email, pw, fn, ln) in new[]
+        {
+            ("jana.novakova@zisk.sk",   "Rodic1234", "Jana",    "Nováková"),
+            ("milan.horak@zisk.sk",     "Rodic1234", "Milan",   "Horák"),
+            ("andrea.blahova@zisk.sk",  "Rodic1234", "Andrea",  "Bláhová"),
+            ("lukas.kral@zisk.sk",      "Rodic1234", "Lukáš",   "Kráľ"),
+            ("monika.simonova@zisk.sk", "Rodic1234", "Monika",  "Šimonová"),
+            ("juraj.balog@zisk.sk",     "Rodic1234", "Juraj",   "Balog"),
+            ("zuzana.oravec@zisk.sk",   "Rodic1234", "Zuzana",  "Oravec")
+        })
+        {
+            var u = await EnsureUserAsync(email, pw, "Parent", fn, ln);
+            if (u != null) parents.Add(u);
+        }
+
+        // Starší športovci (Athlete) — A-tím a B-tím
+        foreach (var (email, pw, fn, ln, dob) in new[]
+        {
+            ("lukas.maly@zisk.sk",      "Dieta1234", "Lukáš",   "Malý",   new DateOnly(2004, 3, 15)),
+            ("martin.horak@zisk.sk",    "Dieta1234", "Martin",  "Horák",  new DateOnly(2005, 7, 22)),
+            ("jakub.blaha@zisk.sk",     "Dieta1234", "Jakub",   "Bláha",  new DateOnly(2004, 11, 8)),
+            ("adam.kral@zisk.sk",       "Dieta1234", "Adam",    "Kráľ",   new DateOnly(2005, 2, 14)),
+            ("michal.simon@zisk.sk",    "Dieta1234", "Michal",  "Šimon",  new DateOnly(2007, 5, 3)),
+            ("juraj.balog.jr@zisk.sk",  "Dieta1234", "Juraj",   "Balog",  new DateOnly(2006, 9, 18)),
+            ("richard.varga@zisk.sk",   "Dieta1234", "Richard", "Varga",  new DateOnly(2007, 1, 25))
+        })
+        {
+            var u = await EnsureUserAsync(email, pw, "Athlete", fn, ln, dob);
+            if (u != null) athletes.Add(u);
+        }
+
+        // Mladší deti (Child) — Žiaci a Prípravka
+        foreach (var (email, pw, fn, ln, dob) in new[]
+        {
+            ("petra.horakova@zisk.sk",  "Dieta1234", "Petra",   "Horáková", new DateOnly(2010, 4, 7)),
+            ("klara.oravec@zisk.sk",    "Dieta1234", "Klára",   "Oravec",   new DateOnly(2011, 6, 12)),
+            ("filip.cerny@zisk.sk",     "Dieta1234", "Filip",   "Čierny",   new DateOnly(2010, 9, 30)),
+            ("zuzana.kralova@zisk.sk",  "Dieta1234", "Zuzana",  "Kráľová",  new DateOnly(2011, 3, 17)),
+            ("samuel.novak@zisk.sk",    "Dieta1234", "Samuel",  "Novák",    new DateOnly(2014, 8, 20)),
+            ("ema.holubova@zisk.sk",    "Dieta1234", "Ema",     "Holúbová", new DateOnly(2015, 1, 9)),
+            ("ondrej.maly@zisk.sk",     "Dieta1234", "Ondrej",  "Malý",     new DateOnly(2014, 11, 3)),
+            ("nina.blahova@zisk.sk",    "Dieta1234", "Nina",    "Bláhová",  new DateOnly(2015, 5, 28))
+        })
+        {
+            var u = await EnsureUserAsync(email, pw, "Child", fn, ln, dob);
+            if (u != null) children.Add(u);
+        }
 
         return new SampleUserGroup(coaches, parents, athletes, children);
     }
 
-    private async Task<List<ApplicationUser>> EnsureSampleChildrenAsync(List<Team> teams, SampleUserGroup sampleUsers)
+    private async Task<List<ApplicationUser>> EnsureSampleChildrenAsync(
+        List<Team> teams, SampleUserGroup sampleUsers)
     {
         var result = new List<ApplicationUser>();
+        var teamByName = teams.ToDictionary(t => t.Name, t => t.Id);
 
-        var athleteTeamId = teams.First().Id;
-        var childTeamId = teams.Count > 1 ? teams[1].Id : teams.First().Id;
-        var thirdTeamId = teams.Count > 2 ? teams[2].Id : teams.First().Id;
+        var aTeamId        = teamByName.GetValueOrDefault("A-tím",     teams[0].Id);
+        var bTeamId        = teamByName.GetValueOrDefault("B-tím",     teams.Count > 1 ? teams[1].Id : teams[0].Id);
+        var ziaciTeamId    = teamByName.GetValueOrDefault("Žiaci",     teams.Count > 2 ? teams[2].Id : teams[0].Id);
+        var pripravkaTeamId = teamByName.GetValueOrDefault("Prípravka", teams.Count > 3 ? teams[3].Id : teams[0].Id);
 
-        var childDefinitions = new[]
-        {
-            new { User = sampleUsers.Athletes.FirstOrDefault(), TeamId = athleteTeamId,
-                  FallbackEmail = "sample.adam.child@zisk.sk", FirstName = "Adam", LastName = "SampleAthlete",
-                  DateOfBirth = new DateOnly(2011, 4, 10) },
-            new { User = sampleUsers.Children.FirstOrDefault(), TeamId = childTeamId,
-                  FallbackEmail = "sample.nina.child@zisk.sk", FirstName = "Nina", LastName = "SampleChild",
-                  DateOfBirth = new DateOnly(2012, 9, 3) }
-        };
+        // A-tím: prví 4 športovci
+        var aTeamAthletes = sampleUsers.Athletes.Take(4).ToList();
+        foreach (var u in aTeamAthletes)
+            await EnsureTeamMembership(u, aTeamId, result);
 
-        foreach (var def in childDefinitions)
-        {
-            var user = def.User;
-            if (user == null)
-                continue;
+        // B-tím: ďalší 3 športovci
+        var bTeamAthletes = sampleUsers.Athletes.Skip(4).Take(3).ToList();
+        foreach (var u in bTeamAthletes)
+            await EnsureTeamMembership(u, bTeamId, result);
 
-            // Ensure team membership
-            var hasMembership = await _context.TeamMembers.AnyAsync(tm => tm.UserId == user.Id && tm.TeamId == def.TeamId);
-            if (!hasMembership)
-            {
-                _context.TeamMembers.Add(new TeamMember
-                {
-                    TeamId = def.TeamId,
-                    UserId = user.Id,
-                    JoinedAt = DateTime.UtcNow
-                });
-            }
+        // Žiaci: prvé 4 deti
+        var ziaciChildren = sampleUsers.Children.Take(4).ToList();
+        foreach (var u in ziaciChildren)
+            await EnsureTeamMembership(u, ziaciTeamId, result);
 
-            result.Add(user);
-        }
-
-        // Create two pure-child sample users with no app login
-        var extraChildren = new[]
-        {
-            new { Email = "ema.sampledata@zisk.sk", FirstName = "Ema", LastName = "SampleData",
-                  DateOfBirth = new DateOnly(2013, 2, 17), TeamId = thirdTeamId },
-            new { Email = "filip.sampledata@zisk.sk", FirstName = "Filip", LastName = "SampleData",
-                  DateOfBirth = new DateOnly(2010, 12, 5), TeamId = athleteTeamId }
-        };
-
-        foreach (var def in extraChildren)
-        {
-            var user = await EnsureUserAsync(def.Email, "Sample1234", "Child", def.FirstName, def.LastName);
-            if (user != null)
-            {
-                if (user.DateOfBirth == null)
-                {
-                    user.DateOfBirth = def.DateOfBirth;
-                    await _userManager.UpdateAsync(user);
-                }
-
-                var hasMembership = await _context.TeamMembers.AnyAsync(tm => tm.UserId == user.Id && tm.TeamId == def.TeamId);
-                if (!hasMembership)
-                {
-                    _context.TeamMembers.Add(new TeamMember
-                    {
-                        TeamId = def.TeamId,
-                        UserId = user.Id,
-                        JoinedAt = DateTime.UtcNow
-                    });
-                }
-                result.Add(user);
-            }
-        }
+        // Prípravka: ďalšie 4 deti
+        var pripravkaChildren = sampleUsers.Children.Skip(4).Take(4).ToList();
+        foreach (var u in pripravkaChildren)
+            await EnsureTeamMembership(u, pripravkaTeamId, result);
 
         await _context.SaveChangesAsync();
         return result;
     }
 
-    private async Task EnsureSampleParentLinksAsync(ApplicationUser? defaultParent, SampleUserGroup sampleUsers, List<ApplicationUser> sampleChildren)
+    private async Task EnsureTeamMembership(ApplicationUser user, Guid teamId, List<ApplicationUser> result)
     {
-        var parentLinks = new List<(string ParentId, string ChildId, bool IsPrimary)>();
+        var hasMembership = await _context.TeamMembers
+            .AnyAsync(tm => tm.UserId == user.Id && tm.TeamId == teamId);
 
-        if (defaultParent != null && sampleChildren.Any())
-            parentLinks.Add((defaultParent.Id, sampleChildren[0].Id, true));
-
-        var sampleParent1 = sampleUsers.Parents.ElementAtOrDefault(0);
-        var sampleParent2 = sampleUsers.Parents.ElementAtOrDefault(1);
-
-        if (sampleParent1 != null && sampleChildren.Count > 1)
-            parentLinks.Add((sampleParent1.Id, sampleChildren[1].Id, true));
-
-        if (sampleParent2 != null)
+        if (!hasMembership)
         {
-            if (sampleChildren.Count > 2)
-                parentLinks.Add((sampleParent2.Id, sampleChildren[2].Id, true));
-            if (sampleChildren.Count > 3)
-                parentLinks.Add((sampleParent2.Id, sampleChildren[3].Id, false));
+            _context.TeamMembers.Add(new TeamMember
+            {
+                TeamId   = teamId,
+                UserId   = user.Id,
+                JoinedAt = DateTime.UtcNow
+            });
         }
 
-        foreach (var link in parentLinks)
+        if (!result.Any(r => r.Id == user.Id))
+            result.Add(user);
+    }
+
+    private async Task EnsureSampleParentLinksAsync(
+        ApplicationUser? defaultParent,
+        SampleUserGroup sampleUsers,
+        ApplicationUser? coreChild)
+    {
+        // Lookup parents by email
+        async Task<ApplicationUser?> FindParent(string email) =>
+            await _userManager.FindByEmailAsync(email);
+
+        async Task<ApplicationUser?> FindChild(string email) =>
+            await _userManager.FindByEmailAsync(email);
+
+        var links = new List<(string ParentEmail, string ChildEmail, bool IsPrimary)>
         {
+            // Jana Nováková je sekundárna mama Tomáša (primárny otec Peter Novák — linknutý cez EnsureChildSeedUserAsync)
+            ("jana.novakova@zisk.sk", "dieta@zisk.sk",         false),
+            // Peter Novák (rodic@zisk.sk) — aj Samuel
+            ("rodic@zisk.sk",         "samuel.novak@zisk.sk",  true),
+            // Milan Horák — Martin a Petra
+            ("milan.horak@zisk.sk",   "martin.horak@zisk.sk",  true),
+            ("milan.horak@zisk.sk",   "petra.horakova@zisk.sk",true),
+            // Andrea Bláhová — Jakub a Nina
+            ("andrea.blahova@zisk.sk","jakub.blaha@zisk.sk",   true),
+            ("andrea.blahova@zisk.sk","nina.blahova@zisk.sk",  true),
+            // Lukáš Kráľ — Adam a Zuzana
+            ("lukas.kral@zisk.sk",    "adam.kral@zisk.sk",     true),
+            ("lukas.kral@zisk.sk",    "zuzana.kralova@zisk.sk",true),
+            // Monika Šimonová — Michal
+            ("monika.simonova@zisk.sk","michal.simon@zisk.sk", true),
+            // Juraj Balog — Juraj Jr.
+            ("juraj.balog@zisk.sk",   "juraj.balog.jr@zisk.sk",true),
+            // Zuzana Oravec — Klára
+            ("zuzana.oravec@zisk.sk", "klara.oravec@zisk.sk",  true)
+        };
+
+        foreach (var (parentEmail, childEmail, isPrimary) in links)
+        {
+            var p = await FindParent(parentEmail);
+            var c = await FindChild(childEmail);
+            if (p == null || c == null) continue;
+
             var exists = await _context.ParentChildren
-                .AnyAsync(pc => pc.ParentId == link.ParentId && pc.ChildId == link.ChildId);
+                .AnyAsync(pc => pc.ParentId == p.Id && pc.ChildId == c.Id);
 
             if (!exists)
             {
                 _context.ParentChildren.Add(new ParentChild
                 {
-                    ParentId = link.ParentId,
-                    ChildId = link.ChildId,
-                    IsPrimary = link.IsPrimary
+                    ParentId  = p.Id,
+                    ChildId   = c.Id,
+                    IsPrimary = isPrimary
                 });
             }
         }
@@ -384,45 +431,39 @@ public class DatabaseInitializer
         await _context.SaveChangesAsync();
     }
 
-    private async Task EnsureSampleCoachAssignmentsAsync(ApplicationUser? defaultCoach, SampleUserGroup sampleUsers, List<Team> teams)
+    private async Task EnsureSampleCoachAssignmentsAsync(SampleUserGroup sampleUsers, List<Team> teams)
     {
-        var assignments = new List<(ApplicationUser Coach, Guid TeamId, bool IsPrimary)>();
+        var teamByName = teams.ToDictionary(t => t.Name, t => t.Id);
 
-        if (defaultCoach != null)
-            assignments.Add((defaultCoach, teams.First().Id, true));
-
-        var sampleCoach1 = sampleUsers.Coaches.ElementAtOrDefault(0);
-        var sampleCoach2 = sampleUsers.Coaches.ElementAtOrDefault(1);
-
-        if (sampleCoach1 != null)
+        // Každý tréner má primárny tím
+        var assignments = new List<(string CoachEmail, string TeamName, bool IsPrimary)>
         {
-            assignments.Add((sampleCoach1, teams.First().Id, true));
-            if (teams.Count > 1)
-                assignments.Add((sampleCoach1, teams[1].Id, false));
-        }
+            ("rastislav.horvath@zisk.sk", "B-tím",     true),
+            ("tomas.balaz@zisk.sk",       "Žiaci",     true),
+            ("jan.minac@zisk.sk",         "Prípravka", true)
+        };
 
-        if (sampleCoach2 != null)
+        foreach (var (coachEmail, teamName, isPrimary) in assignments)
         {
-            var primaryTeamId = teams.Count > 2 ? teams[2].Id : teams.First().Id;
-            assignments.Add((sampleCoach2, primaryTeamId, true));
-        }
+            var coach = await _userManager.FindByEmailAsync(coachEmail);
+            if (coach == null) continue;
 
-        foreach (var assignment in assignments)
-        {
+            if (!teamByName.TryGetValue(teamName, out var teamId)) continue;
+
             var exists = await _context.CoachTeams
-                .AnyAsync(ct => ct.CoachId == assignment.Coach.Id && ct.TeamId == assignment.TeamId);
+                .AnyAsync(ct => ct.CoachId == coach.Id && ct.TeamId == teamId);
 
             if (exists) continue;
 
             var hasPrimary = await _context.CoachTeams
-                .AnyAsync(ct => ct.CoachId == assignment.Coach.Id && ct.IsPrimary);
+                .AnyAsync(ct => ct.CoachId == coach.Id && ct.IsPrimary);
 
             _context.CoachTeams.Add(new CoachTeam
             {
-                Id = Guid.NewGuid(),
-                CoachId = assignment.Coach.Id,
-                TeamId = assignment.TeamId,
-                IsPrimary = assignment.IsPrimary && !hasPrimary,
+                Id         = Guid.NewGuid(),
+                CoachId    = coach.Id,
+                TeamId     = teamId,
+                IsPrimary  = isPrimary && !hasPrimary,
                 AssignedAt = DateTime.UtcNow
             });
         }
@@ -432,58 +473,57 @@ public class DatabaseInitializer
 
     private async Task<List<TrainingEvent>> EnsureSampleTrainingsAsync(List<Team> teams)
     {
-        var existingSampleTrainings = await _context.TrainingEvents
-            .Where(t => t.Title.StartsWith(SamplePrefix))
-            .ToListAsync();
-
-        if (existingSampleTrainings.Any())
-            return existingSampleTrainings;
+        // Ak už existujú tréningy, preskočíme (rich history ich vytvorí neskôr)
+        if (await _context.TrainingEvents.AnyAsync())
+            return [];
 
         var activeSeason = await _context.Seasons.FirstOrDefaultAsync(s => s.IsActive);
         if (activeSeason == null)
             return [];
 
+        var teamByName = teams.ToDictionary(t => t.Name, t => t);
         var now = DateTime.UtcNow;
+
         var trainings = new List<TrainingEvent>
         {
             new()
             {
-                Id = Guid.NewGuid(),
-                TeamId = teams.First().Id,
-                SeasonId = activeSeason.Id,
-                Title = $"{SamplePrefix} Kondičný tréning A-tím",
+                Id        = Guid.NewGuid(),
+                TeamId    = teamByName.GetValueOrDefault("A-tím", teams[0]).Id,
+                SeasonId  = activeSeason.Id,
+                Title     = "Kondičný tréning – A",
                 StartTime = now.AddDays(-3).Date.AddHours(17),
-                EndTime = now.AddDays(-3).Date.AddHours(18).AddMinutes(30),
-                Location = "Hlavná telocvičňa",
-                Type = TrainingType.Conditioning,
-                CoachNote = "Zameranie: rýchlosť a mobilita.",
-                CreatedAt = now
+                EndTime   = now.AddDays(-3).Date.AddHours(18).AddMinutes(30),
+                Location  = "Hlavná telocvičňa",
+                Type      = TrainingType.Conditioning,
+                CoachNote = "Zameranie na rýchlosť, reakčný čas a mobilitu.",
+                CreatedAt = now.AddDays(-10)
             },
             new()
             {
-                Id = Guid.NewGuid(),
-                TeamId = teams.Count > 1 ? teams[1].Id : teams.First().Id,
-                SeasonId = activeSeason.Id,
-                Title = $"{SamplePrefix} Technický tréning B-tím",
+                Id        = Guid.NewGuid(),
+                TeamId    = teamByName.GetValueOrDefault("B-tím", teams.Count > 1 ? teams[1] : teams[0]).Id,
+                SeasonId  = activeSeason.Id,
+                Title     = "Technika a prihrávky – B",
                 StartTime = now.AddDays(-1).Date.AddHours(16),
-                EndTime = now.AddDays(-1).Date.AddHours(17).AddMinutes(30),
-                Location = "Vedľajšia telocvičňa",
-                Type = TrainingType.Technical,
-                CoachNote = "Práca s loptou a prihrávky.",
-                CreatedAt = now
+                EndTime   = now.AddDays(-1).Date.AddHours(17).AddMinutes(30),
+                Location  = "Vedľajšia telocvičňa",
+                Type      = TrainingType.Technical,
+                CoachNote = "Práca s loptou, krátke prihrávky, 1 na 1.",
+                CreatedAt = now.AddDays(-8)
             },
             new()
             {
-                Id = Guid.NewGuid(),
-                TeamId = teams.Count > 2 ? teams[2].Id : teams.First().Id,
-                SeasonId = activeSeason.Id,
-                Title = $"{SamplePrefix} Zápasová príprava",
+                Id        = Guid.NewGuid(),
+                TeamId    = teamByName.GetValueOrDefault("Žiaci", teams.Count > 3 ? teams[3] : teams[0]).Id,
+                SeasonId  = activeSeason.Id,
+                Title     = "Zápasová simulácia – Ž",
                 StartTime = now.AddDays(2).Date.AddHours(17),
-                EndTime = now.AddDays(2).Date.AddHours(18).AddMinutes(45),
-                Location = "Štadión - hlavné ihrisko",
-                Type = TrainingType.Match,
-                CoachNote = "Modelové herné situácie.",
-                CreatedAt = now
+                EndTime   = now.AddDays(2).Date.AddHours(18).AddMinutes(45),
+                Location  = "Štadión – hlavné ihrisko",
+                Type      = TrainingType.Match,
+                CoachNote = "Modelové herné situácie a rohové kopy.",
+                CreatedAt = now.AddDays(-5)
             }
         };
 
@@ -492,7 +532,10 @@ public class DatabaseInitializer
         return trainings;
     }
 
-    private async Task EnsureSampleAttendanceAsync(List<TrainingEvent> trainings, List<ApplicationUser> sampleChildren, ApplicationUser? markedByUser)
+    private async Task EnsureSampleAttendanceAsync(
+        List<TrainingEvent> trainings,
+        List<ApplicationUser> sampleChildren,
+        ApplicationUser? markedByUser)
     {
         var pastTrainings = trainings
             .Where(t => t.StartTime <= DateTime.UtcNow.AddHours(-1))
@@ -501,14 +544,15 @@ public class DatabaseInitializer
         foreach (var training in pastTrainings)
         {
             var teamMemberIds = await _context.TeamMembers
-                .Where(tm => tm.TeamId == training.TeamId && sampleChildren.Select(c => c.Id).Contains(tm.UserId))
+                .Where(tm => tm.TeamId == training.TeamId
+                          && sampleChildren.Select(c => c.Id).Contains(tm.UserId))
                 .Select(tm => tm.UserId)
                 .ToListAsync();
 
             for (var i = 0; i < teamMemberIds.Count; i++)
             {
                 var childId = teamMemberIds[i];
-                var exists = await _context.AttendanceRecords
+                var exists  = await _context.AttendanceRecords
                     .AnyAsync(ar => ar.TrainingEventId == training.Id && ar.ChildId == childId);
 
                 if (exists) continue;
@@ -522,14 +566,14 @@ public class DatabaseInitializer
 
                 _context.AttendanceRecords.Add(new AttendanceRecord
                 {
-                    Id = Guid.NewGuid(),
+                    Id              = Guid.NewGuid(),
                     TrainingEventId = training.Id,
-                    ChildId = childId,
-                    Status = status,
-                    Note = status == AttendanceStatus.Absent ? $"{SamplePrefix} Krátkodobá absencia" : null,
-                    CoachComment = status == AttendanceStatus.Present ? $"{SamplePrefix} Dobrá aktivita na tréningu" : null,
-                    MarkedByUserId = markedByUser?.Id,
-                    RecordedAt = DateTime.UtcNow
+                    ChildId         = childId,
+                    Status          = status,
+                    Note            = status == AttendanceStatus.Absent ? "Krátkodobá absencia" : null,
+                    CoachComment    = status == AttendanceStatus.Present ? "Dobrý výkon na tréningu." : null,
+                    MarkedByUserId  = markedByUser?.Id,
+                    RecordedAt      = DateTime.UtcNow
                 });
             }
         }
@@ -537,7 +581,10 @@ public class DatabaseInitializer
         await _context.SaveChangesAsync();
     }
 
-    private async Task EnsureSampleAbsenceRequestsAsync(List<TrainingEvent> trainings, List<ApplicationUser> sampleChildren, ApplicationUser? parent)
+    private async Task EnsureSampleAbsenceRequestsAsync(
+        List<TrainingEvent> trainings,
+        List<ApplicationUser> sampleChildren,
+        ApplicationUser? parent)
     {
         if (parent == null)
             return;
@@ -551,37 +598,38 @@ public class DatabaseInitializer
             return;
 
         var childId = await _context.TeamMembers
-            .Where(tm => tm.TeamId == upcomingTraining.TeamId && sampleChildren.Select(c => c.Id).Contains(tm.UserId))
+            .Where(tm => tm.TeamId == upcomingTraining.TeamId
+                      && sampleChildren.Select(c => c.Id).Contains(tm.UserId))
             .Select(tm => tm.UserId)
             .FirstOrDefaultAsync();
 
         if (childId == null)
             return;
 
-        var existingSampleExcuse = await _context.AbsenceRequests
-            .AnyAsync(ar => ar.ParentId == parent.Id && ar.ChildId == childId && ar.TrainingEventId == upcomingTraining.Id && ar.Reason != null && ar.Reason.StartsWith(SamplePrefix));
+        var existsAlready = await _context.AbsenceRequests
+            .AnyAsync(ar => ar.ParentId == parent.Id
+                         && ar.ChildId == childId
+                         && ar.TrainingEventId == upcomingTraining.Id);
 
-        if (existingSampleExcuse)
+        if (existsAlready)
             return;
 
         _context.AbsenceRequests.Add(new AbsenceRequest
         {
-            Id = Guid.NewGuid(),
-            ChildId = childId,
-            ParentId = parent.Id,
+            Id              = Guid.NewGuid(),
+            ChildId         = childId,
+            ParentId        = parent.Id,
             TrainingEventId = upcomingTraining.Id,
-            DateFrom = upcomingTraining.StartTime,
-            DateTo = upcomingTraining.EndTime,
-            Reason = $"{SamplePrefix} Školská akcia mimo mesta",
-            Note = "Návrat na ďalší tréning podľa plánu.",
-            Status = AbsenceRequestStatus.Received,
-            CreatedAt = DateTime.UtcNow
+            DateFrom        = upcomingTraining.StartTime,
+            DateTo          = upcomingTraining.EndTime,
+            Reason          = "Školský výlet – mimoškolská aktivita",
+            Note            = "Návrat na ďalší tréning podľa plánu.",
+            Status          = AbsenceRequestStatus.Received,
+            CreatedAt       = DateTime.UtcNow
         });
 
         await _context.SaveChangesAsync();
     }
-
-    private const string RichSamplePrefix = "[SAMPLE-HIST]";
 
     private async Task EnsureRichSampleHistoryAsync(
         List<Team> teams,
@@ -592,22 +640,21 @@ public class DatabaseInitializer
         if (!teams.Any() || !sampleChildren.Any())
             return;
 
-        var alreadySeeded = await _context.TrainingEvents
-            .AnyAsync(t => t.Title.StartsWith(RichSamplePrefix));
-        if (alreadySeeded)
+        // Guard: ak existuje viac ako 3 tréningy, história už bola naseedovaná
+        if (await _context.TrainingEvents.CountAsync() > 3)
             return;
 
         var activeSeason = await _context.Seasons.FirstOrDefaultAsync(s => s.IsActive);
         if (activeSeason == null)
             return;
 
-        var rng = new Random(42); // fixed seed — produces the same demo data on every restart, so the UI always looks consistent
-        var now = DateTime.UtcNow;
+        var rng         = new Random(42); // fixný seed — rovnaké dáta pri každom reštarte
+        var now         = DateTime.UtcNow;
         var startWindow = now.AddDays(-90);
 
-        var trainings = new List<TrainingEvent>();
+        var trainings  = new List<TrainingEvent>();
         var attendances = new List<AttendanceRecord>();
-        var excuses = new List<AbsenceRequest>();
+        var excuses    = new List<AbsenceRequest>();
 
         var typeRotation = new[]
         {
@@ -620,84 +667,90 @@ public class DatabaseInitializer
         };
 
         var locations = new[] { "Hlavná telocvičňa", "Vedľajšia telocvičňa", "Štadión", "Posilňovňa" };
-        var titles = new[]
+        var titles    = new[]
         {
-            "Príprava na zápas", "Kondičný tréning", "Technika - prihrávky",
-            "Hranie 5 na 5", "Regenerácia", "Špeciálne situácie", "Rýchlosť a obratnosť"
+            "Kondičný tréning",
+            "Technika a prihrávky",
+            "Taktický tréning",
+            "Zápasová simulácia",
+            "Regeneračná jednotka",
+            "Rýchlosť a obratnosť",
+            "Herné situácie"
         };
 
         var teamMemberCache = new Dictionary<Guid, List<string>>();
         foreach (var team in teams)
         {
             var members = await _context.TeamMembers
-                .Where(tm => tm.TeamId == team.Id && sampleChildren.Select(c => c.Id).Contains(tm.UserId))
+                .Where(tm => tm.TeamId == team.Id
+                          && sampleChildren.Select(c => c.Id).Contains(tm.UserId))
                 .Select(tm => tm.UserId)
                 .ToListAsync();
             teamMemberCache[team.Id] = members;
         }
 
-        // Trainings are generated up to +7 days in the future, but attendance records are only created for past trainings.
-        // This gives the demo data both upcoming trainings and a full history to display in charts.
+        // Generujeme tréningy za posledných 90 dní + 7 dní dopredu
         for (var day = startWindow.Date; day <= now.Date.AddDays(7); day = day.AddDays(1))
         {
-            // Trening Pondelok a Streda alebo Utorok a Stvrtok podla tima
             for (var teamIndex = 0; teamIndex < teams.Count; teamIndex++)
             {
-                var team = teams[teamIndex];
+                var team      = teams[teamIndex];
                 var dayOfWeek = (int)day.DayOfWeek;
-                var teamDaysA = teamIndex % 2 == 0 ? new[] { 1, 3 } : new[] { 2, 4 }; // 1,2,3,4 = Mon,Tue,Wed,Thu (DayOfWeek); even teams train Mon+Wed, odd teams Tue+Thu
-                if (!teamDaysA.Contains(dayOfWeek))
+                // Párne tímy: pondelok + streda (1, 3); nepárne: utorok + štvrtok (2, 4)
+                var trainingDays = teamIndex % 2 == 0 ? new[] { 1, 3 } : new[] { 2, 4 };
+                if (!trainingDays.Contains(dayOfWeek))
                     continue;
 
-                var hour = 16 + (teamIndex % 3);
+                var hour      = 16 + (teamIndex % 3);
                 var startTime = day.AddHours(hour);
-                var type = typeRotation[(teamIndex + day.DayOfYear) % typeRotation.Length];
-                var title = $"{RichSamplePrefix} {titles[(teamIndex + day.DayOfYear) % titles.Length]} - {team.ShortName}";
+                var type      = typeRotation[(teamIndex + day.DayOfYear) % typeRotation.Length];
+                var titleBase = titles[(teamIndex + day.DayOfYear) % titles.Length];
+                var title     = $"{titleBase} – {team.ShortName}";
 
                 var training = new TrainingEvent
                 {
-                    Id = Guid.NewGuid(),
-                    TeamId = team.Id,
-                    SeasonId = activeSeason.Id,
-                    Title = title,
+                    Id        = Guid.NewGuid(),
+                    TeamId    = team.Id,
+                    SeasonId  = activeSeason.Id,
+                    Title     = title,
                     StartTime = startTime,
-                    EndTime = startTime.AddMinutes(90),
-                    Location = locations[(teamIndex + day.DayOfYear) % locations.Length],
-                    Type = type,
+                    EndTime   = startTime.AddMinutes(90),
+                    Location  = locations[(teamIndex + day.DayOfYear) % locations.Length],
+                    Type      = type,
                     CoachNote = null,
                     CreatedAt = startTime.AddDays(-7),
-                    IsLocked = false
+                    IsLocked  = false
                 };
                 trainings.Add(training);
 
-                // Dochadzka len pre minule treningy
+                // Dochádzka len pre minulé tréningy
                 if (training.StartTime > now)
                     continue;
 
                 var members = teamMemberCache[team.Id];
                 foreach (var childId in members)
                 {
-                    // Intentional distribution: 70% Present / 18% Excused / 12% Absent — makes demo charts look realistic.
-                    var roll = rng.Next(100);
+                    // Distribúcia: 70 % Prítomný / 18 % Ospravedlnený / 12 % Neprítomný
+                    var roll   = rng.Next(100);
                     var status = roll < 70 ? AttendanceStatus.Present
-                        : roll < 88 ? AttendanceStatus.Excused
-                        : AttendanceStatus.Absent;
+                               : roll < 88 ? AttendanceStatus.Excused
+                               : AttendanceStatus.Absent;
 
                     attendances.Add(new AttendanceRecord
                     {
-                        Id = Guid.NewGuid(),
+                        Id              = Guid.NewGuid(),
                         TrainingEventId = training.Id,
-                        ChildId = childId,
-                        Status = status,
-                        Note = status == AttendanceStatus.Absent ? $"{RichSamplePrefix} Neospravedlnená absencia" : null,
-                        MarkedByUserId = markedByUser?.Id,
-                        RecordedAt = training.StartTime.AddHours(2)
+                        ChildId         = childId,
+                        Status          = status,
+                        Note            = status == AttendanceStatus.Absent ? "Neospravedlnená absencia" : null,
+                        MarkedByUserId  = markedByUser?.Id,
+                        RecordedAt      = training.StartTime.AddHours(2)
                     });
                 }
             }
         }
 
-        // Ospravedlnenky: 12 vzoriek pre nadchadzajuce treningy
+        // Ospravedlnenky pre nadchádzajúce tréningy
         if (parent != null)
         {
             var futureTrainings = trainings
@@ -708,9 +761,14 @@ public class DatabaseInitializer
 
             var reasons = new[]
             {
-                "Choroba - chrípka", "Rodinná dovolenka", "Návšteva u lekára",
-                "Školský výlet", "Príprava na test", "Iný šport - turnaj",
-                "Súrodenecké narodeniny", "Rodinná oslava", "Doprava nedostupná"
+                "Choroba – chrípka",
+                "Rodinná dovolenka",
+                "Návšteva u lekára",
+                "Školský výlet",
+                "Príprava na skúšku",
+                "Iný šport – turnaj",
+                "Rodinná oslava",
+                "Doprava nedostupná"
             };
 
             foreach (var training in futureTrainings)
@@ -721,15 +779,15 @@ public class DatabaseInitializer
                 var childId = members[rng.Next(members.Count)];
                 excuses.Add(new AbsenceRequest
                 {
-                    Id = Guid.NewGuid(),
-                    ChildId = childId,
-                    ParentId = parent.Id,
+                    Id              = Guid.NewGuid(),
+                    ChildId         = childId,
+                    ParentId        = parent.Id,
                     TrainingEventId = training.Id,
-                    DateFrom = training.StartTime,
-                    DateTo = training.EndTime,
-                    Reason = $"{RichSamplePrefix} {reasons[rng.Next(reasons.Length)]}",
-                    Status = AbsenceRequestStatus.Received,
-                    CreatedAt = now.AddDays(-rng.Next(1, 14))
+                    DateFrom        = training.StartTime,
+                    DateTo          = training.EndTime,
+                    Reason          = reasons[rng.Next(reasons.Length)],
+                    Status          = AbsenceRequestStatus.Received,
+                    CreatedAt       = now.AddDays(-rng.Next(1, 14))
                 });
             }
         }
@@ -741,7 +799,8 @@ public class DatabaseInitializer
         _context.AbsenceRequests.AddRange(excuses);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Seeded {Trainings} trainings, {Attendances} attendance records, {Excuses} excuses for sample history.",
+        _logger.LogInformation(
+            "Naseedovaných {Trainings} tréningov, {Attendances} záznamov dochádzky, {Excuses} ospravedlnení.",
             trainings.Count, attendances.Count, excuses.Count);
     }
 
@@ -750,98 +809,131 @@ public class DatabaseInitializer
         if (author == null)
             return;
 
-        var definitions = new List<Announcement>
-        {
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = $"{SamplePrefix} Úvodný informačný oznam",
-                Content = "Vitajte v testovacom prostredí ZISK. Tento oznam slúži na ukážku práce so systémovými oznamami.",
-                TargetTeamId = null,
-                TargetAudience = TargetAudience.All,
-                Priority = AnnouncementPriority.Medium,
-                IsPinned = true,
-                ValidUntil = DateTime.UtcNow.AddDays(30),
-                AuthorUserId = author.Id,
-                PublishDate = DateTime.UtcNow
-            },
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = $"{SamplePrefix} Organizačné pokyny pre rodičov",
-                Content = "Prosíme rodičov o kontrolu termínov tréningov a ospravedlneniek v aplikácii.",
-                TargetTeamId = teams.First().Id,
-                TargetAudience = TargetAudience.Parents,
-                Priority = AnnouncementPriority.High,
-                IsPinned = false,
-                ValidUntil = DateTime.UtcNow.AddDays(21),
-                AuthorUserId = author.Id,
-                PublishDate = DateTime.UtcNow.AddHours(-3)
-            },
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = $"{SamplePrefix} Pripomienka pred tréningom",
-                Content = "Nezabudnite na pitný režim a včasný príchod aspoň 15 minút pred začiatkom tréningu.",
-                TargetTeamId = teams.Count > 1 ? teams[1].Id : teams.First().Id,
-                TargetAudience = TargetAudience.Athletes,
-                Priority = AnnouncementPriority.Low,
-                IsPinned = false,
-                ValidUntil = DateTime.UtcNow.AddDays(14),
-                AuthorUserId = author.Id,
-                PublishDate = DateTime.UtcNow.AddHours(-1)
-            }
-        };
+        if (await _context.Announcements.AnyAsync())
+            return;
 
-        foreach (var announcement in definitions)
-        {
-            var exists = await _context.Announcements.AnyAsync(a => a.Title == announcement.Title);
-            if (!exists)
-                _context.Announcements.Add(announcement);
-        }
+        var teamByName = teams.ToDictionary(t => t.Name, t => t.Id);
+        var aTeamId = teamByName.GetValueOrDefault("A-tím", teams[0].Id);
+        var ziaciTeamId = teamByName.GetValueOrDefault("Žiaci", teams.Count > 2 ? teams[2].Id : teams[0].Id);
+
+        _context.Announcements.AddRange(
+            new Announcement
+            {
+                Id             = Guid.NewGuid(),
+                Title          = "Letný tréningový tábor 2026 – prihlásenie do 20. júna",
+                Content        = "Vážení rodičia a športovci,\n\noznamujeme otvorenie prihlásenia na letný tréningový tábor ŠK ZISK, ktorý sa uskutoční od 7. do 14. júla 2026 v Nízkych Tatrách.\n\nPrihlasovanie prebieha cez formulár v sekcii Dokumenty alebo osobne v kancelárii klubu každý pracovný deň od 15:00 do 18:00.\n\nKapacita je obmedzená.",
+                TargetTeamId   = null,
+                TargetAudience = TargetAudience.All,
+                Priority       = AnnouncementPriority.High,
+                IsPinned       = true,
+                ValidUntil     = DateTime.UtcNow.AddDays(30),
+                AuthorUserId   = author.Id,
+                PublishDate    = DateTime.UtcNow.AddDays(-2)
+            },
+            new Announcement
+            {
+                Id             = Guid.NewGuid(),
+                Title          = "Zmena termínu tréningu A-tímu – 18. júna",
+                Content        = "Upozorňujeme členov A-tímu, že tréning naplánovaný na 18. júna (streda) sa presúva z 17:00 na 18:30 z dôvodu rekonštrukcie telocvične.\n\nMiesto zostáva rovnaké – Hlavná telocvičňa.",
+                TargetTeamId   = aTeamId,
+                TargetAudience = TargetAudience.Athletes,
+                Priority       = AnnouncementPriority.Medium,
+                IsPinned       = false,
+                ValidUntil     = DateTime.UtcNow.AddDays(14),
+                AuthorUserId   = author.Id,
+                PublishDate    = DateTime.UtcNow.AddDays(-1)
+            },
+            new Announcement
+            {
+                Id             = Guid.NewGuid(),
+                Title          = "Stretnutie rodičov žiakov – 12. júna o 18:00",
+                Content        = "Pozývame rodičov žiakov na informačné stretnutie, ktoré sa uskutoční 12. júna 2026 o 18:00 v zasadacej miestnosti klubu.\n\nProgram:\n• Hodnotenie jarnej časti sezóny\n• Informácie o tábore a letnom sústredení\n• Rôzne\n\nÚčasť je vítaná.",
+                TargetTeamId   = ziaciTeamId,
+                TargetAudience = TargetAudience.Parents,
+                Priority       = AnnouncementPriority.High,
+                IsPinned       = false,
+                ValidUntil     = DateTime.UtcNow.AddDays(10),
+                AuthorUserId   = author.Id,
+                PublishDate    = DateTime.UtcNow.AddHours(-18)
+            },
+            new Announcement
+            {
+                Id             = Guid.NewGuid(),
+                Title          = "Nové dresy – vyzdvihnutie v pondelok od 16:00",
+                Content        = "Informujeme všetkých hráčov, že nové klubové dresy sú k dispozícii na vyzdvihnutie od pondelka 9. júna 2026 v čase 16:00 – 19:00 pri vstupe do telocvične.\n\nPrineste so sebou potvrdenie o zaplatení členského príspevku.",
+                TargetTeamId   = null,
+                TargetAudience = TargetAudience.Athletes,
+                Priority       = AnnouncementPriority.Medium,
+                IsPinned       = false,
+                ValidUntil     = DateTime.UtcNow.AddDays(7),
+                AuthorUserId   = author.Id,
+                PublishDate    = DateTime.UtcNow.AddHours(-6)
+            },
+            new Announcement
+            {
+                Id             = Guid.NewGuid(),
+                Title          = "Výsledky jarného kola – A-tím postupuje do semifinále!",
+                Content        = "S radosťou oznamujeme, že A-tím ŠK ZISK postúpil do semifinále jarného kola III. ligy po víťazstve 3:1 nad FK Záhorie.\n\nGratulujeme celému tímu a trénerovi Markovi Kováčikovi! Semifinálový zápas sa uskutoční 28. júna 2026 na domácom štadióne.\n\nTešíme sa na vašu podporu!",
+                TargetTeamId   = aTeamId,
+                TargetAudience = TargetAudience.All,
+                Priority       = AnnouncementPriority.Low,
+                IsPinned       = false,
+                ValidUntil     = DateTime.UtcNow.AddDays(60),
+                AuthorUserId   = author.Id,
+                PublishDate    = DateTime.UtcNow.AddHours(-48)
+            }
+        );
 
         await _context.SaveChangesAsync();
     }
 
-    private async Task EnsureSampleDocumentsAsync()
+    private async Task EnsureSampleDocumentsAsync(ApplicationUser? uploader)
     {
-        var documents = new List<Document>
-        {
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = $"{SamplePrefix} Klubový poriadok",
-                FilePath = "/uploads/documents/sample-klubovy-poriadok.pdf",
-                Category = DocumentCategory.General,
-                TargetRoleId = null,
-                UploadedAt = DateTime.UtcNow.AddDays(-5)
-            },
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = $"{SamplePrefix} Vzor rodičovského súhlasu",
-                FilePath = "/uploads/documents/sample-rodicovsky-suhlas.docx",
-                Category = DocumentCategory.Contract,
-                TargetRoleId = null,
-                UploadedAt = DateTime.UtcNow.AddDays(-3)
-            },
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = $"{SamplePrefix} Týždenný tréningový plán",
-                FilePath = "/uploads/documents/sample-treningovy-plan.xlsx",
-                Category = DocumentCategory.TrainingPlan,
-                TargetRoleId = null,
-                UploadedAt = DateTime.UtcNow.AddDays(-1)
-            }
-        };
+        if (await _context.Documents.AnyAsync())
+            return;
 
-        foreach (var document in documents)
-        {
-            var exists = await _context.Documents.AnyAsync(d => d.Title == document.Title);
-            if (!exists)
-                _context.Documents.Add(document);
-        }
+        _context.Documents.AddRange(
+            new Document
+            {
+                Id               = Guid.NewGuid(),
+                Title            = "Stanovy ŠK ZISK",
+                FilePath         = "/uploads/documents/stanovy-sk-zisk.pdf",
+                Category         = DocumentCategory.General,
+                TargetRoleId     = null,
+                UploadedByUserId = uploader?.Id,
+                UploadedAt       = DateTime.UtcNow.AddDays(-30)
+            },
+            new Document
+            {
+                Id               = Guid.NewGuid(),
+                Title            = "Súhlas zákonného zástupcu – spracovanie osobných údajov",
+                FilePath         = "/uploads/documents/suhlas-gdpr.pdf",
+                Category         = DocumentCategory.Contract,
+                TargetRoleId     = null,
+                UploadedByUserId = uploader?.Id,
+                UploadedAt       = DateTime.UtcNow.AddDays(-14)
+            },
+            new Document
+            {
+                Id               = Guid.NewGuid(),
+                Title            = "Tréningový plán – jar 2026",
+                FilePath         = "/uploads/documents/treningovy-plan-jar-2026.pdf",
+                Category         = DocumentCategory.TrainingPlan,
+                TargetRoleId     = null,
+                UploadedByUserId = uploader?.Id,
+                UploadedAt       = DateTime.UtcNow.AddDays(-7)
+            },
+            new Document
+            {
+                Id               = Guid.NewGuid(),
+                Title            = "Zdravotná karta športovca",
+                FilePath         = "/uploads/documents/zdravotna-karta-sportovca.docx",
+                Category         = DocumentCategory.Contract,
+                TargetRoleId     = null,
+                UploadedByUserId = uploader?.Id,
+                UploadedAt       = DateTime.UtcNow.AddDays(-3)
+            }
+        );
 
         await _context.SaveChangesAsync();
     }

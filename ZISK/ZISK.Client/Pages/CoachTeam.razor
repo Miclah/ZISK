@@ -27,14 +27,14 @@
                       Style="@($"background:{_cPrimaryBg}; color:{_cPrimary}; border-radius:999px;")">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                     <MudIcon Icon="@Icons.Material.Filled.PeopleAlt" Size="Size.Small" Style="@($"color:{_cPrimary};")" />
-                    <MudText Typo="Typo.body2"><strong>@_members.Count</strong> členov</MudText>
+                    <MudText Typo="Typo.body2"><strong>@_members.Count</strong> @SlovakClen(_members.Count)</MudText>
                 </MudStack>
             </MudPaper>
             <MudPaper Elevation="0" Class="px-3 py-2"
                       Style="@($"background:{_cSecondaryBg}; color:{_cSecondary}; border-radius:999px;")">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                     <MudIcon Icon="@Icons.Material.Filled.EventBusy" Size="Size.Small" Style="@($"color:{_cSecondary};")" />
-                    <MudText Typo="Typo.body2"><strong>@_excuses.Count</strong> ospravedlneniek</MudText>
+                    <MudText Typo="Typo.body2"><strong>@_excuses.Count</strong> @SlovakOspravedlnenka(_excuses.Count)</MudText>
                 </MudStack>
             </MudPaper>
         </MudStack>
@@ -237,6 +237,9 @@
 </MudDialog>
 
 @code {
+    private static string SlovakClen(int n) => n == 1 ? "člen" : n is 2 or 3 or 4 ? "členovia" : "členov";
+    private static string SlovakOspravedlnenka(int n) => n == 1 ? "ospravedlnenka" : n is 2 or 3 or 4 ? "ospravedlnenky" : "ospravedlneniek";
+
     private static readonly string _cPrimary = (string)AppTheme.SportClubTheme.PaletteLight.Primary;
     private static readonly string _cSecondary = (string)AppTheme.SportClubTheme.PaletteLight.Secondary;
     private const string _cPrimaryBg = "rgba(30, 58, 95, 0.08)";

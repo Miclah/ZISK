@@ -129,6 +129,9 @@ public class TeamService : ITeamService
         if (team.Memberships.Any())
             throw new InvalidOperationException("Nemožno vymazať tím s členmi. Najprv presuňte členov do iného tímu.");
 
+        var series = await _context.TrainingSeries.Where(ts => ts.TeamId == id).ToListAsync();
+        _context.TrainingSeries.RemoveRange(series);
+
         _context.Teams.Remove(team);
         await _context.SaveChangesAsync();
         _auditService.Log("Delete", "Team", team.Id.ToString(), user, new { team.Name });
