@@ -90,6 +90,8 @@ builder.Services.AddTransient<IEmailSender<ApplicationUser>>(sp => sp.GetRequire
 builder.Services.AddTransient<IEmailSender>(sp => sp.GetRequiredService<SmtpEmailSender>());
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ITeamAccessService, TeamAccessService>();
+builder.Services.Configure<SeedPasswordOptions>(builder.Configuration.GetSection("Seed:Passwords"));
+builder.Services.Configure<SeedInitialAdminOptions>(builder.Configuration.GetSection("Seed:InitialAdmin"));
 builder.Services.AddScoped<DatabaseInitializer>();
 builder.Services.AddScoped<UsernameGenerator>();
 builder.Services.AddScoped<RegistrationDraftService>();
@@ -166,6 +168,12 @@ using (var scope = app.Services.CreateScope())
     try
     {
         await initializer.InitializeAsync();
+    }
+    catch (SeedConfigurationException)
+    {
+        // A demo/production deploy with missing Seed:* configuration must fail loudly at
+        // startup, not silently fall back to hardcoded local passwords or run with no admin.
+        throw;
     }
     catch (Exception ex)
     {
