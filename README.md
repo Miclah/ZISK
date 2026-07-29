@@ -4,7 +4,7 @@
 Bachelor's thesis project built on ASP.NET Core 10 + Blazor WebAssembly, with a
 5-role authorization model, three background workers, and a full xUnit test suite.
 
-[![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/) [![MudBlazor 9.4](https://img.shields.io/badge/MudBlazor-9.4-594AE2)](https://mudblazor.com/) [![MIT License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![CI](https://github.com/Miclah/ZISK/actions/workflows/ci.yml/badge.svg)](https://github.com/Miclah/ZISK/actions/workflows/ci.yml) [![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/) [![MudBlazor 9.4](https://img.shields.io/badge/MudBlazor-9.4-594AE2)](https://mudblazor.com/) [![MIT License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ---
 
