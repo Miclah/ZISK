@@ -204,6 +204,44 @@ public class TrainingService : ITrainingService
         training.CancelledReason = request.Reason;
         await _context.SaveChangesAsync();
         _auditService.Log("Cancel", "Training", training.Id.ToString(), user, new { training.Title, training.StartTime, request.Reason });
+
+        await NotifyCancellationAsync(training);
+    }
+
+    private async Task NotifyCancellationAsync(TrainingEvent training)
+    {
+        var memberIds = await _context.TeamMembers
+            .Where(tm => tm.TeamId == training.TeamId)
+            .Select(tm => tm.UserId)
+            .ToListAsync();
+
+        var parentIds = await _context.ParentChildren
+            .Where(pc => memberIds.Contains(pc.ChildId))
+            .Select(pc => pc.ParentId)
+            .ToListAsync();
+
+        var recipientEmails = await _context.Users
+            .Where(u => (memberIds.Contains(u.Id) || parentIds.Contains(u.Id)) && u.Email != null)
+            .Select(u => u.Email!)
+            .Distinct()
+            .ToListAsync();
+
+        var subject = $"Tréning zrušený: {training.Title}";
+        var body = $"Tréning \"{training.Title}\" naplánovaný na {training.StartTime:d.M.yyyy HH:mm} bol zrušený."
+            + (string.IsNullOrWhiteSpace(training.CancelledReason) ? "" : $" Dôvod: {training.CancelledReason}");
+
+        foreach (var email in recipientEmails)
+        {
+            try
+            {
+                await _emailSender.SendEmailAsync(email, subject, body);
+            }
+            catch (Exception ex)
+            {
+                // A single failed notification must not roll back the cancellation or block the rest.
+                _logger.LogWarning(ex, "Nepodarilo sa odoslať e-mail o zrušení tréningu {TrainingId} na {Email}", training.Id, email);
+            }
+        }
     }
 
     public async Task LockTrainingAsync(Guid id, ClaimsPrincipal user)
