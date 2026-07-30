@@ -18,7 +18,7 @@ Bachelor's thesis project built on ASP.NET Core 10 + Blazor WebAssembly, with a
 
 ## Live demo
 
-Not deployed yet — an Azure App Service (free tier) deployment is in progress. This section will be updated with a URL and demo credentials once it's live.
+Not deployed yet. The infrastructure-as-code is ready ([azure/main.bicep](azure/main.bicep) — App Service F1 + Azure SQL free serverless, deploy steps in [azure/README.md](azure/README.md)) and CI has a `deploy` job wired up via OIDC; what's missing is an actual Azure subscription behind it. This section will be updated with a URL and demo credentials once it's live.
 
 ## Screenshots
 

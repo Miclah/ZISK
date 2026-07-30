@@ -1,0 +1,13 @@
+// Copy to main.bicepparam (gitignored) and fill in real values before running
+// `az deployment group create --parameters @azure/main.bicepparam`.
+using 'main.bicep'
+
+param appName = 'miclah-zisk'
+param sqlAdminLogin = 'ziskadmin'
+param sqlAdminPassword = 'REPLACE_ME_strong_password'
+
+// Demo seed passwords - must differ from the local dev passwords in the root README.
+param seedAdminPassword = 'REPLACE_ME'
+param seedCoachPassword = 'REPLACE_ME'
+param seedParentPassword = 'REPLACE_ME'
+param seedChildPassword = 'REPLACE_ME'
