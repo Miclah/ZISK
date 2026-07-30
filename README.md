@@ -14,7 +14,7 @@ Bachelor's thesis project built on ASP.NET Core 10 + Blazor WebAssembly, with a
 - **5-role authorization** (Admin, Coach, Parent, Athlete, Child) enforced across three independent layers: UI (`AuthorizeView`), declarative (`[Authorize(Roles=...)]`), and object-level (`TeamAccessService` — a coach can only ever see their own teams' data)
 - **13 REST controllers**, 13 typed Refit clients shared between the WASM app and server-side Razor pages — one interface defines the contract for both
 - **3 background workers**: automatic attendance close-out, recurring training-series generation from a weekday bitmask, and automatic Child→Athlete promotion by age
-- **12 xUnit test classes** covering attendance automation, password/email flows, parent invitations, training cancellation, and more
+- **13 xUnit test classes** covering attendance automation, password/email flows, parent invitations, training cancellation, and more
 
 ## Live demo
 
@@ -108,7 +108,7 @@ Seeding behavior is controlled by the `ZISK_SEED_MODE` environment variable:
 | Mode | Purpose | Passwords |
 |---|---|---|
 | `local` (default) | `dotnet run` on your own machine | Hardcoded, listed below |
-| `demo` | Public deployment (e.g. Azure) | Read from `Seed:Passwords:*` config; startup fails loudly if any are missing |
+| `demo` | Public deployment (e.g. Azure) | Read from `Seed:Passwords:*` config; startup fails loudly if any are missing. Real email sending is also disabled in this mode — a public demo has no business emailing arbitrary addresses. |
 | `production` | Real deployment | No demo/sample data at all — only roles + one admin from `Seed:InitialAdmin:*` |
 
 Local dev accounts (`local` mode):
@@ -130,10 +130,10 @@ passwords above rather than having individual credentials.
 dotnet test
 ```
 
-12 xUnit test classes (93 test cases) covering automated attendance close-out,
+13 xUnit test classes (94 test cases) covering automated attendance close-out,
 password/email change flows, forgotten-password rate limiting, Child→Athlete
 upgrade, parent invitations, training cancellation and series generation,
-username generation, and the seed-mode configuration logic above.
+username generation, and the seed-mode/demo-email configuration logic above.
 
 ## What I learned
 

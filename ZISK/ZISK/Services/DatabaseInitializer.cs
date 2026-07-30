@@ -35,28 +35,10 @@ public class DatabaseInitializer
         _initialAdminOptions = initialAdminOptions.Value;
     }
 
-    private enum SeedMode { Local, Demo, Production }
-
     private sealed record SeedPasswordSet(string Admin, string Coach, string Parent, string Child)
     {
         public static readonly SeedPasswordSet LocalDefault =
             new("Admin1234", "Trener1234", "Rodic1234", "Dieta1234");
-    }
-
-    private SeedMode ResolveSeedMode()
-    {
-        var raw = _configuration["ZISK_SEED_MODE"];
-        if (string.IsNullOrWhiteSpace(raw))
-            return SeedMode.Local;
-
-        return raw.Trim().ToLowerInvariant() switch
-        {
-            "local" => SeedMode.Local,
-            "demo" => SeedMode.Demo,
-            "production" => SeedMode.Production,
-            _ => throw new SeedConfigurationException(
-                $"Neznáma hodnota ZISK_SEED_MODE='{raw}'. Platné hodnoty sú: local, demo, production.")
-        };
     }
 
     private SeedPasswordSet ResolveDemoPasswordSet()
@@ -103,7 +85,7 @@ public class DatabaseInitializer
     {
         await SeedRolesAsync();
 
-        var mode = ResolveSeedMode();
+        var mode = SeedModeResolver.Resolve(_configuration);
 
         if (mode == SeedMode.Production)
         {

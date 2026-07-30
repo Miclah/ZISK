@@ -86,8 +86,19 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
 builder.Services.AddTransient<SmtpEmailSender>();
-builder.Services.AddTransient<IEmailSender<ApplicationUser>>(sp => sp.GetRequiredService<SmtpEmailSender>());
-builder.Services.AddTransient<IEmailSender>(sp => sp.GetRequiredService<SmtpEmailSender>());
+builder.Services.AddTransient<LoggingEmailSender>();
+
+// Demo deployments must never send real email - see LoggingEmailSender.
+if (SeedModeResolver.Resolve(builder.Configuration) == SeedMode.Demo)
+{
+    builder.Services.AddTransient<IEmailSender<ApplicationUser>>(sp => sp.GetRequiredService<LoggingEmailSender>());
+    builder.Services.AddTransient<IEmailSender>(sp => sp.GetRequiredService<LoggingEmailSender>());
+}
+else
+{
+    builder.Services.AddTransient<IEmailSender<ApplicationUser>>(sp => sp.GetRequiredService<SmtpEmailSender>());
+    builder.Services.AddTransient<IEmailSender>(sp => sp.GetRequiredService<SmtpEmailSender>());
+}
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ITeamAccessService, TeamAccessService>();
 builder.Services.Configure<SeedPasswordOptions>(builder.Configuration.GetSection("Seed:Passwords"));
