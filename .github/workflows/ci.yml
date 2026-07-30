@@ -9,6 +9,11 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    env:
+      # Refit 10.1.6's author-signing certificate was revoked after publish (unrelated
+      # to package integrity - the .nupkg hash still matches). NU3012 otherwise fails
+      # restore on a clean cache. This is Microsoft's documented workaround.
+      NUGET_CERT_REVOCATION_MODE: offline
 
     steps:
       - name: Checkout
