@@ -7,12 +7,21 @@
     <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
     <StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
     <NoWarn>$(NoWarn);CS8669;MUD0002</NoWarn>
-    <BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
+    <!--
+      The UI is Slovak-only (sk-SK is hardcoded in both Program.cs files), so shipping the complete ICU
+      database is wasted payload. Pinning the non-CJK shard keeps every European locale — Slovak included —
+      while dropping ~100 KB (brotli) from first load.
+
+      Pinned explicitly rather than via LoadAllGlobalizationData=false: that setting makes the runtime pick a
+      shard from the *browser's* language, so a visitor with an English browser would get the EFIGS shard and
+      sk-SK formatting would silently degrade to invariant. Naming the file removes that dependency.
+    -->
+    <BlazorWebAssemblyLoadAllGlobalizationData>false</BlazorWebAssemblyLoadAllGlobalizationData>
+    <BlazorIcuDataFileName>icudt_no_CJK.dat</BlazorIcuDataFileName>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Heron.MudCalendar" Version="4.0.0" />
-    <PackageReference Include="MailKit" Version="4.16.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="10.0.5" />
     <PackageReference Include="MudBlazor" Version="9.4.0" />
