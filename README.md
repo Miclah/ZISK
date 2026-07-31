@@ -14,7 +14,7 @@ Bachelor's thesis project built on ASP.NET Core 10 + Blazor WebAssembly, with a
 - **5-role authorization** (Admin, Coach, Parent, Athlete, Child) enforced across three independent layers: UI (`AuthorizeView`), declarative (`[Authorize(Roles=...)]`), and object-level (`TeamAccessService` — a coach can only ever see their own teams' data)
 - **13 REST controllers**, 13 typed Refit clients shared between the WASM app and server-side Razor pages — one interface defines the contract for both
 - **3 background workers**: automatic attendance close-out, recurring training-series generation from a weekday bitmask, and automatic Child→Athlete promotion by age
-- **13 xUnit test classes** covering attendance automation, password/email flows, parent invitations, training cancellation, and more
+- **14 xUnit test classes** covering attendance automation, password/email flows, parent invitations, training cancellation, and more
 
 ## Live demo
 
@@ -130,10 +130,11 @@ passwords above rather than having individual credentials.
 dotnet test
 ```
 
-13 xUnit test classes (94 test cases) covering automated attendance close-out,
+14 xUnit test classes (99 test cases) covering automated attendance close-out,
 password/email change flows, forgotten-password rate limiting, Child→Athlete
 upgrade, parent invitations, training cancellation and series generation,
-username generation, and the seed-mode/demo-email configuration logic above.
+username generation, seed-mode/demo-email configuration, and the delete-path
+authorization/data-integrity fixes described below.
 
 ## What I learned
 

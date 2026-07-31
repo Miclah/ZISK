@@ -12,17 +12,20 @@ public class UserService : IUserService
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IAuditService _auditService;
+    private readonly IFileService _fileService;
     private readonly ILogger<UserService> _logger;
 
     public UserService(
         ApplicationDbContext context,
         UserManager<ApplicationUser> userManager,
         IAuditService auditService,
+        IFileService fileService,
         ILogger<UserService> logger)
     {
         _context = context;
         _userManager = userManager;
         _auditService = auditService;
+        _fileService = fileService;
         _logger = logger;
     }
 
@@ -342,13 +345,31 @@ public class UserService : IUserService
         if (coachLinks.Count > 0)
             _context.CoachTeams.RemoveRange(coachLinks);
 
+        // TrainingSeries.CoachId is a Restrict FK - leaving these in place would fail
+        // SaveChangesAsync with a raw FK violation instead of deleting the user.
+        var ownedSeries = await _context.TrainingSeries.Where(ts => ts.CoachId == id).ToListAsync();
+        if (ownedSeries.Count > 0)
+            _context.TrainingSeries.RemoveRange(ownedSeries);
+
+        // ParentInvitation.ChildUserId/InitiatorUserId are also Restrict FKs.
+        var invitations = await _context.ParentInvitations
+            .Where(pi => pi.ChildUserId == id || pi.InitiatorUserId == id)
+            .ToListAsync();
+        if (invitations.Count > 0)
+            _context.ParentInvitations.RemoveRange(invitations);
+
         var announcements = await _context.Announcements
             .Include(a => a.Attachments)
             .Where(a => a.AuthorUserId == id)
             .ToListAsync();
 
         foreach (var announcement in announcements)
+        {
+            foreach (var attachment in announcement.Attachments)
+                _fileService.DeleteFile(attachment.FilePath);
+
             _context.AnnouncementAttachments.RemoveRange(announcement.Attachments);
+        }
 
         if (announcements.Count > 0)
             _context.Announcements.RemoveRange(announcements);

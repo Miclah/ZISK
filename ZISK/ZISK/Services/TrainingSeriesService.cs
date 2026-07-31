@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using ZISK.Data;
 using ZISK.Data.Entities;
@@ -8,20 +9,31 @@ namespace ZISK.Services;
 public class TrainingSeriesService : ITrainingSeriesService
 {
     private readonly ApplicationDbContext _context;
+    private readonly ITeamAccessService _teamAccessService;
+    private readonly IAuditService _auditService;
 
-    public TrainingSeriesService(ApplicationDbContext context)
+    public TrainingSeriesService(
+        ApplicationDbContext context,
+        ITeamAccessService teamAccessService,
+        IAuditService auditService)
     {
         _context = context;
+        _teamAccessService = teamAccessService;
+        _auditService = auditService;
     }
 
-    public async Task<List<TrainingSeriesDto>> GetSeriesAsync(Guid? teamId = null, Guid? seasonId = null)
+    public async Task<List<TrainingSeriesDto>> GetSeriesAsync(ClaimsPrincipal user, Guid? teamId = null, Guid? seasonId = null)
     {
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
+
         var query = _context.TrainingSeries
             .Include(ts => ts.Team)
             .Include(ts => ts.Coach)
             .Include(ts => ts.Season)
             .AsNoTracking();
 
+        if (accessibleTeamIds is not null)
+            query = query.Where(ts => accessibleTeamIds.Contains(ts.TeamId));
         if (teamId.HasValue)
             query = query.Where(ts => ts.TeamId == teamId.Value);
         if (seasonId.HasValue)
@@ -30,7 +42,7 @@ public class TrainingSeriesService : ITrainingSeriesService
         return await query.OrderBy(ts => ts.Title).Select(ts => ToDto(ts)).ToListAsync();
     }
 
-    public async Task<TrainingSeriesDto> GetSeriesAsync(Guid id)
+    public async Task<TrainingSeriesDto> GetSeriesAsync(Guid id, ClaimsPrincipal user)
     {
         var series = await _context.TrainingSeries
             .Include(ts => ts.Team)
@@ -39,13 +51,17 @@ public class TrainingSeriesService : ITrainingSeriesService
             .AsNoTracking()
             .FirstOrDefaultAsync(ts => ts.Id == id)
             ?? throw new KeyNotFoundException();
+
+        await EnsureTeamAccessAsync(series.TeamId, user);
         return ToDto(series);
     }
 
-    public async Task<TrainingSeriesDto> CreateSeriesAsync(CreateTrainingSeriesRequest request, string coachId)
+    public async Task<TrainingSeriesDto> CreateSeriesAsync(CreateTrainingSeriesRequest request, string coachId, ClaimsPrincipal user)
     {
         if (request.StartTime >= request.EndTime)
             throw new ArgumentException("Čas začiatku musí byť pred časom konca.");
+
+        await EnsureTeamAccessAsync(request.TeamId, user);
 
         var series = new TrainingSeries
         {
@@ -66,16 +82,19 @@ public class TrainingSeriesService : ITrainingSeriesService
 
         _context.TrainingSeries.Add(series);
         await _context.SaveChangesAsync();
+        _auditService.Log("Create", "TrainingSeries", series.Id.ToString(), user, new { series.Title, series.TeamId });
 
-        return await GetSeriesAsync(series.Id);
+        return await GetSeriesAsync(series.Id, user);
     }
 
-    public async Task<TrainingSeriesDto> UpdateSeriesAsync(Guid id, UpdateTrainingSeriesRequest request)
+    public async Task<TrainingSeriesDto> UpdateSeriesAsync(Guid id, UpdateTrainingSeriesRequest request, ClaimsPrincipal user)
     {
         if (request.StartTime >= request.EndTime)
             throw new ArgumentException("Čas začiatku musí byť pred časom konca.");
 
         var series = await _context.TrainingSeries.FindAsync(id) ?? throw new KeyNotFoundException();
+        await EnsureTeamAccessAsync(series.TeamId, user);
+
         series.Title = request.Title;
         series.DaysOfWeek = request.DaysOfWeek;
         series.StartTime = request.StartTime;
@@ -86,22 +105,29 @@ public class TrainingSeriesService : ITrainingSeriesService
         series.IsActive = request.IsActive;
 
         await _context.SaveChangesAsync();
-        return await GetSeriesAsync(id);
+        _auditService.Log("Update", "TrainingSeries", series.Id.ToString(), user, new { series.Title, series.IsActive });
+
+        return await GetSeriesAsync(id, user);
     }
 
-    public async Task DeleteSeriesAsync(Guid id)
+    public async Task DeleteSeriesAsync(Guid id, ClaimsPrincipal user)
     {
         var series = await _context.TrainingSeries.FindAsync(id) ?? throw new KeyNotFoundException();
+        await EnsureTeamAccessAsync(series.TeamId, user);
+
         _context.TrainingSeries.Remove(series);
         await _context.SaveChangesAsync();
+        _auditService.Log("Delete", "TrainingSeries", series.Id.ToString(), user, new { series.Title, series.TeamId });
     }
 
-    public async Task<int> GenerateInstancesAsync(Guid seriesId, DateOnly from, DateOnly to)
+    public async Task<int> GenerateInstancesAsync(Guid seriesId, DateOnly from, DateOnly to, ClaimsPrincipal user)
     {
         var series = await _context.TrainingSeries
             .Include(ts => ts.Season)
             .FirstOrDefaultAsync(ts => ts.Id == seriesId)
             ?? throw new KeyNotFoundException();
+
+        await EnsureTeamAccessAsync(series.TeamId, user);
 
         if (from >= to)
             throw new ArgumentException("Dátum od musí byť pred dátumom do.");
@@ -154,7 +180,16 @@ public class TrainingSeriesService : ITrainingSeriesService
         }
 
         await _context.SaveChangesAsync();
+        _auditService.Log("GenerateInstances", "TrainingSeries", series.Id.ToString(), user, new { generated, from, to });
+
         return generated;
+    }
+
+    private async Task EnsureTeamAccessAsync(Guid teamId, ClaimsPrincipal user)
+    {
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
+        if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(teamId))
+            throw new UnauthorizedAccessException();
     }
 
     private static TrainingSeriesDto ToDto(TrainingSeries ts) => new(
