@@ -44,15 +44,25 @@ public class UserService : IUserService
             .GroupBy(ur => ur.UserId)
             .ToDictionary(g => g.Key, g => g.Select(ur => roles.TryGetValue(ur.RoleId, out var name) ? name : null).FirstOrDefault() ?? "Parent");
 
-        var allCoachTeams = await _context.CoachTeams
-            .AsNoTracking()
-            .Include(ct => ct.Team)
-            .ToListAsync();
+        // Grouped into lookups once, up front. Scanning the flat lists inside the per-user loop below
+        // made this O(users x memberships) — noticeable on a full club roster.
+        var coachTeamsByCoachId = (await _context.CoachTeams
+                .AsNoTracking()
+                .Include(ct => ct.Team)
+                .ToListAsync())
+            .GroupBy(ct => ct.CoachId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(ct => ct.IsPrimary)
+                      .Select(ct => new UserTeamDto(ct.TeamId, ct.Team.Name, ct.IsPrimary))
+                      .ToList());
 
-        var allTeamMemberships = await _context.TeamMembers
-            .AsNoTracking()
-            .Include(tm => tm.Team)
-            .ToListAsync();
+        var firstTeamNameByUserId = (await _context.TeamMembers
+                .AsNoTracking()
+                .Include(tm => tm.Team)
+                .ToListAsync())
+            .GroupBy(tm => tm.UserId)
+            .ToDictionary(g => g.Key, g => g.First().Team.Name);
 
         var result = new List<UserListDto>();
 
@@ -63,20 +73,15 @@ public class UserService : IUserService
             if (!string.IsNullOrWhiteSpace(role) && userRole != role)
                 continue;
 
-            var userTeams = allCoachTeams
-                .Where(ct => ct.CoachId == user.Id)
-                .Select(ct => new UserTeamDto(ct.TeamId, ct.Team.Name, ct.IsPrimary))
-                .ToList();
+            var userTeams = coachTeamsByCoachId.TryGetValue(user.Id, out var ct)
+                ? ct
+                : new List<UserTeamDto>();
 
-            string? teamName = userTeams
-                .OrderByDescending(t => t.IsPrimary)
-                .Select(t => t.TeamName)
-                .FirstOrDefault();
+            string? teamName = userTeams.Select(t => t.TeamName).FirstOrDefault();
 
             if (teamName == null && (userRole == "Child" || userRole == "Athlete"))
             {
-                teamName = allTeamMemberships
-                    .FirstOrDefault(tm => tm.UserId == user.Id)?.Team.Name;
+                firstTeamNameByUserId.TryGetValue(user.Id, out teamName);
             }
 
             result.Add(new UserListDto(
