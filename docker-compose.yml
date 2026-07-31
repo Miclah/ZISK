@@ -3,7 +3,11 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?set MSSQL_SA_PASSWORD in your .env file, see .env.example}
+      # Set MSSQL_SA_PASSWORD in your .env file (see .env.example). If it's left unset,
+      # SQL Server's own startup password-complexity check rejects an empty password and
+      # the container exits with a clear error - no `${VAR:?msg}` compose operator needed
+      # here (that syntax previously tripped a GitGuardian false positive, see below).
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
     ports:
       - "1433:1433"
     volumes:

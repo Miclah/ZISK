@@ -1,10 +1,13 @@
 version: 2
 
-# GitGuardian's "Generic Password" heuristic detector flags
-# `Password=${MSSQL_SA_PASSWORD}` in docker-compose.yml as if it were a
-# hardcoded credential. It is not - it's a docker-compose ${VAR} reference,
-# resolved from .env (gitignored) at container-start time, never a literal
-# value. Verified against every commit that has touched this file.
+# GitGuardian's "Generic Password" detector misparsed the docker-compose
+# `${VAR:?error message}` operator on commit f369ebb - it captured the text
+# after ":?" as if it were the literal secret value. That operator has since
+# been removed (see docker-compose.yml), but the flagged historical commit
+# stays in this branch's history, so this scoped ignore (plus resolving
+# incident 35253190 in the GitGuardian dashboard) covers it going forward.
+# No literal secret was ever present - only ${VAR} references resolved from
+# .env (gitignored) at container-start time.
 secret:
   ignored-paths:
     - docker-compose.yml
