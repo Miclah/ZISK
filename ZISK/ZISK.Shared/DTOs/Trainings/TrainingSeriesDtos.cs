@@ -70,9 +70,9 @@ public record UpdateTrainingSeriesRequest(
 );
 
 public record GenerateInstancesRequest(
-    [Required]
+    [Required(ErrorMessage = "Dátum od je povinný.")]
     DateOnly From,
 
-    [Required]
+    [Required(ErrorMessage = "Dátum do je povinný.")]
     DateOnly To
 );
