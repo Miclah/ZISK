@@ -257,12 +257,16 @@ public class AttendanceService : IAttendanceService
         if (training.IsLocked)
             throw new InvalidOperationException("Dochádzka pre tento tréning je uzamknutá");
 
+        // Load every existing record for this training up front. Looking each one up inside the loop
+        // issued one round-trip per child, so marking a full team's attendance cost N queries.
+        var entryChildIds = request.Entries.Select(e => e.ChildId).ToList();
+        var existingRecords = await _context.AttendanceRecords
+            .Where(ar => ar.TrainingEventId == request.TrainingEventId && entryChildIds.Contains(ar.ChildId))
+            .ToDictionaryAsync(ar => ar.ChildId);
+
         foreach (var entry in request.Entries)
         {
-            var existingRecord = await _context.AttendanceRecords
-                .FirstOrDefaultAsync(ar => ar.TrainingEventId == request.TrainingEventId && ar.ChildId == entry.ChildId);
-
-            if (existingRecord != null)
+            if (existingRecords.TryGetValue(entry.ChildId, out var existingRecord))
             {
                 existingRecord.Status = (Data.Entities.AttendanceStatus)(int)entry.Status;
                 existingRecord.Note = entry.Note;
@@ -271,7 +275,7 @@ public class AttendanceService : IAttendanceService
             }
             else
             {
-                _context.AttendanceRecords.Add(new AttendanceRecord
+                var newRecord = new AttendanceRecord
                 {
                     Id = Guid.NewGuid(),
                     TrainingEventId = request.TrainingEventId,
@@ -280,7 +284,12 @@ public class AttendanceService : IAttendanceService
                     Note = entry.Note,
                     MarkedByUserId = userId,
                     RecordedAt = DateTime.UtcNow
-                });
+                };
+                _context.AttendanceRecords.Add(newRecord);
+
+                // Track it so a repeated ChildId in the same payload updates this pending row instead of
+                // adding a second one, which would violate the unique (TrainingEventId, ChildId) index.
+                existingRecords[entry.ChildId] = newRecord;
             }
         }
 
