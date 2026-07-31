@@ -1,15 +1,19 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using System.Globalization;
+using System.IO.Compression;
 using System.Threading.RateLimiting;
 using ZISK.Components;
 using ZISK.Components.Account;
 using ZISK.Client.Services;
 using ZISK.Data;
 using ZISK.Extensions;
+using ZISK.Filters;
 using ZISK.Services;
 
 var slovakCulture = new CultureInfo("sk-SK");
@@ -18,7 +22,10 @@ CultureInfo.DefaultThreadCurrentUICulture = slovakCulture;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+    {
+        options.Filters.Add<ApiExceptionFilter>();
+    })
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
