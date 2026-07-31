@@ -61,6 +61,12 @@ public class TrainingSeriesService : ITrainingSeriesService
         if (request.StartTime >= request.EndTime)
             throw new ArgumentException("Čas začiatku musí byť pred časom konca.");
 
+        if (!await _context.Teams.AnyAsync(t => t.Id == request.TeamId))
+            throw new ArgumentException("Tím neexistuje.");
+
+        if (!await _context.Seasons.AnyAsync(s => s.Id == request.SeasonId))
+            throw new ArgumentException("Sezóna neexistuje.");
+
         await EnsureTeamAccessAsync(request.TeamId, user);
 
         var series = new TrainingSeries
