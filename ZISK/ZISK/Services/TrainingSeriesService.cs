@@ -138,57 +138,21 @@ public class TrainingSeriesService : ITrainingSeriesService
         if (from >= to)
             throw new ArgumentException("Dátum od musí byť pred dátumom do.");
 
-        var weekdays = (Weekdays)series.DaysOfWeek; // DaysOfWeek is stored as an int bitmask in the DB; cast restores the [Flags] enum
         var existingDates = await _context.TrainingEvents
             .Where(te => te.SeriesId == seriesId)
             .Select(te => DateOnly.FromDateTime(te.StartTime))
             .ToListAsync();
 
-        var existingSet = new HashSet<DateOnly>(existingDates); // O(1) lookup per iteration; List.Contains would be O(n) over potentially hundreds of dates
-        var generated = 0;
+        // O(1) lookup per iteration; List.Contains would be O(n) over potentially hundreds of dates
+        var existingSet = new HashSet<DateOnly>(existingDates);
 
-        for (var date = from; date <= to; date = date.AddDays(1))
-        {
-            var dayFlag = date.DayOfWeek switch
-            {
-                DayOfWeek.Monday => Weekdays.Monday,
-                DayOfWeek.Tuesday => Weekdays.Tuesday,
-                DayOfWeek.Wednesday => Weekdays.Wednesday,
-                DayOfWeek.Thursday => Weekdays.Thursday,
-                DayOfWeek.Friday => Weekdays.Friday,
-                DayOfWeek.Saturday => Weekdays.Saturday,
-                DayOfWeek.Sunday => Weekdays.Sunday,
-                _ => Weekdays.None
-            };
+        var instances = TrainingSeriesInstanceGenerator.BuildMissingInstances(series, from, to, existingSet);
 
-            if ((weekdays & dayFlag) == Weekdays.None || existingSet.Contains(date)) // bitwise AND; None=0 means this day is not included in the stored mask
-                continue;
-
-            var startDt = date.ToDateTime(series.StartTime);
-            var endDt = date.ToDateTime(series.EndTime);
-
-            _context.TrainingEvents.Add(new TrainingEvent
-            {
-                Id = Guid.NewGuid(),
-                TeamId = series.TeamId,
-                SeriesId = series.Id,
-                SeasonId = series.SeasonId,
-                Title = series.Title,
-                StartTime = startDt,
-                EndTime = endDt,
-                Location = series.Location,
-                Type = series.Type,
-                CoachNote = series.CoachNote,
-                CreatedAt = DateTime.UtcNow
-            });
-
-            generated++;
-        }
-
+        _context.TrainingEvents.AddRange(instances);
         await _context.SaveChangesAsync();
-        _auditService.Log("GenerateInstances", "TrainingSeries", series.Id.ToString(), user, new { generated, from, to });
+        _auditService.Log("GenerateInstances", "TrainingSeries", series.Id.ToString(), user, new { generated = instances.Count, from, to });
 
-        return generated;
+        return instances.Count;
     }
 
     private async Task EnsureTeamAccessAsync(Guid teamId, ClaimsPrincipal user)
