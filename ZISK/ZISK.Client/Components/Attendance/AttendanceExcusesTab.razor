@@ -1,0 +1,126 @@
+@using ZISK.Client.Display
+@using ZISK.Shared.DTOs.Excuses
+@*
+    "Ospravedlnenky" tab: the family's submitted absence requests, with edit/delete for those allowed to
+    manage them (a Child account is read-only — the parent acts on their behalf).
+*@
+
+@if (IsLoading)
+{
+    <MudStack Spacing="2">
+        @for (int i = 0; i < 4; i++)
+        {
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="64px" />
+        }
+    </MudStack>
+}
+else if (Error != null)
+{
+    <MudAlert Severity="Severity.Error">@Error</MudAlert>
+}
+else if (Excuses.Count == 0)
+{
+    <MudPaper Class="card-standard empty-state" Elevation="0">
+        <MudIcon Icon="@Icons.Material.Rounded.EventAvailable" Class="empty-state__icon" />
+        <div class="empty-state__title">Zatiaľ nemáte žiadne ospravedlnenky</div>
+        @if (CanManage)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-2"
+                       StartIcon="@Icons.Material.Rounded.Add"
+                       OnClick="OnCreate">
+                Vytvoriť prvú ospravedlnenku
+            </MudButton>
+        }
+    </MudPaper>
+}
+else
+{
+    <MudHidden Breakpoint="Breakpoint.SmAndDown">
+        <MudPaper Class="card-standard pa-2" Elevation="0">
+            <MudTable Items="@Excuses" Hover="true" Elevation="0" Breakpoint="Breakpoint.None">
+                <HeaderContent>
+                    <MudTh>Koho</MudTh>
+                    <MudTh>Dátum</MudTh>
+                    <MudTh>Dôvod</MudTh>
+                    <MudTh>Stav</MudTh>
+                    <MudTh Style="text-align:right;">Akcie</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.ChildName</MudTd>
+                    <MudTd>@FormatDateRange(context.DateFrom, context.DateTo)</MudTd>
+                    <MudTd>@(string.IsNullOrWhiteSpace(context.Reason) ? "—" : context.Reason)</MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small" Color="@DomainLabels.ExcuseStatusColor(context.Status)">
+                            @DomainLabels.ExcuseStatusText(context.Status)
+                        </MudChip>
+                    </MudTd>
+                    <MudTd Style="text-align:right;">
+                        @if (CanManage)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Rounded.Edit" Color="Color.Primary" Size="Size.Small"
+                                           OnClick="@(() => OnEdit.InvokeAsync(context))" />
+                            <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" Size="Size.Small"
+                                           OnClick="@(() => OnDelete.InvokeAsync(context.Id))" />
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    </MudHidden>
+
+    <MudHidden Breakpoint="Breakpoint.MdAndUp">
+        <MudStack Spacing="2">
+            @foreach (var excuse in Excuses)
+            {
+                <MudPaper @key="excuse.Id" Class="card-standard pa-3" Elevation="0">
+                    <MudStack Spacing="1">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.subtitle2">@excuse.ChildName</MudText>
+                            <MudChip T="string" Size="Size.Small" Color="@DomainLabels.ExcuseStatusColor(excuse.Status)">
+                                @DomainLabels.ExcuseStatusText(excuse.Status)
+                            </MudChip>
+                        </MudStack>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            @FormatDateRange(excuse.DateFrom, excuse.DateTo)
+                        </MudText>
+                        <MudText Typo="Typo.body2">
+                            @(string.IsNullOrWhiteSpace(excuse.Reason) ? "Bez dôvodu" : excuse.Reason)
+                        </MudText>
+                        @if (CanManage)
+                        {
+                            <MudStack Row="true" Justify="Justify.FlexEnd">
+                                <MudIconButton Icon="@Icons.Material.Rounded.Edit"
+                                               Color="Color.Primary" Size="Size.Small"
+                                               OnClick="@(() => OnEdit.InvokeAsync(excuse))" />
+                                <MudIconButton Icon="@Icons.Material.Rounded.Delete"
+                                               Color="Color.Error" Size="Size.Small"
+                                               OnClick="@(() => OnDelete.InvokeAsync(excuse.Id))" />
+                            </MudStack>
+                        }
+                    </MudStack>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudHidden>
+}
+
+@code {
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public bool CanManage { get; set; }
+    [Parameter] public string? Error { get; set; }
+
+    [Parameter, EditorRequired] public IReadOnlyList<ExcuseListDto> Excuses { get; set; } = [];
+
+    [Parameter] public EventCallback OnCreate { get; set; }
+    [Parameter] public EventCallback<ExcuseListDto> OnEdit { get; set; }
+    [Parameter] public EventCallback<Guid> OnDelete { get; set; }
+
+    private static string FormatDateRange(DateTime? from, DateTime? to)
+    {
+        if (from.HasValue && to.HasValue)
+            return $"{from.Value:dd.MM.yyyy} – {to.Value:dd.MM.yyyy}";
+        if (from.HasValue)
+            return from.Value.ToString("dd.MM.yyyy");
+        return "—";
+    }
+}
