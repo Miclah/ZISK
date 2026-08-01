@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using ZISK.Data;
 using ZISK.Data.Entities;
 
@@ -11,29 +13,93 @@ public class DatabaseInitializer
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly ILogger<DatabaseInitializer> _logger;
+    private readonly IConfiguration _configuration;
+    private readonly SeedPasswordOptions _passwordOptions;
+    private readonly SeedInitialAdminOptions _initialAdminOptions;
 
     public DatabaseInitializer(
         ApplicationDbContext context,
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole> roleManager,
-        ILogger<DatabaseInitializer> logger)
+        ILogger<DatabaseInitializer> logger,
+        IConfiguration configuration,
+        IOptions<SeedPasswordOptions> passwordOptions,
+        IOptions<SeedInitialAdminOptions> initialAdminOptions)
     {
         _context = context;
         _userManager = userManager;
         _roleManager = roleManager;
         _logger = logger;
+        _configuration = configuration;
+        _passwordOptions = passwordOptions.Value;
+        _initialAdminOptions = initialAdminOptions.Value;
+    }
+
+    private sealed record SeedPasswordSet(string Admin, string Coach, string Parent, string Child)
+    {
+        public static readonly SeedPasswordSet LocalDefault =
+            new("Admin1234", "Trener1234", "Rodic1234", "Dieta1234");
+    }
+
+    private SeedPasswordSet ResolveDemoPasswordSet()
+    {
+        var missing = new List<string>();
+        if (string.IsNullOrWhiteSpace(_passwordOptions.Admin)) missing.Add("Seed:Passwords:Admin");
+        if (string.IsNullOrWhiteSpace(_passwordOptions.Coach)) missing.Add("Seed:Passwords:Coach");
+        if (string.IsNullOrWhiteSpace(_passwordOptions.Parent)) missing.Add("Seed:Passwords:Parent");
+        if (string.IsNullOrWhiteSpace(_passwordOptions.Child)) missing.Add("Seed:Passwords:Child");
+
+        if (missing.Count > 0)
+        {
+            throw new SeedConfigurationException(
+                $"ZISK_SEED_MODE=demo vyžaduje nasledujúce chýbajúce konfiguračné hodnoty: {string.Join(", ", missing)}.");
+        }
+
+        return new SeedPasswordSet(_passwordOptions.Admin!, _passwordOptions.Coach!, _passwordOptions.Parent!, _passwordOptions.Child!);
+    }
+
+    private async Task EnsureProductionAdminAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_initialAdminOptions.Email) || string.IsNullOrWhiteSpace(_initialAdminOptions.Password))
+        {
+            throw new SeedConfigurationException(
+                "ZISK_SEED_MODE=production vyžaduje konfiguráciu Seed:InitialAdmin:Email a Seed:InitialAdmin:Password.");
+        }
+
+        await EnsureUserAsync(
+            _initialAdminOptions.Email, _initialAdminOptions.Password, "Admin",
+            _initialAdminOptions.FirstName, _initialAdminOptions.LastName);
     }
 
     public async Task InitializeAsync()
     {
         await _context.Database.MigrateAsync();
+        await SeedAsync();
+    }
 
+    /// <summary>
+    /// The seed-mode branching logic, split out from <see cref="InitializeAsync"/> so it can be
+    /// exercised against EF Core InMemory in tests (InMemory does not support MigrateAsync).
+    /// </summary>
+    public async Task SeedAsync()
+    {
         await SeedRolesAsync();
 
-        var admin  = await EnsureUserAsync("admin@zisk.sk",  "Admin1234",  "Admin",  "Miroslav", "Kráľ");
-        var coach  = await EnsureUserAsync("trener@zisk.sk", "Trener1234", "Coach",  "Marek",    "Kováčik");
-        var parent = await EnsureUserAsync("rodic@zisk.sk",  "Rodic1234",  "Parent", "Peter",    "Novák");
-        var child  = await EnsureUserAsync("dieta@zisk.sk",  "Dieta1234",  "Child",  "Tomáš",    "Novák");
+        var mode = SeedModeResolver.Resolve(_configuration);
+
+        if (mode == SeedMode.Production)
+        {
+            // No demo/sample data in production — just roles + a single real admin account.
+            await EnsureProductionAdminAsync();
+            return;
+        }
+
+        var passwords = mode == SeedMode.Demo ? ResolveDemoPasswordSet() : SeedPasswordSet.LocalDefault;
+
+        var admin  = await EnsureUserAsync("admin@zisk.sk",  passwords.Admin,  "Admin",  "Miroslav", "Kráľ");
+        var coach  = await EnsureUserAsync("trener@zisk.sk", passwords.Coach, "Coach",  "Marek",    "Kováčik");
+        var parent = await EnsureUserAsync("rodic@zisk.sk",  passwords.Parent,  "Parent", "Peter",    "Novák");
+        var child  = await EnsureUserAsync("dieta@zisk.sk",  passwords.Child,  "Child",  "Tomáš",    "Novák");
 
         if (child != null && child.DateOfBirth == null)
         {
@@ -45,7 +111,7 @@ public class DatabaseInitializer
         await EnsureDefaultSeasonAsync();
         await EnsureChildSeedUserAsync(child, parent);
         await EnsureCoachTeamAssignmentsAsync(coach);
-        await SeedSampleDataAsync(admin, coach, parent, child);
+        await SeedSampleDataAsync(admin, coach, parent, child, passwords);
     }
 
     private sealed record SampleUserGroup(
@@ -213,7 +279,8 @@ public class DatabaseInitializer
         ApplicationUser? admin,
         ApplicationUser? defaultCoach,
         ApplicationUser? defaultParent,
-        ApplicationUser? coreChild)
+        ApplicationUser? coreChild,
+        SeedPasswordSet passwords)
     {
         var teams = await _context.Teams
             .Where(t => t.IsActive)
@@ -223,7 +290,7 @@ public class DatabaseInitializer
         if (!teams.Any())
             return;
 
-        var sampleUsers   = await EnsureSampleUsersAsync();
+        var sampleUsers   = await EnsureSampleUsersAsync(passwords);
         var sampleChildren = await EnsureSampleChildrenAsync(teams, sampleUsers);
 
         // Zahrnúť aj hlavného testovacie dieťa do zoznamu pre dochádzku
@@ -248,7 +315,7 @@ public class DatabaseInitializer
         await EnsureSampleDocumentsAsync(admin);
     }
 
-    private async Task<SampleUserGroup> EnsureSampleUsersAsync()
+    private async Task<SampleUserGroup> EnsureSampleUsersAsync(SeedPasswordSet passwords)
     {
         var coaches  = new List<ApplicationUser>();
         var parents  = new List<ApplicationUser>();
@@ -256,63 +323,63 @@ public class DatabaseInitializer
         var children = new List<ApplicationUser>();
 
         // Tréneri
-        foreach (var (email, pw, fn, ln) in new[]
+        foreach (var (email, fn, ln) in new[]
         {
-            ("rastislav.horvath@zisk.sk", "Trener1234", "Rastislav", "Horváth"),
-            ("tomas.balaz@zisk.sk",       "Trener1234", "Tomáš",     "Baláž"),
-            ("jan.minac@zisk.sk",         "Trener1234", "Ján",       "Mináč")
+            ("rastislav.horvath@zisk.sk", "Rastislav", "Horváth"),
+            ("tomas.balaz@zisk.sk",       "Tomáš",     "Baláž"),
+            ("jan.minac@zisk.sk",         "Ján",       "Mináč")
         })
         {
-            var u = await EnsureUserAsync(email, pw, "Coach", fn, ln);
+            var u = await EnsureUserAsync(email, passwords.Coach, "Coach", fn, ln);
             if (u != null) coaches.Add(u);
         }
 
         // Rodičia
-        foreach (var (email, pw, fn, ln) in new[]
+        foreach (var (email, fn, ln) in new[]
         {
-            ("jana.novakova@zisk.sk",   "Rodic1234", "Jana",    "Nováková"),
-            ("milan.horak@zisk.sk",     "Rodic1234", "Milan",   "Horák"),
-            ("andrea.blahova@zisk.sk",  "Rodic1234", "Andrea",  "Bláhová"),
-            ("lukas.kral@zisk.sk",      "Rodic1234", "Lukáš",   "Kráľ"),
-            ("monika.simonova@zisk.sk", "Rodic1234", "Monika",  "Šimonová"),
-            ("juraj.balog@zisk.sk",     "Rodic1234", "Juraj",   "Balog"),
-            ("zuzana.oravec@zisk.sk",   "Rodic1234", "Zuzana",  "Oravec")
+            ("jana.novakova@zisk.sk",   "Jana",    "Nováková"),
+            ("milan.horak@zisk.sk",     "Milan",   "Horák"),
+            ("andrea.blahova@zisk.sk",  "Andrea",  "Bláhová"),
+            ("lukas.kral@zisk.sk",      "Lukáš",   "Kráľ"),
+            ("monika.simonova@zisk.sk", "Monika",  "Šimonová"),
+            ("juraj.balog@zisk.sk",     "Juraj",   "Balog"),
+            ("zuzana.oravec@zisk.sk",   "Zuzana",  "Oravec")
         })
         {
-            var u = await EnsureUserAsync(email, pw, "Parent", fn, ln);
+            var u = await EnsureUserAsync(email, passwords.Parent, "Parent", fn, ln);
             if (u != null) parents.Add(u);
         }
 
         // Starší športovci (Athlete) — A-tím a B-tím
-        foreach (var (email, pw, fn, ln, dob) in new[]
+        foreach (var (email, fn, ln, dob) in new[]
         {
-            ("lukas.maly@zisk.sk",      "Dieta1234", "Lukáš",   "Malý",   new DateOnly(2004, 3, 15)),
-            ("martin.horak@zisk.sk",    "Dieta1234", "Martin",  "Horák",  new DateOnly(2005, 7, 22)),
-            ("jakub.blaha@zisk.sk",     "Dieta1234", "Jakub",   "Bláha",  new DateOnly(2004, 11, 8)),
-            ("adam.kral@zisk.sk",       "Dieta1234", "Adam",    "Kráľ",   new DateOnly(2005, 2, 14)),
-            ("michal.simon@zisk.sk",    "Dieta1234", "Michal",  "Šimon",  new DateOnly(2007, 5, 3)),
-            ("juraj.balog.jr@zisk.sk",  "Dieta1234", "Juraj",   "Balog",  new DateOnly(2006, 9, 18)),
-            ("richard.varga@zisk.sk",   "Dieta1234", "Richard", "Varga",  new DateOnly(2007, 1, 25))
+            ("lukas.maly@zisk.sk",      "Lukáš",   "Malý",   new DateOnly(2004, 3, 15)),
+            ("martin.horak@zisk.sk",    "Martin",  "Horák",  new DateOnly(2005, 7, 22)),
+            ("jakub.blaha@zisk.sk",     "Jakub",   "Bláha",  new DateOnly(2004, 11, 8)),
+            ("adam.kral@zisk.sk",       "Adam",    "Kráľ",   new DateOnly(2005, 2, 14)),
+            ("michal.simon@zisk.sk",    "Michal",  "Šimon",  new DateOnly(2007, 5, 3)),
+            ("juraj.balog.jr@zisk.sk",  "Juraj",   "Balog",  new DateOnly(2006, 9, 18)),
+            ("richard.varga@zisk.sk",   "Richard", "Varga",  new DateOnly(2007, 1, 25))
         })
         {
-            var u = await EnsureUserAsync(email, pw, "Athlete", fn, ln, dob);
+            var u = await EnsureUserAsync(email, passwords.Child, "Athlete", fn, ln, dob);
             if (u != null) athletes.Add(u);
         }
 
         // Mladší deti (Child) — Žiaci a Prípravka
-        foreach (var (email, pw, fn, ln, dob) in new[]
+        foreach (var (email, fn, ln, dob) in new[]
         {
-            ("petra.horakova@zisk.sk",  "Dieta1234", "Petra",   "Horáková", new DateOnly(2010, 4, 7)),
-            ("klara.oravec@zisk.sk",    "Dieta1234", "Klára",   "Oravec",   new DateOnly(2011, 6, 12)),
-            ("filip.cerny@zisk.sk",     "Dieta1234", "Filip",   "Čierny",   new DateOnly(2010, 9, 30)),
-            ("zuzana.kralova@zisk.sk",  "Dieta1234", "Zuzana",  "Kráľová",  new DateOnly(2011, 3, 17)),
-            ("samuel.novak@zisk.sk",    "Dieta1234", "Samuel",  "Novák",    new DateOnly(2014, 8, 20)),
-            ("ema.holubova@zisk.sk",    "Dieta1234", "Ema",     "Holúbová", new DateOnly(2015, 1, 9)),
-            ("ondrej.maly@zisk.sk",     "Dieta1234", "Ondrej",  "Malý",     new DateOnly(2014, 11, 3)),
-            ("nina.blahova@zisk.sk",    "Dieta1234", "Nina",    "Bláhová",  new DateOnly(2015, 5, 28))
+            ("petra.horakova@zisk.sk",  "Petra",   "Horáková", new DateOnly(2010, 4, 7)),
+            ("klara.oravec@zisk.sk",    "Klára",   "Oravec",   new DateOnly(2011, 6, 12)),
+            ("filip.cerny@zisk.sk",     "Filip",   "Čierny",   new DateOnly(2010, 9, 30)),
+            ("zuzana.kralova@zisk.sk",  "Zuzana",  "Kráľová",  new DateOnly(2011, 3, 17)),
+            ("samuel.novak@zisk.sk",    "Samuel",  "Novák",    new DateOnly(2014, 8, 20)),
+            ("ema.holubova@zisk.sk",    "Ema",     "Holúbová", new DateOnly(2015, 1, 9)),
+            ("ondrej.maly@zisk.sk",     "Ondrej",  "Malý",     new DateOnly(2014, 11, 3)),
+            ("nina.blahova@zisk.sk",    "Nina",    "Bláhová",  new DateOnly(2015, 5, 28))
         })
         {
-            var u = await EnsureUserAsync(email, pw, "Child", fn, ln, dob);
+            var u = await EnsureUserAsync(email, passwords.Child, "Child", fn, ln, dob);
             if (u != null) children.Add(u);
         }
 

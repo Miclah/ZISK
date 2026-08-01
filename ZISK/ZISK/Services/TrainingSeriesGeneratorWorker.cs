@@ -24,66 +24,22 @@ public class TrainingSeriesGeneratorWorker
         if (series == null)
             return;
 
-        // Clamp the requested range to season boundaries — training instances must not be generated outside the season.
-        // The caller may pass a wider window (e.g. today + 14 days) that extends past the season end date.
-        var seasonStart = series.Season.StartDate;
-        var seasonEnd = series.Season.EndDate;
-        var effectiveFrom = from < seasonStart ? seasonStart : from;
-        var effectiveTo = to > seasonEnd ? seasonEnd : to;
-
-        if (effectiveFrom > effectiveTo)
-            return;
-
-        var weekdays = (Weekdays)series.DaysOfWeek;
-
         var existingDates = await _context.TrainingEvents
             .Where(te => te.SeriesId == seriesId)
             .Select(te => DateOnly.FromDateTime(te.StartTime))
             .ToListAsync(ct);
 
         var existingSet = new HashSet<DateOnly>(existingDates);
-        var generated = 0;
 
-        for (var date = effectiveFrom; date <= effectiveTo; date = date.AddDays(1))
+        var instances = TrainingSeriesInstanceGenerator.BuildMissingInstances(series, from, to, existingSet);
+
+        if (instances.Count > 0)
         {
-            var dayFlag = date.DayOfWeek switch
-            {
-                DayOfWeek.Monday => Weekdays.Monday,
-                DayOfWeek.Tuesday => Weekdays.Tuesday,
-                DayOfWeek.Wednesday => Weekdays.Wednesday,
-                DayOfWeek.Thursday => Weekdays.Thursday,
-                DayOfWeek.Friday => Weekdays.Friday,
-                DayOfWeek.Saturday => Weekdays.Saturday,
-                DayOfWeek.Sunday => Weekdays.Sunday,
-                _ => Weekdays.None
-            };
-
-            if ((weekdays & dayFlag) == Weekdays.None || existingSet.Contains(date))
-                continue;
-
-            _context.TrainingEvents.Add(new TrainingEvent
-            {
-                Id = Guid.NewGuid(),
-                TeamId = series.TeamId,
-                SeriesId = series.Id,
-                SeasonId = series.SeasonId,
-                Title = series.Title,
-                StartTime = date.ToDateTime(series.StartTime),
-                EndTime = date.ToDateTime(series.EndTime),
-                Location = series.Location,
-                Type = series.Type,
-                CoachNote = series.CoachNote,
-                CreatedAt = DateTime.UtcNow
-            });
-
-            existingSet.Add(date);
-            generated++;
+            _context.TrainingEvents.AddRange(instances);
+            await _context.SaveChangesAsync(ct);
         }
 
-        if (generated > 0)
-            await _context.SaveChangesAsync(ct);
-
-        _logger.LogInformation("Generated {Count} training instances for series {SeriesId}", generated, seriesId);
+        _logger.LogInformation("Generated {Count} training instances for series {SeriesId}", instances.Count, seriesId);
     }
 
     public async Task RunPassAsync(CancellationToken ct = default)

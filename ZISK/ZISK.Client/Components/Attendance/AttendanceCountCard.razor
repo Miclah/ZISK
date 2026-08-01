@@ -1,0 +1,20 @@
+@*
+    One of the three attendance counters on the overview tab: big number, caption, leading status icon.
+*@
+
+<MudPaper Class="card-standard pa-4" Elevation="0">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+        <MudIcon Icon="@Icon" Color="@IconColor" Size="Size.Large" />
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h4" Style="font-weight:700;">@Count</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@Label</MudText>
+        </MudStack>
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public string Icon { get; set; } = default!;
+    [Parameter, EditorRequired] public int Count { get; set; }
+    [Parameter, EditorRequired] public string Label { get; set; } = default!;
+    [Parameter] public Color IconColor { get; set; } = Color.Primary;
+}

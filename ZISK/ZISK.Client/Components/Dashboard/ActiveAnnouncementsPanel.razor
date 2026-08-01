@@ -1,0 +1,57 @@
+@using ZISK.Client.Display
+@using ZISK.Shared.DTOs.Announcements
+@*
+    Sidebar list of currently relevant announcements, each with a priority-coloured left rule.
+    Compact counterpart to <see cref="RecentAnnouncementsPanel"/>, which is the full-width admin card.
+*@
+
+<MudPaper Class="card-standard pa-4" Elevation="0">
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@Title</MudText>
+        @if (OnShowAll.HasDelegate)
+        {
+            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                       EndIcon="@Icons.Material.Rounded.ChevronRight" OnClick="OnShowAll">
+                @ShowAllText
+            </MudButton>
+        }
+    </MudStack>
+
+    @if (Announcements.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@EmptyText</MudText>
+    }
+    else
+    {
+        <MudStack Spacing="2">
+            @foreach (var announcement in Announcements.Take(MaxItems))
+            {
+                <div @key="announcement.Id"
+                     style="@($"border-left: 3px solid {DomainLabels.PriorityBorderColor(announcement.Priority)}; padding: 8px 12px;")">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start" Spacing="1">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.body2" Style="font-weight:600;">@announcement.Title</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @announcement.PublishDate.ToString("dd.MM.yyyy")
+                            </MudText>
+                        </MudStack>
+                        <MudChip T="string" Size="Size.Small" Color="@DomainLabels.PriorityColor(announcement.Priority)">
+                            @DomainLabels.PriorityText(announcement.Priority)
+                        </MudChip>
+                    </MudStack>
+                </div>
+            }
+        </MudStack>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<AnnouncementListDto> Announcements { get; set; } = [];
+
+    [Parameter] public string Title { get; set; } = "Aktívne oznamy";
+    [Parameter] public string EmptyText { get; set; } = "Žiadne aktívne oznamy.";
+    [Parameter] public string ShowAllText { get; set; } = "Všetky";
+    [Parameter] public int MaxItems { get; set; } = 5;
+
+    [Parameter] public EventCallback OnShowAll { get; set; }
+}

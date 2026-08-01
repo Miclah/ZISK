@@ -1,0 +1,46 @@
+@using ZISK.Shared.DTOs.Stats
+@*
+    Per-team roll-up: member and training counts, average attendance, active flag.
+*@
+
+<MudPaper Class="pa-4" Elevation="2" Style="height: 100%;">
+    <MudText Typo="Typo.h6" Class="mb-3">Členovia podľa tímu</MudText>
+    <MudTable Items="@Teams" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0">
+        <HeaderContent>
+            <MudTh>Tím</MudTh>
+            <MudTh>Členovia</MudTh>
+            <MudTh>Tréningy</MudTh>
+            <MudTh>Priem. účasť</MudTh>
+            <MudTh>Stav</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Tím">@context.TeamName</MudTd>
+            <MudTd DataLabel="Členovia">@context.MemberCount</MudTd>
+            <MudTd DataLabel="Tréningy">@context.TrainingCount</MudTd>
+            <MudTd DataLabel="Priem. účasť">
+                <MudChip T="string" Size="Size.Small" Color="@AttendanceColor(context.AverageAttendance)">
+                    @context.AverageAttendance%
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Stav">
+                <MudChip T="string" Size="Size.Small" Color="@(context.IsActive ? Color.Success : Color.Default)">
+                    @(context.IsActive ? "Aktívny" : "Neaktívny")
+                </MudChip>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne tímy.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<TeamStatsDto> Teams { get; set; } = [];
+
+    private static Color AttendanceColor(decimal percent) => percent switch
+    {
+        >= 80 => Color.Success,
+        >= 60 => Color.Warning,
+        _ => Color.Error
+    };
+}

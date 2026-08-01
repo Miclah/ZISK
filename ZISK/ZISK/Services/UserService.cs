@@ -12,17 +12,20 @@ public class UserService : IUserService
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IAuditService _auditService;
+    private readonly IFileService _fileService;
     private readonly ILogger<UserService> _logger;
 
     public UserService(
         ApplicationDbContext context,
         UserManager<ApplicationUser> userManager,
         IAuditService auditService,
+        IFileService fileService,
         ILogger<UserService> logger)
     {
         _context = context;
         _userManager = userManager;
         _auditService = auditService;
+        _fileService = fileService;
         _logger = logger;
     }
 
@@ -41,15 +44,25 @@ public class UserService : IUserService
             .GroupBy(ur => ur.UserId)
             .ToDictionary(g => g.Key, g => g.Select(ur => roles.TryGetValue(ur.RoleId, out var name) ? name : null).FirstOrDefault() ?? "Parent");
 
-        var allCoachTeams = await _context.CoachTeams
-            .AsNoTracking()
-            .Include(ct => ct.Team)
-            .ToListAsync();
+        // Grouped into lookups once, up front. Scanning the flat lists inside the per-user loop below
+        // made this O(users x memberships) — noticeable on a full club roster.
+        var coachTeamsByCoachId = (await _context.CoachTeams
+                .AsNoTracking()
+                .Include(ct => ct.Team)
+                .ToListAsync())
+            .GroupBy(ct => ct.CoachId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(ct => ct.IsPrimary)
+                      .Select(ct => new UserTeamDto(ct.TeamId, ct.Team.Name, ct.IsPrimary))
+                      .ToList());
 
-        var allTeamMemberships = await _context.TeamMembers
-            .AsNoTracking()
-            .Include(tm => tm.Team)
-            .ToListAsync();
+        var firstTeamNameByUserId = (await _context.TeamMembers
+                .AsNoTracking()
+                .Include(tm => tm.Team)
+                .ToListAsync())
+            .GroupBy(tm => tm.UserId)
+            .ToDictionary(g => g.Key, g => g.First().Team.Name);
 
         var result = new List<UserListDto>();
 
@@ -60,20 +73,15 @@ public class UserService : IUserService
             if (!string.IsNullOrWhiteSpace(role) && userRole != role)
                 continue;
 
-            var userTeams = allCoachTeams
-                .Where(ct => ct.CoachId == user.Id)
-                .Select(ct => new UserTeamDto(ct.TeamId, ct.Team.Name, ct.IsPrimary))
-                .ToList();
+            var userTeams = coachTeamsByCoachId.TryGetValue(user.Id, out var ct)
+                ? ct
+                : new List<UserTeamDto>();
 
-            string? teamName = userTeams
-                .OrderByDescending(t => t.IsPrimary)
-                .Select(t => t.TeamName)
-                .FirstOrDefault();
+            string? teamName = userTeams.Select(t => t.TeamName).FirstOrDefault();
 
             if (teamName == null && (userRole == "Child" || userRole == "Athlete"))
             {
-                teamName = allTeamMemberships
-                    .FirstOrDefault(tm => tm.UserId == user.Id)?.Team.Name;
+                firstTeamNameByUserId.TryGetValue(user.Id, out teamName);
             }
 
             result.Add(new UserListDto(
@@ -342,13 +350,31 @@ public class UserService : IUserService
         if (coachLinks.Count > 0)
             _context.CoachTeams.RemoveRange(coachLinks);
 
+        // TrainingSeries.CoachId is a Restrict FK - leaving these in place would fail
+        // SaveChangesAsync with a raw FK violation instead of deleting the user.
+        var ownedSeries = await _context.TrainingSeries.Where(ts => ts.CoachId == id).ToListAsync();
+        if (ownedSeries.Count > 0)
+            _context.TrainingSeries.RemoveRange(ownedSeries);
+
+        // ParentInvitation.ChildUserId/InitiatorUserId are also Restrict FKs.
+        var invitations = await _context.ParentInvitations
+            .Where(pi => pi.ChildUserId == id || pi.InitiatorUserId == id)
+            .ToListAsync();
+        if (invitations.Count > 0)
+            _context.ParentInvitations.RemoveRange(invitations);
+
         var announcements = await _context.Announcements
             .Include(a => a.Attachments)
             .Where(a => a.AuthorUserId == id)
             .ToListAsync();
 
         foreach (var announcement in announcements)
+        {
+            foreach (var attachment in announcement.Attachments)
+                _fileService.DeleteFile(attachment.FilePath);
+
             _context.AnnouncementAttachments.RemoveRange(announcement.Attachments);
+        }
 
         if (announcements.Count > 0)
             _context.Announcements.RemoveRange(announcements);

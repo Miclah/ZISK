@@ -129,6 +129,11 @@ public class TeamService : ITeamService
         if (team.Memberships.Any())
             throw new InvalidOperationException("Nemožno vymazať tím s členmi. Najprv presuňte členov do iného tímu.");
 
+        // Team->TrainingEvent->AttendanceRecord cascades on delete - without this check the
+        // team's entire training/attendance history would be silently wiped with no warning.
+        if (await _context.TrainingEvents.AnyAsync(te => te.TeamId == id))
+            throw new InvalidOperationException("Nemožno vymazať tím, ktorý má históriu tréningov a dochádzky.");
+
         var series = await _context.TrainingSeries.Where(ts => ts.TeamId == id).ToListAsync();
         _context.TrainingSeries.RemoveRange(series);
 

@@ -1,0 +1,45 @@
+﻿@using ZISK.Shared.DTOs.Children
+@*
+    "Základné informácie": the child's static details, with an edit affordance.
+*@
+
+<MudCard Elevation="1" Class="mb-4">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+                <MudText Typo="Typo.subtitle1">Základné informácie</MudText>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Edit"
+                           OnClick="OnEdit">
+                    Upraviť dieťa
+                </MudButton>
+            </MudStack>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Dátum narodenia</MudText>
+                <MudText Typo="Typo.body2">@(Detail.DateOfBirth?.ToString("dd.MM.yyyy") ?? "-")</MudText>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Vek</MudText>
+                <MudText Typo="Typo.body2">@(Age?.ToString() ?? "-") @(Age.HasValue ? "rokov" : "")</MudText>
+            </MudItem>
+            <MudItem xs="12">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Bydlisko</MudText>
+                <MudText Typo="Typo.body2">@(string.IsNullOrWhiteSpace(Detail.Bydlisko) ? "-" : Detail.Bydlisko)</MudText>
+            </MudItem>
+            <MudItem xs="12">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Tím</MudText>
+                <MudText Typo="Typo.body2">@(Detail.TeamName ?? "Bez tímu")</MudText>
+            </MudItem>
+        </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter, EditorRequired] public ChildDetailDto Detail { get; set; } = default!;
+    [Parameter] public int? Age { get; set; }
+    [Parameter] public EventCallback OnEdit { get; set; }
+}

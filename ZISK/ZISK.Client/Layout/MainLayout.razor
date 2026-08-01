@@ -100,10 +100,7 @@
                     {
                         <MudAlert Severity="Severity.Info" ShowCloseIcon="true" CloseIconClicked="@(() => DismissInvitation(inv))">
                             Máte čakajúcu pozvánku na priradenie k dieťaťu <strong>@inv.ChildName</strong> od <strong>@inv.InitiatorName</strong>.
-                            <MudButton Size="Size.Small" Color="Color.Info" Variant="Variant.Filled" Class="ml-2"
-                                       OnClick="@(() => AcceptInvitation(inv))">
-                                Prijať
-                            </MudButton>
+                            Pre potvrdenie kliknite na odkaz, ktorý vám prišiel e-mailom.
                         </MudAlert>
                     }
                 </MudStack>
@@ -234,17 +231,4 @@
         _          => role ?? ""
     };
 
-    private async Task AcceptInvitation(PendingInvitationDto inv)
-    {
-        try
-        {
-            await InvitationsApi.AcceptAsync(inv.Token);
-            _pendingInvitations.Remove(inv);
-            Snackbar.Add($"Úspešne prepojené s dieťaťom {inv.ChildName}!", Severity.Success);
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
-        }
-    }
 }

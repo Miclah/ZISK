@@ -1,0 +1,35 @@
+@*
+    Dashboard banner: avatar initial, greeting, a subtitle line (date, optionally team), and caller-supplied
+    quick actions. Shared by the family and coach dashboards, which had identical markup but different buttons.
+*@
+
+<MudPaper Elevation="0" Class="dashboard-hero mb-3">
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudAvatar Color="Color.Surface" Size="Size.Medium" Style="color:var(--mud-palette-primary);">
+                @Initial
+            </MudAvatar>
+            <MudStack Spacing="0">
+                <h1 class="dashboard-hero__greeting">Vitajte, @FirstName</h1>
+                <div class="dashboard-hero__subtitle">@Subtitle</div>
+            </MudStack>
+        </MudStack>
+        <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+            @Actions
+        </MudStack>
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public string FirstName { get; set; } = "";
+
+    /// <summary>Line under the greeting — typically today's date, plus the team name for a coach.</summary>
+    [Parameter, EditorRequired] public string Subtitle { get; set; } = "";
+
+    /// <summary>Fallback initial when the user has no first name (e.g. "T" for tréner).</summary>
+    [Parameter] public string FallbackInitial { get; set; } = "?";
+
+    [Parameter] public RenderFragment? Actions { get; set; }
+
+    private string Initial => FirstName.Length > 0 ? FirstName[0].ToString().ToUpper() : FallbackInitial;
+}

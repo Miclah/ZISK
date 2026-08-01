@@ -1,0 +1,39 @@
+@*
+    "Kontakt": the two fields the user may edit themselves.
+*@
+
+<ProfileSectionHeading Icon="@Icons.Material.Rounded.ContactPhone" Title="Kontaktné údaje" />
+
+<MudStack Spacing="3" Style="max-width:520px;">
+    <MudTextField Value="Phone" ValueChanged="@((string v) => PhoneChanged.InvokeAsync(v))"
+                  Immediate="true"
+                  Label="Telefónne číslo"
+                  Variant="Variant.Outlined" Placeholder="+421 911 111 111"
+                  InputType="InputType.Telephone" />
+    <MudTextField Value="Bydlisko" ValueChanged="@((string v) => BydliskoChanged.InvokeAsync(v))"
+                  Immediate="true"
+                  Label="Bydlisko"
+                  Variant="Variant.Outlined" Placeholder="Ulica, mesto, PSČ"
+                  Lines="2" />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Rounded.Save"
+               OnClick="OnSave" Disabled="@IsSaving"
+               Style="align-self:flex-start;">
+        @if (IsSaving)
+        {
+            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+        }
+        Uložiť zmeny
+    </MudButton>
+</MudStack>
+
+@code {
+    [Parameter] public string Phone { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> PhoneChanged { get; set; }
+
+    [Parameter] public string Bydlisko { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> BydliskoChanged { get; set; }
+
+    [Parameter] public bool IsSaving { get; set; }
+    [Parameter] public EventCallback OnSave { get; set; }
+}

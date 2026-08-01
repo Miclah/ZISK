@@ -165,6 +165,9 @@ public class AnnouncementService : IAnnouncementService
         if (announcement.AuthorUserId != userId && !user.IsInRole("Admin"))
             throw new UnauthorizedAccessException();
 
+        foreach (var attachment in announcement.Attachments)
+            _fileService.DeleteFile(attachment.FilePath);
+
         _context.AnnouncementAttachments.RemoveRange(announcement.Attachments);
         _context.Announcements.Remove(announcement);
         await _context.SaveChangesAsync();

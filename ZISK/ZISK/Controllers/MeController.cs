@@ -17,15 +17,18 @@ public class MeController : ControllerBase
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly IAuditService _auditService;
+    private readonly IUserService _userService;
 
     public MeController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
-        IAuditService auditService)
+        IAuditService auditService,
+        IUserService userService)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _auditService = auditService;
+        _userService = userService;
     }
 
     [HttpGet]
@@ -187,12 +190,20 @@ public class MeController : ControllerBase
         if (!await _userManager.CheckPasswordAsync(user, request.CurrentPassword))
             return BadRequest("Súčasné heslo nie je správne.");
 
-        var result = await _userManager.DeleteAsync(user);
-        if (!result.Succeeded)
-            return BadRequest(string.Join("; ", result.Errors.Select(TranslateIdentityError)));
+        // Goes through UserService.DeleteUserAsync (not _userManager.DeleteAsync directly) because it
+        // cleans up Restrict-FK rows first (CoachTeam, TrainingSeries.CoachId, ParentInvitation,
+        // ParentChild, AttendanceRecord, AbsenceRequest) — without that cleanup, SaveChangesAsync throws
+        // a raw DbUpdateException for almost any account that isn't brand new.
+        try
+        {
+            await _userService.DeleteUserAsync(user.Id, User);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
 
         await _signInManager.SignOutAsync();
-        _auditService.Log("MyAccountDeleted", "User", user.Id, User, null);
 
         return NoContent();
     }

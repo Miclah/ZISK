@@ -1,224 +1,177 @@
-# ZISK – Žiarský Informačný Systém pre Kluby
+# ZISK — Sports Club Management System
 
-Webová aplikácia pre evidenciu dochádzky, tréningov, tímov a komunikáciu medzi trénermi, rodičmi a deťmi v športovom klube. Postavená na **Blazor WebAssembly + Server (.NET 10)**, UI pomocou **MudBlazor**, databáza **SQL Server (LocalDB)**.
+**Attendance, training scheduling, and parent–coach communication for a sports club.**
+Bachelor's thesis project built on ASP.NET Core 10 + Blazor WebAssembly, with a
+5-role authorization model, three background workers, and a full xUnit test suite.
+
+[![CI](https://github.com/Miclah/ZISK/actions/workflows/ci.yml/badge.svg)](https://github.com/Miclah/ZISK/actions/workflows/ci.yml) [![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/) [![MudBlazor 9.4](https://img.shields.io/badge/MudBlazor-9.4-594AE2)](https://mudblazor.com/) [![MIT License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ---
 
-## Požiadavky
+## At a glance
 
-| Nástroj | Verzia |
+- **Hybrid Blazor hosting**: one ASP.NET Core project serves both the WASM client and the REST API — no CORS, shared cookie auth, single deployment
+- **5-role authorization** (Admin, Coach, Parent, Athlete, Child) enforced across three independent layers: UI (`AuthorizeView`), declarative (`[Authorize(Roles=...)]`), and object-level (`TeamAccessService` — a coach can only ever see their own teams' data)
+- **13 REST controllers**, 13 typed Refit clients shared between the WASM app and server-side Razor pages — one interface defines the contract for both
+- **3 background workers**: automatic attendance close-out, recurring training-series generation from a weekday bitmask, and automatic Child→Athlete promotion by age
+- **14 xUnit test classes** covering attendance automation, password/email flows, parent invitations, training cancellation, and more
+
+## Live demo
+
+Not deployed yet. The infrastructure-as-code is ready ([azure/main.bicep](azure/main.bicep) — App Service F1 + Azure SQL free serverless, deploy steps in [azure/README.md](azure/README.md)) and CI has a `deploy` job wired up via OIDC; what's missing is an actual Azure subscription behind it. This section will be updated with a URL and demo credentials once it's live.
+
+## Screenshots
+
+_Coming once the live demo is up — planned: admin dashboard, coach training detail (attendance chips), parent excuse submission._
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Browser["Browser"] -->|WASM download| Client["ZISK.Client\n(Blazor WebAssembly)"]
+    Client -->|Refit / HTTP + cookie| Server["ZISK\n(ASP.NET Core server)"]
+    Server -->|EF Core| DB[("SQL Server\n(LocalDB)")]
+    Server -.->|ForwardAuthHeaderHandler\nRefit server-side| Server
+    Shared["ZISK.Shared\nDTOs + Enums"] -.-> Client
+    Shared -.-> Server
+```
+
+One ASP.NET Core project hosts both the compiled WASM client and the API. Server-side
+Razor pages (login, registration, password reset — anything that needs to set an
+`HttpOnly` cookie) also call the API, through the same Refit interfaces the WASM
+client uses, via a `ForwardAuthHeaderHandler` that forwards the auth cookie on
+server-to-server calls. `ZISK.Shared` holds the `record` DTOs and enums referenced
+by both client and server, so a JSON contract change is a compile error on both
+sides instead of a runtime surprise.
+
+## Tech stack
+
+| Layer | Technology | Version |
+|---|---|---|
+| Framework | .NET | 10 |
+| UI | Blazor WebAssembly + Server (hybrid) | .NET 10 |
+| Component library | MudBlazor | 9.4.0 |
+| Calendar | Heron.MudCalendar | 4.0.0 |
+| ORM | Entity Framework Core | 10.0.5 |
+| Database | SQL Server (LocalDB for dev) | — |
+| Auth | ASP.NET Core Identity (cookie, `HttpOnly`, 14-day sliding) | — |
+| Typed HTTP client | Refit | 10.1.6 |
+| Email | MailKit | 4.16.0 |
+| Testing | xUnit + EF Core InMemory | 2.9.3 |
+
+## Features by role
+
+| Role | Can do |
 |---|---|
-| [.NET SDK](https://dotnet.microsoft.com/download) | **10.0** alebo novší |
-| [SQL Server LocalDB](https://learn.microsoft.com/en-us/sql/database-engine/configure-windows/sql-server-express-localdb) | súčasť Visual Studio alebo samostatne |
-| [Visual Studio 2022](https://visualstudio.microsoft.com/) alebo [VS Code](https://code.visualstudio.com/) | odporúčané |
+| **Admin** | Full club management: users, teams, seasons, system-wide announcements, club statistics |
+| **Coach** | Manage trainings and recurring series for assigned teams, mark attendance, review excuses, team announcements |
+| **Parent** | View their children's schedule and attendance, submit/edit excuses, invite a second parent |
+| **Athlete** | Same as Parent, scoped to themselves (self-managed excuses once past the age threshold) |
+| **Child** | Read-only dashboard — schedule and announcements; a parent manages excuses on their behalf |
 
-Overenie inštalácie:
-```bash
-dotnet --version   # musí byť 10.0.x
-sqllocaldb info    # musí vypísať dostupné inštancie
-```
+**Automated attendance**: a training is auto-marked Present 10+ minutes after its
+start time for any member without a manual record; if a matching excuse exists
+(exact training or a date-range overlap), the member is marked Excused instead.
 
----
+## Getting started
 
-## Inštalácia a spustenie
-
-### 1. Klonuj repozitár
+**Prerequisites:** [.NET SDK 10.0+](https://dotnet.microsoft.com/download), SQL Server LocalDB (bundled with Visual Studio, or install separately).
 
 ```bash
-git clone <url-repozitara>
+git clone https://github.com/Miclah/ZISK.git
 cd ZISK
-```
-
-### 2. Obnov závislosti
-
-```bash
 dotnet restore ZISK/ZISK.sln
-```
-
-### 3. Spusti aplikáciu
-
-```bash
 dotnet run --project ZISK/ZISK/ZISK.csproj
 ```
 
-Aplikácia sa automaticky spustí na: **http://localhost:5224**
+The app runs at **http://localhost:5224**. On first run it applies EF Core
+migrations and seeds roles, four core accounts, teams, a season, and sample data
+(see [Demo accounts](#demo-accounts) below).
 
-> **Poznámka:** Pri prvom spustení prebehne automaticky:
-> - migrácia databázy (vytvorenie schémy)
-> - seed dát – roly, testovacie účty, tímy, vzorové tréningy, dochádzka a oznamy
+## Configuration & secrets
 
-### Spustenie vo Visual Studio
+Connection string, SMTP credentials, and seed passwords do not belong in
+`appsettings.json` once this leaves your machine. For local development:
 
-1. Otvor `ZISK/ZISK.sln`
-2. Nastav startup project na `ZISK` (serverový projekt)
-3. Stlač `F5` (Debug) alebo `Ctrl+F5` (bez debuggera)
-
----
-
-## Konfigurácia
-
-Hlavný konfiguračný súbor: `ZISK/ZISK/appsettings.json`
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=ZISK;Trusted_Connection=True;MultipleActiveResultSets=true"
-  }
-}
+```bash
+dotnet user-secrets init --project ZISK/ZISK
+dotnet user-secrets set "Smtp:Password" "..." --project ZISK/ZISK
 ```
 
-Pre lokálny vývoj nie je potrebná žiadna zmena konfigurácie – LocalDB sa spustí automaticky.
+Configurable settings: `ConnectionStrings:DefaultConnection`, `Smtp:Host/Port/Username/Password`,
+`ZISK_SEED_MODE`, `Seed:Passwords:*` (demo mode), `Seed:InitialAdmin:Email/Password` (production mode).
 
----
+## Demo accounts
 
-## Prihlasovacie údaje
+Seeding behavior is controlled by the `ZISK_SEED_MODE` environment variable:
 
-### Hlavné testovacie účty
-
-| Rola | E-mail | Heslo | Popis |
-|---|---|---|---|
-| **Admin** | `admin@zisk.sk` | `Admin1234` | Plný prístup – správa používateľov, tímov, sezón, štatistiky |
-| **Tréner** | `trener@zisk.sk` | `Trener1234` | Správa tréningov, dochádzka, tím, ospravedlnenky |
-| **Rodič** | `rodic@zisk.sk` | `Rodic1234` | Prehľad dieťaťa, posielanie ospravedlneniek |
-| **Dieťa** | `dieta@zisk.sk` | `Dieta1234` | Vlastný dashboard – rozvrh, dochádzka |
-
-### Vzorové účty (sample data)
-
-| Rola | E-mail | Heslo |
+| Mode | Purpose | Passwords |
 |---|---|---|
-| Tréner | `coach.marek.sample@zisk.sk` | `Sample1234` |
-| Tréner | `coach.lukas.sample@zisk.sk` | `Sample1234` |
-| Rodič | `parent.jana.sample@zisk.sk` | `Sample1234` |
-| Rodič | `parent.milan.sample@zisk.sk` | `Sample1234` |
-| Atlét | `athlete.adam.sample@zisk.sk` | `Sample1234` |
-| Dieťa | `child.nina.sample@zisk.sk` | `Sample1234` |
+| `local` (default) | `dotnet run` on your own machine | Hardcoded, listed below |
+| `demo` | Public deployment (e.g. Azure) | Read from `Seed:Passwords:*` config; startup fails loudly if any are missing. Real email sending is also disabled in this mode — a public demo has no business emailing arbitrary addresses. |
+| `production` | Real deployment | No demo/sample data at all — only roles + one admin from `Seed:InitialAdmin:*` |
 
----
+Local dev accounts (`local` mode):
 
-## Navigácia a ovládanie
+| Role | Email | Password |
+|---|---|---|
+| Admin | admin@zisk.sk | Admin1234 |
+| Coach | trener@zisk.sk | Trener1234 |
+| Parent | rodic@zisk.sk | Rodic1234 |
+| Child | dieta@zisk.sk | Dieta1234 |
 
-### Rola: Admin
+Roughly 25 additional sample coaches/parents/athletes/children are seeded for
+realistic team rosters and attendance history; they reuse the same per-role
+passwords above rather than having individual credentials.
 
-Po prihlásení sa zobrazí **Admin Dashboard** s nasledujúcimi sekciami:
+## Testing
 
-| Sekcia | Popis |
-|---|---|
-| **Dashboard** | Prehľad aktivity, štatistiky tréningov |
-| **Používatelia** | Zoznam všetkých účtov, zmena roly, deaktivácia |
-| **Tímy** | Vytváranie a úprava tímov, správa členov |
-| **Tréningy** | Prehľad všetkých tréningov naprieč tímami |
-| **Sezóny** | Správa sezón (aktivácia, dátumy) |
-| **Oznamy** | Vytváranie a správa oznamov pre rodičov/atlétov |
-| **Ospravedlnenky** | Prehľad všetkých žiadostí |
-| **Štatistiky** | Grafy dochádzky, aktivita klubu |
-| **Dokumenty** | GDPR, poriadky, nahrávanie súborov |
-
-### Rola: Tréner (Coach)
-
-| Sekcia | Popis |
-|---|---|
-| **Dashboard** | Nadchádzajúce tréningy, dochádzka môjho tímu |
-| **Tréningy** | Zoznam tréningov, vytváranie jednorazových aj sérií |
-| **Môj tím** | Členovia tímu, detail hráča |
-| **Dochádzka** | Označenie prítomnosti/neprítomnosti na tréningu |
-| **Ospravedlnenky** | Schvaľovanie/zamietnutie žiadostí rodičov |
-| **Oznamy** | Čítanie oznamov |
-
-### Rola: Rodič (Parent)
-
-| Sekcia | Popis |
-|---|---|
-| **Dashboard** | Prehľad detí, nadchádzajúce tréningy |
-| **Dochádzka** | Dochádzka môjho dieťaťa |
-| **Ospravedlnenky** | Odoslanie ospravedlnenky na konkrétny tréning |
-| **Oznamy** | Oznamy od trénera/admina |
-| **Profil** | Správa účtu, zmena hesla |
-
-### Rola: Dieťa / Atlét (Child / Athlete)
-
-| Sekcia | Popis |
-|---|---|
-| **Dashboard** | Vlastný rozvrh tréningov, dochádzka |
-| **Tréningový plán** | Kalendár tréningov |
-| **Dochádzka** | História vlastnej dochádzky |
-| **Oznamy** | Oznamy tímu |
-
----
-
-## Registrácia nového používateľa
-
-1. Choď na `/register`
-2. Vyplň meno, priezvisko, e-mail, heslo a rodné číslo
-3. registruj sa
-
----
-
-## PWA – Inštalácia ako aplikácia
-
-ZISK podporuje inštaláciu ako **Progressive Web App (PWA)** na desktop aj mobil.
-
-**Nakonfigurované súčasti:**
-- `manifest.webmanifest` – názov (`ZISK`), farby, ikony (192×192, 512×512, maskable)
-- `service-worker.js` – registrovaný, umožňuje inštaláciu prehliadačom
-- `theme-color` a `application-name` v HTML hlavičke
-
-**Inštalácia na desktop (Chrome / Edge):**
-1. Otvor aplikáciu na `http://localhost:5224`
-2. V adresnom riadku klikni na ikonu **Inštalovať** (monitor s šípkou dole) alebo cez menu → *Inštalovať ZISK*
-3. Potvrď inštaláciu – aplikácia sa otvorí ako samostatné okno
-
-**Inštalácia na Android:**
-1. Otvor aplikáciu v Chrome
-2. Klepni na menu (⋮) → **Pridať na plochu**
-
-> **Offline režim:** Súčasná implementácia service workera neobsahuje cache stratégiu – aplikácia vyžaduje aktívne sieťové pripojenie na funkčnosť. Inštalácia a spustenie ako PWA sú plne funkčné.
-
----
-
-## Štruktúra projektu
-
-```
-ZISK/
-├── ZISK/               # Serverový projekt (ASP.NET Core + Blazor Server)
-│   ├── Controllers/    # REST API pre WASM klienta (Refit)
-│   ├── Data/           # EF Core entity a DbContext
-│   ├── Services/       # Biznis logika, background workery
-│   └── Components/     # Server-side Razor stránky (login, register, verify)
-├── ZISK.Client/        # WebAssembly klient (Blazor WASM)
-│   ├── Pages/          # Stránky podľa roly (Admin, Coach, Parent, Child)
-│   ├── Components/     # Dialógy a zdieľané komponenty (MudDialog)
-│   └── Services/       # Refit API klienti (rozhrania a kontext používateľa)
-├── ZISK.Shared/        # Zdieľané DTOs, enumerácie
-└── ZISK.Tests/         # Unit testy (xUnit)
-```
-
----
-
-## Technológie
-
-| | |
-|---|---|
-| Framework | .NET 10 / Blazor Hybrid (Server + WebAssembly) |
-| UI knižnica | MudBlazor 9 |
-| Databáza | SQL Server (LocalDB pre vývoj) |
-| ORM | Entity Framework Core 10 |
-| HTTP klient | Refit |
-| Autentifikácia | ASP.NET Core Identity (cookie, 14-dňový token) |
-| Lokalizácia | sk-SK (slovenčina) |
-
----
-
-## Časté problémy
-
-**LocalDB sa nespúšťa**
 ```bash
-sqllocaldb start MSSQLLocalDB
+dotnet test
 ```
 
-**Port je obsadený**  
-Zmeň `applicationUrl` v `ZISK/ZISK/Properties/launchSettings.json`.
+14 xUnit test classes (99 test cases) covering automated attendance close-out,
+password/email change flows, forgotten-password rate limiting, Child→Athlete
+upgrade, parent invitations, training cancellation and series generation,
+username generation, seed-mode/demo-email configuration, and the delete-path
+authorization/data-integrity fixes described below.
 
-**Migrácia zlyhá**
-```bash
-dotnet ef database update --project ZISK/ZISK/ZISK.csproj
-```
+## What I learned
+
+**Designing team-scoped authorisation was the hardest call.** Every endpoint had
+to answer two independent questions — "does this role allow the action?" and
+"is this user in the right team?" — and putting the team check inside each
+controller meant duplicating it across dozens of methods. I settled on a single
+`TeamAccessService.GetAccessibleTeamIdsAsync()` that returns `null` for admins
+(no filter) and an explicit `HashSet<Guid>` for everyone else. Services use it
+as a `.Where()` predicate against the EF query, so the authorisation rule lives
+in one place instead of being scattered across controllers. (There are still a
+few endpoints where I haven't wired this check in yet — fixing the remaining
+gaps is next on my list.)
+
+**I hadn't heard of Refit before** — an AI suggestion when I was sketching out
+how the WASM client would talk to the API. I had been about to write a service
+class for each controller wrapping `HttpClient.PostAsJsonAsync(...)` calls by
+hand. With Refit, every API contract is a one-method-per-endpoint interface and
+the implementation is generated at compile time. Across thirteen `IXxxApi`
+interfaces it saved several hundred lines of boilerplate and meant that a typo
+in a route or DTO field is a compile error instead of a runtime 404.
+
+**The biggest plan-vs-reality gap was the registration form.** I originally
+wanted parents to pick their home address from an interactive OpenStreetMap
+component — type-ahead search, drop a pin, save lat/long with the address.
+After a few days of prototyping I realised it would mean a third-party
+JavaScript library inside a Blazor WASM page, a different database column shape,
+and ongoing reliance on a tile server I didn't control. None of that was
+justified by the actual use case — coaches and admins never needed to query
+parents by location. I cut it down to a plain text address field. A reminder
+that "cool to build" is not the same as "worth building".
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+## Author
+
+Michal Petrán — Faculty of Management Science and Informatics, University of
+Žilina (FRI UNIZA). Bachelor's thesis project, 2026.

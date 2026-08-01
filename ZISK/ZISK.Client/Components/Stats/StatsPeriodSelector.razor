@@ -1,0 +1,36 @@
+@*
+    Period toggle for the stats page (7 / 30 / 90 days, 1 year).
+*@
+
+<MudPaper Class="pa-3 mb-4" Elevation="0" Outlined="true">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+        <MudIcon Icon="@Icons.Material.Filled.DateRange" Color="Color.Secondary" />
+        <MudText Typo="Typo.body2">Obdobie:</MudText>
+        <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small" Color="Color.Primary">
+            @foreach (var days in Periods)
+            {
+                var localDays = days;
+                <MudButton Variant="@(SelectedDays == localDays ? Variant.Filled : Variant.Outlined)"
+                           OnClick="@(() => SelectedDaysChanged.InvokeAsync(localDays))">
+                    @Label(localDays)
+                </MudButton>
+            }
+        </MudButtonGroup>
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter] public int[] Periods { get; set; } = [7, 30, 90, 365];
+
+    [Parameter] public int SelectedDays { get; set; }
+    [Parameter] public EventCallback<int> SelectedDaysChanged { get; set; }
+
+    private static string Label(int days) => days switch
+    {
+        7 => "7 dní",
+        30 => "30 dní",
+        90 => "90 dní",
+        365 => "1 rok",
+        _ => $"{days} dní"
+    };
+}

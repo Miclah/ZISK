@@ -1,0 +1,66 @@
+@using ZISK.Client.Layout
+@*
+    One line of a metric list: rounded icon tile, label (+ optional caption), and either a trailing value or
+    a labelled progress bar. Used for the "Tento týždeň" style summary panels.
+*@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="py-3">
+    <MudPaper Elevation="0" Class="d-flex align-center justify-center flex-shrink-0"
+              Style="@($"width:44px;height:44px;border-radius:10px;background:{TileBackground};")">
+        <MudIcon Icon="@Icon" Color="@IconColor" />
+    </MudPaper>
+
+    <div style="flex:1; min-width:0;">
+        @if (Progress is null)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@Label</MudText>
+            @if (!string.IsNullOrWhiteSpace(Caption))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Style="font-size:11px;">@Caption</MudText>
+            }
+        }
+        else
+        {
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@Label</MudText>
+                <MudText Typo="Typo.h4" Style="font-weight:700;">@Value</MudText>
+            </MudStack>
+            <MudProgressLinear Value="@Progress.Value" Max="100" Rounded="true" Size="Size.Small"
+                               Color="@IconColor" Class="mt-1" />
+        }
+    </div>
+
+    @if (Progress is null)
+    {
+        <MudText Typo="Typo.h4" Style="font-weight:700;">@Value</MudText>
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public string Icon { get; set; } = default!;
+
+    [Parameter, EditorRequired] public string Label { get; set; } = default!;
+
+    [Parameter, EditorRequired] public string Value { get; set; } = default!;
+
+    [Parameter] public string? Caption { get; set; }
+
+    [Parameter] public Color IconColor { get; set; } = Color.Primary;
+
+    /// <summary>
+    /// When set, the value moves up beside the label and a progress bar is drawn underneath. Expressed as a
+    /// percentage (0–100).
+    /// </summary>
+    [Parameter] public double? Progress { get; set; }
+
+    // The tile background is the palette colour at ~10% alpha ("1A" suffix), matching the original inline styles.
+    private string TileBackground => IconColor switch
+    {
+        Color.Success => $"{ThemeColors.Success}1A",
+        Color.Warning => $"{ThemeColors.Warning}1A",
+        Color.Error => $"{ThemeColors.Error}1A",
+        Color.Info => $"{ThemeColors.Info}1A",
+        Color.Secondary => $"{ThemeColors.Secondary}1A",
+        _ => $"{ThemeColors.Primary}1A"
+    };
+}

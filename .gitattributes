@@ -1,5 +1,7 @@
 # Auto detect text files and perform LF normalization
 * text=auto
-wwwroot/lib/** linguist-vendored
+
+**/wwwroot/lib/** linguist-vendored
+**/wwwroot/** linguist-vendored
 *.html linguist-detectable=false
 *.css linguist-detectable=false

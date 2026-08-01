@@ -1,0 +1,67 @@
+@using ZISK.Client.Components
+@using ZISK.Shared.DTOs.Users
+@*
+    The three account-management sections — email, password and account deletion. Each is a short block of
+    explanatory text plus one button that opens the corresponding dialog, so they live together rather than
+    as three near-empty files.
+*@
+
+@if (Section == "email")
+{
+    <ProfileSectionHeading Icon="@Icons.Material.Rounded.Email" Title="Emailová adresa" />
+    <MudStack Spacing="3" Style="max-width:520px;">
+        <ReadOnlyField Label="Aktuálny email" Value="@Email" />
+        <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+            Tento email používate aj na prihlásenie. Po zmene budete automaticky prihlásení s novým emailom.
+        </MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Rounded.Edit"
+                   OnClick="OnChangeEmail"
+                   Style="align-self:flex-start;">
+            Zmeniť email
+        </MudButton>
+    </MudStack>
+}
+else if (Section == "password")
+{
+    <ProfileSectionHeading Icon="@Icons.Material.Rounded.Lock" Title="Heslo" />
+    <MudStack Spacing="3" Style="max-width:520px;">
+        <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+            Pre zmenu hesla budete potrebovať svoje súčasné heslo.
+            Nové heslo musí mať aspoň 8 znakov, obsahovať malé aj veľké písmeno a číslicu.
+        </MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Rounded.Lock"
+                   OnClick="OnChangePassword"
+                   Style="align-self:flex-start;">
+            Zmeniť heslo
+        </MudButton>
+    </MudStack>
+}
+else if (Section == "personal")
+{
+    <ProfileSectionHeading Icon="@Icons.Material.Rounded.DataUsage" Title="Osobné údaje a účet" />
+    <MudStack Spacing="3" Style="max-width:520px;">
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+            Odstránenie účtu trvalo zruší váš prístup do systému aj všetky uložené údaje.
+            <strong>Túto akciu nemožno vrátiť späť.</strong>
+        </MudAlert>
+        <MudButton Variant="Variant.Filled" Color="Color.Error"
+                   StartIcon="@Icons.Material.Rounded.DeleteForever"
+                   OnClick="OnDeleteAccount"
+                   Style="align-self:flex-start;">
+            Odstrániť účet
+        </MudButton>
+    </MudStack>
+}
+
+@code {
+    /// <summary>One of "email", "password" or "personal".</summary>
+    [Parameter, EditorRequired] public string Section { get; set; } = default!;
+
+    [Parameter] public string Email { get; set; } = "";
+
+    [Parameter] public EventCallback OnChangeEmail { get; set; }
+    [Parameter] public EventCallback OnChangePassword { get; set; }
+    [Parameter] public EventCallback OnDeleteAccount { get; set; }
+}

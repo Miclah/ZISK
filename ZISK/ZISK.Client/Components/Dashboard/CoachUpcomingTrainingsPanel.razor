@@ -1,0 +1,73 @@
+@using ZISK.Client.Layout
+@using ZISK.Shared.DTOs.Trainings
+@*
+    Coach's upcoming sessions. Unlike the read-only family variant, each row is clickable and carries a
+    date badge and a cancelled marker.
+*@
+
+<MudPaper Class="card-standard pa-4" Elevation="0">
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Najbližšie tréningy</MudText>
+        @if (OnShowAll.HasDelegate)
+        {
+            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                       EndIcon="@Icons.Material.Rounded.ChevronRight" OnClick="OnShowAll">
+                Kalendár
+            </MudButton>
+        }
+    </MudStack>
+
+    @if (Trainings.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@EmptyText</MudText>
+    }
+    else
+    {
+        <MudStack Spacing="0">
+            @foreach (var t in Trainings.Take(MaxItems))
+            {
+                <div @key="t.Id" style="cursor:pointer;" @onclick="@(() => OnOpenTraining.InvokeAsync(t.Id))">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Spacing="2" Class="py-2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudPaper Elevation="0" Class="pa-1"
+                                      Style="@($"background:{ThemeColors.Primary}14; border-radius:6px; min-width:48px; text-align:center;")">
+                                <MudText Typo="Typo.caption" Style="@($"font-weight:600; color:{ThemeColors.Primary};")">
+                                    @t.StartTime.ToString("dd.MM")
+                                </MudText>
+                            </MudPaper>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body2" Style="font-weight:500;">@t.Title</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @t.StartTime.ToString("HH:mm") – @t.EndTime.ToString("HH:mm")
+                                    @if (!string.IsNullOrWhiteSpace(t.Location))
+                                    {
+                                        <span> · @t.Location</span>
+                                    }
+                                </MudText>
+                            </MudStack>
+                        </MudStack>
+                        @if (t.IsCancelled)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Error">Zrušený</MudChip>
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Rounded.ChevronRight" Color="Color.Default" />
+                        }
+                    </MudStack>
+                    <MudDivider />
+                </div>
+            }
+        </MudStack>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<TrainingEventDto> Trainings { get; set; } = [];
+
+    [Parameter] public string EmptyText { get; set; } = "Žiadne ďalšie tréningy v najbližších 14 dňoch.";
+    [Parameter] public int MaxItems { get; set; } = 5;
+
+    [Parameter] public EventCallback<Guid> OnOpenTraining { get; set; }
+    [Parameter] public EventCallback OnShowAll { get; set; }
+}

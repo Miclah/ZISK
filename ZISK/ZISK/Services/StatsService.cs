@@ -19,6 +19,11 @@ public class StatsService : IStatsService
     {
         var teams = await _context.Teams.AsNoTracking().ToListAsync();
         var totalMembers = await _context.TeamMembers.AsNoTracking().Select(tm => tm.UserId).Distinct().CountAsync();
+        var activeMembers = await _context.TeamMembers.AsNoTracking()
+            .Where(tm => tm.User.IsActive)
+            .Select(tm => tm.UserId)
+            .Distinct()
+            .CountAsync();
         var users = await _context.Users.CountAsync();
         var pendingExcuses = await _context.AbsenceRequests.CountAsync(ar => ar.Status == AbsenceRequestStatus.Received);
 
@@ -28,7 +33,7 @@ public class StatsService : IStatsService
             TotalTeams: teams.Count,
             ActiveTeams: teams.Count(t => t.IsActive),
             TotalMembers: totalMembers,
-            ActiveMembers: totalMembers,
+            ActiveMembers: activeMembers,
             TotalUsers: users,
             PendingExcuses: pendingExcuses,
             AttendanceStats: attendanceStats

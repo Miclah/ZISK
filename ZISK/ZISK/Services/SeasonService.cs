@@ -68,6 +68,13 @@ public class SeasonService : ISeasonService
         if (season.IsActive)
             throw new InvalidOperationException("Aktívnu sezónu nemožno vymazať.");
 
+        // TrainingEvent.SeasonId and TrainingSeries.SeasonId are Restrict FKs - without this
+        // check, SaveChangesAsync would fail with a raw FK violation instead of a clear message.
+        var hasTrainings = await _context.TrainingEvents.AnyAsync(te => te.SeasonId == id);
+        var hasSeries = await _context.TrainingSeries.AnyAsync(ts => ts.SeasonId == id);
+        if (hasTrainings || hasSeries)
+            throw new InvalidOperationException("Nemožno vymazať sezónu, ktorá má priradené tréningy alebo tréningové série.");
+
         _context.Seasons.Remove(season);
         await _context.SaveChangesAsync();
     }

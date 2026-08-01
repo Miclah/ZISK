@@ -1,0 +1,84 @@
+@using ZISK.Client.Display
+@using ZISK.Shared.DTOs.Attendance
+@*
+    "Dochádzka": date-range picker, present/absent/excused totals, and the per-training records.
+*@
+
+<MudCard Elevation="1" Class="mb-4">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+                <MudText Typo="Typo.subtitle1">Dochádzka</MudText>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
+                    <MudDatePicker Date="From" DateChanged="FromChanged" Label="Od"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:130px;" />
+                    <MudDatePicker Date="To" DateChanged="ToChanged" Label="Do"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:130px;" />
+                    <MudButton OnClick="OnReload" Variant="Variant.Text" Color="Color.Primary" Size="Size.Small">Zobraziť</MudButton>
+                </MudStack>
+            </MudStack>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        @if (Stats is not null)
+        {
+            <MudGrid Class="mb-3">
+                <MudItem xs="4">
+                    <MudPaper Elevation="0" Class="pa-2 text-center">
+                        <MudText Typo="Typo.h6" Color="Color.Success">@Stats.Present</MudText>
+                        <MudText Typo="Typo.caption">Prítomný</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="4">
+                    <MudPaper Elevation="0" Class="pa-2 text-center">
+                        <MudText Typo="Typo.h6" Color="Color.Error">@Stats.Absent</MudText>
+                        <MudText Typo="Typo.caption">Neprítomný</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="4">
+                    <MudPaper Elevation="0" Class="pa-2 text-center">
+                        <MudText Typo="Typo.h6" Color="Color.Warning">@Stats.Excused</MudText>
+                        <MudText Typo="Typo.caption">Ospravedlnený</MudText>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        }
+
+        @if (Records.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne záznamy za vybrané obdobie.</MudText>
+        }
+        else
+        {
+            <MudTable Items="@Records" Dense="true" Hover="true">
+                <HeaderContent>
+                    <MudTh>Dátum</MudTh>
+                    <MudTh>Tréning</MudTh>
+                    <MudTh>Stav</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Date.ToString("dd.MM.yyyy")</MudTd>
+                    <MudTd>@context.TrainingName</MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small" Class="@DomainLabels.AttendanceStatusChipClass(context.Status)">
+                            @DomainLabels.AttendanceStatusText(context.Status)
+                        </MudChip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public AttendanceStatsDto? Stats { get; set; }
+    [Parameter, EditorRequired] public IReadOnlyList<UserAttendanceDto> Records { get; set; } = [];
+
+    [Parameter] public DateTime? From { get; set; }
+    [Parameter] public EventCallback<DateTime?> FromChanged { get; set; }
+
+    [Parameter] public DateTime? To { get; set; }
+    [Parameter] public EventCallback<DateTime?> ToChanged { get; set; }
+
+    [Parameter] public EventCallback OnReload { get; set; }
+}

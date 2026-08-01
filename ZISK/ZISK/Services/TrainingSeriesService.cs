@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using ZISK.Data;
 using ZISK.Data.Entities;
@@ -8,20 +9,31 @@ namespace ZISK.Services;
 public class TrainingSeriesService : ITrainingSeriesService
 {
     private readonly ApplicationDbContext _context;
+    private readonly ITeamAccessService _teamAccessService;
+    private readonly IAuditService _auditService;
 
-    public TrainingSeriesService(ApplicationDbContext context)
+    public TrainingSeriesService(
+        ApplicationDbContext context,
+        ITeamAccessService teamAccessService,
+        IAuditService auditService)
     {
         _context = context;
+        _teamAccessService = teamAccessService;
+        _auditService = auditService;
     }
 
-    public async Task<List<TrainingSeriesDto>> GetSeriesAsync(Guid? teamId = null, Guid? seasonId = null)
+    public async Task<List<TrainingSeriesDto>> GetSeriesAsync(ClaimsPrincipal user, Guid? teamId = null, Guid? seasonId = null)
     {
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
+
         var query = _context.TrainingSeries
             .Include(ts => ts.Team)
             .Include(ts => ts.Coach)
             .Include(ts => ts.Season)
             .AsNoTracking();
 
+        if (accessibleTeamIds is not null)
+            query = query.Where(ts => accessibleTeamIds.Contains(ts.TeamId));
         if (teamId.HasValue)
             query = query.Where(ts => ts.TeamId == teamId.Value);
         if (seasonId.HasValue)
@@ -30,7 +42,7 @@ public class TrainingSeriesService : ITrainingSeriesService
         return await query.OrderBy(ts => ts.Title).Select(ts => ToDto(ts)).ToListAsync();
     }
 
-    public async Task<TrainingSeriesDto> GetSeriesAsync(Guid id)
+    public async Task<TrainingSeriesDto> GetSeriesAsync(Guid id, ClaimsPrincipal user)
     {
         var series = await _context.TrainingSeries
             .Include(ts => ts.Team)
@@ -39,13 +51,23 @@ public class TrainingSeriesService : ITrainingSeriesService
             .AsNoTracking()
             .FirstOrDefaultAsync(ts => ts.Id == id)
             ?? throw new KeyNotFoundException();
+
+        await EnsureTeamAccessAsync(series.TeamId, user);
         return ToDto(series);
     }
 
-    public async Task<TrainingSeriesDto> CreateSeriesAsync(CreateTrainingSeriesRequest request, string coachId)
+    public async Task<TrainingSeriesDto> CreateSeriesAsync(CreateTrainingSeriesRequest request, string coachId, ClaimsPrincipal user)
     {
         if (request.StartTime >= request.EndTime)
             throw new ArgumentException("Čas začiatku musí byť pred časom konca.");
+
+        if (!await _context.Teams.AnyAsync(t => t.Id == request.TeamId))
+            throw new ArgumentException("Tím neexistuje.");
+
+        if (!await _context.Seasons.AnyAsync(s => s.Id == request.SeasonId))
+            throw new ArgumentException("Sezóna neexistuje.");
+
+        await EnsureTeamAccessAsync(request.TeamId, user);
 
         var series = new TrainingSeries
         {
@@ -66,16 +88,19 @@ public class TrainingSeriesService : ITrainingSeriesService
 
         _context.TrainingSeries.Add(series);
         await _context.SaveChangesAsync();
+        _auditService.Log("Create", "TrainingSeries", series.Id.ToString(), user, new { series.Title, series.TeamId });
 
-        return await GetSeriesAsync(series.Id);
+        return await GetSeriesAsync(series.Id, user);
     }
 
-    public async Task<TrainingSeriesDto> UpdateSeriesAsync(Guid id, UpdateTrainingSeriesRequest request)
+    public async Task<TrainingSeriesDto> UpdateSeriesAsync(Guid id, UpdateTrainingSeriesRequest request, ClaimsPrincipal user)
     {
         if (request.StartTime >= request.EndTime)
             throw new ArgumentException("Čas začiatku musí byť pred časom konca.");
 
         var series = await _context.TrainingSeries.FindAsync(id) ?? throw new KeyNotFoundException();
+        await EnsureTeamAccessAsync(series.TeamId, user);
+
         series.Title = request.Title;
         series.DaysOfWeek = request.DaysOfWeek;
         series.StartTime = request.StartTime;
@@ -86,75 +111,55 @@ public class TrainingSeriesService : ITrainingSeriesService
         series.IsActive = request.IsActive;
 
         await _context.SaveChangesAsync();
-        return await GetSeriesAsync(id);
+        _auditService.Log("Update", "TrainingSeries", series.Id.ToString(), user, new { series.Title, series.IsActive });
+
+        return await GetSeriesAsync(id, user);
     }
 
-    public async Task DeleteSeriesAsync(Guid id)
+    public async Task DeleteSeriesAsync(Guid id, ClaimsPrincipal user)
     {
         var series = await _context.TrainingSeries.FindAsync(id) ?? throw new KeyNotFoundException();
+        await EnsureTeamAccessAsync(series.TeamId, user);
+
         _context.TrainingSeries.Remove(series);
         await _context.SaveChangesAsync();
+        _auditService.Log("Delete", "TrainingSeries", series.Id.ToString(), user, new { series.Title, series.TeamId });
     }
 
-    public async Task<int> GenerateInstancesAsync(Guid seriesId, DateOnly from, DateOnly to)
+    public async Task<int> GenerateInstancesAsync(Guid seriesId, DateOnly from, DateOnly to, ClaimsPrincipal user)
     {
         var series = await _context.TrainingSeries
             .Include(ts => ts.Season)
             .FirstOrDefaultAsync(ts => ts.Id == seriesId)
             ?? throw new KeyNotFoundException();
 
+        await EnsureTeamAccessAsync(series.TeamId, user);
+
         if (from >= to)
             throw new ArgumentException("Dátum od musí byť pred dátumom do.");
 
-        var weekdays = (Weekdays)series.DaysOfWeek; // DaysOfWeek is stored as an int bitmask in the DB; cast restores the [Flags] enum
         var existingDates = await _context.TrainingEvents
             .Where(te => te.SeriesId == seriesId)
             .Select(te => DateOnly.FromDateTime(te.StartTime))
             .ToListAsync();
 
-        var existingSet = new HashSet<DateOnly>(existingDates); // O(1) lookup per iteration; List.Contains would be O(n) over potentially hundreds of dates
-        var generated = 0;
+        // O(1) lookup per iteration; List.Contains would be O(n) over potentially hundreds of dates
+        var existingSet = new HashSet<DateOnly>(existingDates);
 
-        for (var date = from; date <= to; date = date.AddDays(1))
-        {
-            var dayFlag = date.DayOfWeek switch
-            {
-                DayOfWeek.Monday => Weekdays.Monday,
-                DayOfWeek.Tuesday => Weekdays.Tuesday,
-                DayOfWeek.Wednesday => Weekdays.Wednesday,
-                DayOfWeek.Thursday => Weekdays.Thursday,
-                DayOfWeek.Friday => Weekdays.Friday,
-                DayOfWeek.Saturday => Weekdays.Saturday,
-                DayOfWeek.Sunday => Weekdays.Sunday,
-                _ => Weekdays.None
-            };
+        var instances = TrainingSeriesInstanceGenerator.BuildMissingInstances(series, from, to, existingSet);
 
-            if ((weekdays & dayFlag) == Weekdays.None || existingSet.Contains(date)) // bitwise AND; None=0 means this day is not included in the stored mask
-                continue;
-
-            var startDt = date.ToDateTime(series.StartTime);
-            var endDt = date.ToDateTime(series.EndTime);
-
-            _context.TrainingEvents.Add(new TrainingEvent
-            {
-                Id = Guid.NewGuid(),
-                TeamId = series.TeamId,
-                SeriesId = series.Id,
-                SeasonId = series.SeasonId,
-                Title = series.Title,
-                StartTime = startDt,
-                EndTime = endDt,
-                Location = series.Location,
-                Type = series.Type,
-                CoachNote = series.CoachNote,
-                CreatedAt = DateTime.UtcNow
-            });
-
-            generated++;
-        }
-
+        _context.TrainingEvents.AddRange(instances);
         await _context.SaveChangesAsync();
-        return generated;
+        _auditService.Log("GenerateInstances", "TrainingSeries", series.Id.ToString(), user, new { generated = instances.Count, from, to });
+
+        return instances.Count;
+    }
+
+    private async Task EnsureTeamAccessAsync(Guid teamId, ClaimsPrincipal user)
+    {
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
+        if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(teamId))
+            throw new UnauthorizedAccessException();
     }
 
     private static TrainingSeriesDto ToDto(TrainingSeries ts) => new(

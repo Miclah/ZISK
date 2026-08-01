@@ -1,0 +1,46 @@
+@using ZISK.Client.Layout
+@using ZISK.Shared.DTOs.Excuses
+@*
+    Recently submitted absence requests for the coach's team.
+*@
+
+<MudPaper Class="card-standard pa-4" Elevation="0">
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@Title</MudText>
+        @if (Excuses.Count > 0)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning">@Excuses.Count</MudChip>
+        }
+    </MudStack>
+
+    @if (Excuses.Count == 0)
+    {
+        <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Class="py-4" Spacing="1">
+            <MudIcon Icon="@Icons.Material.Rounded.CheckCircleOutline" Color="Color.Success" />
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@EmptyText</MudText>
+        </MudStack>
+    }
+    else
+    {
+        <MudStack Spacing="2">
+            @foreach (var excuse in Excuses.Take(MaxItems))
+            {
+                <MudStack @key="excuse.Id" Spacing="0"
+                          Style="@($"border-left: 3px solid {ThemeColors.Warning}; padding: 4px 12px;")">
+                    <MudText Typo="Typo.body2" Style="font-weight:500;">@excuse.ChildName</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @((excuse.DateFrom ?? excuse.CreatedAt).ToString("dd.MM.yyyy")) · @excuse.Reason
+                    </MudText>
+                </MudStack>
+            }
+        </MudStack>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ExcuseListDto> Excuses { get; set; } = [];
+
+    [Parameter] public string Title { get; set; } = "Nové ospravedlnenky";
+    [Parameter] public string EmptyText { get; set; } = "Žiadne nové ospravedlnenky.";
+    [Parameter] public int MaxItems { get; set; } = 6;
+}

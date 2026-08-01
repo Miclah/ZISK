@@ -1,15 +1,19 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using System.Globalization;
+using System.IO.Compression;
 using System.Threading.RateLimiting;
 using ZISK.Components;
 using ZISK.Components.Account;
 using ZISK.Client.Services;
 using ZISK.Data;
 using ZISK.Extensions;
+using ZISK.Filters;
 using ZISK.Services;
 
 var slovakCulture = new CultureInfo("sk-SK");
@@ -18,7 +22,10 @@ CultureInfo.DefaultThreadCurrentUICulture = slovakCulture;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+    {
+        options.Filters.Add<ApiExceptionFilter>();
+    })
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
@@ -86,10 +93,23 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
 builder.Services.AddTransient<SmtpEmailSender>();
-builder.Services.AddTransient<IEmailSender<ApplicationUser>>(sp => sp.GetRequiredService<SmtpEmailSender>());
-builder.Services.AddTransient<IEmailSender>(sp => sp.GetRequiredService<SmtpEmailSender>());
+builder.Services.AddTransient<LoggingEmailSender>();
+
+// Demo deployments must never send real email - see LoggingEmailSender.
+if (SeedModeResolver.Resolve(builder.Configuration) == SeedMode.Demo)
+{
+    builder.Services.AddTransient<IEmailSender<ApplicationUser>>(sp => sp.GetRequiredService<LoggingEmailSender>());
+    builder.Services.AddTransient<IEmailSender>(sp => sp.GetRequiredService<LoggingEmailSender>());
+}
+else
+{
+    builder.Services.AddTransient<IEmailSender<ApplicationUser>>(sp => sp.GetRequiredService<SmtpEmailSender>());
+    builder.Services.AddTransient<IEmailSender>(sp => sp.GetRequiredService<SmtpEmailSender>());
+}
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ITeamAccessService, TeamAccessService>();
+builder.Services.Configure<SeedPasswordOptions>(builder.Configuration.GetSection("Seed:Passwords"));
+builder.Services.Configure<SeedInitialAdminOptions>(builder.Configuration.GetSection("Seed:InitialAdmin"));
 builder.Services.AddScoped<DatabaseInitializer>();
 builder.Services.AddScoped<UsernameGenerator>();
 builder.Services.AddScoped<RegistrationDraftService>();
@@ -129,7 +149,43 @@ builder.Services.Configure<Microsoft.AspNetCore.Builder.RequestLocalizationOptio
     options.SupportedUICultures = supported;
 });
 
+// API responses were previously sent uncompressed: MapStaticAssets serves the pre-compressed WASM/static
+// assets, but controller JSON never passed through any compression middleware. The list endpoints return
+// whole collections, so this is the difference between ~525 KB and ~90 KB on /api/users at full club size.
+builder.Services.AddResponseCompression(options =>
+{
+    // Restricted to JSON: static assets already ship pre-compressed .br/.gz via MapStaticAssets, and
+    // re-compressing them at runtime would be strictly worse (CPU per request, no size gain).
+    options.MimeTypes = ["application/json", "application/problem+json"];
+
+    // BREACH-style attacks need a secret reflected in a compressed response body alongside
+    // attacker-controlled input. These endpoints return DTO collections; the antiforgery token lives in the
+    // server-rendered Identity pages, which are not JSON and so are not compressed here.
+    options.EnableForHttps = true;
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+
 var app = builder.Build();
+
+// Azure App Service Linux terminates TLS at its own edge and forwards requests to the container over
+// plain HTTP, setting X-Forwarded-Proto/-For. Without this, Request.IsHttps is always false behind that
+// proxy, which would silently defeat the Secure cookie policy and HSTS below. KnownNetworks/KnownProxies
+// are cleared because App Service's front-end IP isn't fixed/known in advance - the container itself is
+// not directly internet-facing, so trusting these headers here doesn't introduce a spoofing risk.
+// The docker-compose path (plain HTTP, no proxy) and local `dotnet run` are unaffected either way since
+// no X-Forwarded-* headers are ever present there.
+var forwardedHeaderOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+forwardedHeaderOptions.KnownIPNetworks.Clear();
+forwardedHeaderOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeaderOptions);
+
+// Before the endpoints that produce the JSON it compresses, and after UseForwardedHeaders so the
+// EnableForHttps decision sees the real client scheme rather than the proxy hop.
+app.UseResponseCompression();
 
 app.UseRequestLocalization();
 
@@ -141,6 +197,9 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    // Response-header-only (Strict-Transport-Security); does not redirect or refuse plain HTTP itself,
+    // so it can't break the docker-compose deployment path, which never serves HTTPS at all.
+    app.UseHsts();
 }
 
 app.UseAuthentication();
@@ -166,6 +225,12 @@ using (var scope = app.Services.CreateScope())
     try
     {
         await initializer.InitializeAsync();
+    }
+    catch (SeedConfigurationException)
+    {
+        // A demo/production deploy with missing Seed:* configuration must fail loudly at
+        // startup, not silently fall back to hardcoded local passwords or run with no admin.
+        throw;
     }
     catch (Exception ex)
     {

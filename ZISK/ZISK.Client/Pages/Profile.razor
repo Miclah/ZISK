@@ -1,6 +1,8 @@
-@page "/profil"
+﻿@page "/profil"
 @using System.Security.Claims
 @using System.Globalization
+@using ZISK.Client.Components
+@using ZISK.Client.Components.Profile
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Invitations
 @using ZISK.Shared.DTOs.Users
@@ -57,184 +59,38 @@
                 <MudPaper Elevation="1" Class="pa-4">
                     @if (_section == "overview")
                     {
-                        <MudText Typo="Typo.h6" Class="mb-3">
-                            <MudIcon Icon="@Icons.Material.Rounded.Person" Class="mr-2" />Základné údaje
-                        </MudText>
-                        <MudGrid Spacing="3">
-                            <MudItem xs="12" sm="6">
-                                <ReadOnlyField Label="Meno" Value="@_profile!.FirstName" />
-                            </MudItem>
-                            <MudItem xs="12" sm="6">
-                                <ReadOnlyField Label="Priezvisko" Value="@_profile!.LastName" />
-                            </MudItem>
-                            <MudItem xs="12" sm="6">
-                                <ReadOnlyField Label="Dátum narodenia" Value="@FormatDate(_profile!.DateOfBirth)" />
-                            </MudItem>
-                            <MudItem xs="12" sm="6">
-                                <ReadOnlyField Label="Rodné číslo" Value="@(_profile!.RodneCislo ?? "—")" />
-                            </MudItem>
-                            <MudItem xs="12" sm="6">
-                                <ReadOnlyField Label="Rola v systéme" Value="@RoleLabel(_profile!.Role)" />
-                            </MudItem>
-                            <MudItem xs="12" sm="6">
-                                <ReadOnlyField Label="Účet vytvorený" Value="@FormatDateTime(_profile!.CreatedAt)" />
-                            </MudItem>
-                        </MudGrid>
-
-                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-4" Dense="true">
-                            Údaje ako meno, priezvisko, rodné číslo a dátum narodenia môže zmeniť iba administrátor.
-                        </MudAlert>
-
-                        @if (_isParent)
-                        {
-                            <MudDivider Class="my-4" />
-                            <MudText Typo="Typo.subtitle1" Class="mb-2">Pripojiť sa k dieťaťu</MudText>
-                            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);" Class="mb-3">
-                                Zadajte kód, ktorý vám poskytol iný rodič, a prepojte sa s dieťaťom.
-                            </MudText>
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
-                                <MudTextField @bind-Value="_redeemCode"
-                                              Label="Kód pozvánky"
-                                              Variant="Variant.Outlined"
-                                              Placeholder="XXXX-XXXX"
-                                              Style="max-width:200px;"
-                                              Margin="Margin.Dense" />
-                                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RedeemCode"
-                                           Disabled="@(_isRedeeming || string.IsNullOrWhiteSpace(_redeemCode))">
-                                    @if (_isRedeeming)
-                                    {
-                                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                                    }
-                                    Pripojiť
-                                </MudButton>
-                            </MudStack>
-                        }
+                        <ProfileOverviewSection Profile="_profile!"
+                                                IsParent="_isParent"
+                                                BirthDateText="@FormatDate(_profile!.DateOfBirth)"
+                                                RoleText="@RoleLabel(_profile!.Role)"
+                                                CreatedAtText="@FormatDateTime(_profile!.CreatedAt)"
+                                                @bind-RedeemCode="_redeemCode"
+                                                IsRedeeming="_isRedeeming"
+                                                OnRedeem="RedeemCode" />
                     }
                     else if (_section == "contact")
                     {
-                        <MudText Typo="Typo.h6" Class="mb-3">
-                            <MudIcon Icon="@Icons.Material.Rounded.ContactPhone" Class="mr-2" />Kontaktné údaje
-                        </MudText>
-                        <MudStack Spacing="3" Style="max-width:520px;">
-                            <MudTextField @bind-Value="_contactPhone" Label="Telefónne číslo"
-                                          Variant="Variant.Outlined" Placeholder="+421 911 111 111"
-                                          InputType="InputType.Telephone" />
-                            <MudTextField @bind-Value="_contactBydlisko" Label="Bydlisko"
-                                          Variant="Variant.Outlined" Placeholder="Ulica, mesto, PSČ"
-                                          Lines="2" />
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                                       StartIcon="@Icons.Material.Rounded.Save"
-                                       OnClick="SaveContact" Disabled="@_savingContact"
-                                       Style="align-self:flex-start;">
-                                @if (_savingContact)
-                                {
-                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                                }
-                                Uložiť zmeny
-                            </MudButton>
-                        </MudStack>
+                        <ProfileContactSection @bind-Phone="_contactPhone"
+                                               @bind-Bydlisko="_contactBydlisko"
+                                               IsSaving="_savingContact"
+                                               OnSave="SaveContact" />
                     }
-                    else if (_section == "email")
+                    else if (_section is "email" or "password" or "personal")
                     {
-                        <MudText Typo="Typo.h6" Class="mb-3">
-                            <MudIcon Icon="@Icons.Material.Rounded.Email" Class="mr-2" />Emailová adresa
-                        </MudText>
-                        <MudStack Spacing="3" Style="max-width:520px;">
-                            <ReadOnlyField Label="Aktuálny email" Value="@_profile!.Email" />
-                            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
-                                Tento email používate aj na prihlásenie. Po zmene budete automaticky prihlásení s novým emailom.
-                            </MudText>
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                                       StartIcon="@Icons.Material.Rounded.Edit"
-                                       OnClick="OpenChangeEmailDialog"
-                                       Style="align-self:flex-start;">
-                                Zmeniť email
-                            </MudButton>
-                        </MudStack>
-                    }
-                    else if (_section == "password")
-                    {
-                        <MudText Typo="Typo.h6" Class="mb-3">
-                            <MudIcon Icon="@Icons.Material.Rounded.Lock" Class="mr-2" />Heslo
-                        </MudText>
-                        <MudStack Spacing="3" Style="max-width:520px;">
-                            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
-                                Pre zmenu hesla budete potrebovať svoje súčasné heslo.
-                                Nové heslo musí mať aspoň 8 znakov, obsahovať malé aj veľké písmeno a číslicu.
-                            </MudText>
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                                       StartIcon="@Icons.Material.Rounded.Lock"
-                                       OnClick="OpenChangePasswordDialog"
-                                       Style="align-self:flex-start;">
-                                Zmeniť heslo
-                            </MudButton>
-                        </MudStack>
-                    }
-                    else if (_section == "personal")
-                    {
-                        <MudText Typo="Typo.h6" Class="mb-3">
-                            <MudIcon Icon="@Icons.Material.Rounded.DataUsage" Class="mr-2" />Osobné údaje a účet
-                        </MudText>
-                        <MudStack Spacing="3" Style="max-width:520px;">
-                            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
-                                Odstránenie účtu trvalo zruší váš prístup do systému aj všetky uložené údaje.
-                                <strong>Túto akciu nemožno vrátiť späť.</strong>
-                            </MudAlert>
-                            <MudButton Variant="Variant.Filled" Color="Color.Error"
-                                       StartIcon="@Icons.Material.Rounded.DeleteForever"
-                                       OnClick="OpenDeleteAccountDialog"
-                                       Style="align-self:flex-start;">
-                                Odstrániť účet
-                            </MudButton>
-                        </MudStack>
+                        <ProfileAccountSections Section="@_section"
+                                                Email="@_profile!.Email"
+                                                OnChangeEmail="OpenChangeEmailDialog"
+                                                OnChangePassword="OpenChangePasswordDialog"
+                                                OnDeleteAccount="OpenDeleteAccountDialog" />
                     }
                     else if (_section == "children")
                     {
-                        <MudText Typo="Typo.h6" Class="mb-3">
-                            <MudIcon Icon="@Icons.Material.Rounded.FamilyRestroom" Class="mr-2" />Moje deti
-                        </MudText>
-                        @if (_childrenLoading)
-                        {
-                            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
-                        }
-                        else if (_children.Count == 0)
-                        {
-                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
-                                Zatiaľ nemáte priradené žiadne dieťa. Pridať môžete cez sekciu „Prehľad" pomocou kódu pozvánky.
-                            </MudAlert>
-                        }
-                        else
-                        {
-                            @if (_children.Count > 1)
-                            {
-                                <MudSelect T="string" Value="_selectedChildId" ValueChanged="OnChildSelected"
-                                           Label="Vyberte dieťa" Variant="Variant.Outlined"
-                                           Class="mb-4" Style="max-width:360px;">
-                                    @foreach (var child in _children)
-                                    {
-                                        <MudSelectItem T="string" Value="@child.Id">@child.FirstName @child.LastName</MudSelectItem>
-                                    }
-                                </MudSelect>
-                            }
-
-                            @if (_selectedChild is not null)
-                            {
-                                <MudGrid Spacing="3">
-                                    <MudItem xs="12" sm="6">
-                                        <ReadOnlyField Label="Meno" Value="@_selectedChild.FirstName" />
-                                    </MudItem>
-                                    <MudItem xs="12" sm="6">
-                                        <ReadOnlyField Label="Priezvisko" Value="@_selectedChild.LastName" />
-                                    </MudItem>
-                                    <MudItem xs="12" sm="6">
-                                        <ReadOnlyField Label="Dátum narodenia" Value="@FormatDate(_selectedChild.DateOfBirth)" />
-                                    </MudItem>
-                                    <MudItem xs="12" sm="6">
-                                        <ReadOnlyField Label="Tím" Value="@(_selectedChild.TeamName ?? "—")" />
-                                    </MudItem>
-                                </MudGrid>
-                            }
-                        }
+                        <ProfileChildrenSection IsLoading="_childrenLoading"
+                                                Children="_children"
+                                                SelectedChildId="@_selectedChildId"
+                                                OnChildSelected="OnChildSelected"
+                                                SelectedChild="_selectedChild"
+                                                SelectedChildBirthDateText="@(_selectedChild is null ? "—" : FormatDate(_selectedChild.DateOfBirth))" />
                     }
                 </MudPaper>
             </MudItem>

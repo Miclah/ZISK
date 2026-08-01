@@ -1,0 +1,91 @@
+@using ZISK.Shared.DTOs.Attendance
+@using ZISK.Shared.DTOs.Trainings
+@using ZISK.Shared.Enums
+@*
+    "Prehľad" tab: present/absent/excused counters plus the next few trainings.
+*@
+
+@if (IsLoading)
+{
+    <MudGrid Spacing="3">
+        @for (int i = 0; i < 3; i++)
+        {
+            <MudItem xs="12" sm="4">
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="100px" />
+            </MudItem>
+        }
+    </MudGrid>
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="12" sm="4">
+            <AttendanceCountCard Icon="@Icons.Material.Rounded.CheckCircle" IconColor="Color.Success"
+                                 Count="@PresentCount" Label="Prítomný" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <AttendanceCountCard Icon="@Icons.Material.Rounded.Cancel" IconColor="Color.Error"
+                                 Count="@AbsentCount" Label="Neospravedlnený" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <AttendanceCountCard Icon="@Icons.Material.Rounded.PauseCircle" IconColor="Color.Warning"
+                                 Count="@ExcusedCount" Label="Ospravedlnený" />
+        </MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.h6" Class="mb-3">Nadchádzajúce tréningy</MudText>
+    @if (Upcoming.Count == 0)
+    {
+        <MudPaper Class="card-standard empty-state" Elevation="0">
+            <MudIcon Icon="@Icons.Material.Rounded.Event" Class="empty-state__icon" />
+            <div class="empty-state__title">Žiadne nadchádzajúce tréningy</div>
+        </MudPaper>
+    }
+    else
+    {
+        <MudStack Spacing="2">
+            @foreach (var item in Upcoming.Take(8))
+            {
+                <MudPaper @key="item.Training.Id" Class="card-standard pa-3" Elevation="0">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.body1" Style="font-weight:500;">@item.Training.Title</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @item.Training.StartTime.ToString("dd.MM.yyyy HH:mm") – @item.Training.EndTime.ToString("HH:mm")
+                                @if (!string.IsNullOrWhiteSpace(item.Training.Location))
+                                {
+                                    <text> · @item.Training.Location</text>
+                                }
+                            </MudText>
+                        </MudStack>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary">@item.ForName</MudChip>
+                    </MudStack>
+                </MudPaper>
+            }
+        </MudStack>
+    }
+}
+
+@code {
+    /// <summary>A training paired with the family member it belongs to.</summary>
+    public record UpcomingItem(TrainingEventDto Training, string ForName, string TeamName, string ChildId);
+
+    [Parameter] public bool IsLoading { get; set; }
+
+    [Parameter, EditorRequired] public IReadOnlyList<UpcomingItem> Upcoming { get; set; } = [];
+
+    /// <summary>Attendance rows already filtered to the selected child, used only for the three counters.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<UserAttendanceDto> Attendance { get; set; } = [];
+
+    private int PresentCount => Count(AttendanceStatus.Present);
+    private int AbsentCount => Count(AttendanceStatus.Absent);
+    private int ExcusedCount => Count(AttendanceStatus.Excused);
+
+    private int Count(AttendanceStatus status)
+    {
+        var n = 0;
+        for (var i = 0; i < Attendance.Count; i++)
+            if (Attendance[i].Status == status) n++;
+        return n;
+    }
+}

@@ -1,4 +1,5 @@
-@page "/dieta/{ChildId}"
+﻿@page "/dieta/{ChildId}"
+@using ZISK.Client.Components.Children
 @using ZISK.Client.Services
 @using ZISK.Client.Components
 @using ZISK.Shared.DTOs.Attendance
@@ -46,189 +47,22 @@
                        OnClick='() => NavigationManager.NavigateTo("/domov")'>Späť</MudButton>
         </MudStack>
 
-        <MudCard Elevation="1" Class="mb-4">
-            <MudCardHeader>
-                <CardHeaderContent>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
-                        <MudText Typo="Typo.subtitle1">Základné informácie</MudText>
-                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
-                                   StartIcon="@Icons.Material.Filled.Edit"
-                                   OnClick="OpenEditDialog">
-                            Upraviť dieťa
-                        </MudButton>
-                    </MudStack>
-                </CardHeaderContent>
-            </MudCardHeader>
-            <MudCardContent>
-                <MudGrid>
-                    <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Dátum narodenia</MudText>
-                        <MudText Typo="Typo.body2">@(_detail.DateOfBirth?.ToString("dd.MM.yyyy") ?? "-")</MudText>
-                    </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Vek</MudText>
-                        <MudText Typo="Typo.body2">@(_age?.ToString() ?? "-") @(_age.HasValue ? "rokov" : "")</MudText>
-                    </MudItem>
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Bydlisko</MudText>
-                        <MudText Typo="Typo.body2">@(string.IsNullOrWhiteSpace(_detail.Bydlisko) ? "-" : _detail.Bydlisko)</MudText>
-                    </MudItem>
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Tím</MudText>
-                        <MudText Typo="Typo.body2">@(_detail.TeamName ?? "Bez tímu")</MudText>
-                    </MudItem>
-                </MudGrid>
-            </MudCardContent>
-        </MudCard>
+        <ChildInfoCard Detail="_detail" Age="_age" OnEdit="OpenEditDialog" />
 
-        <MudCard Elevation="1" Class="mb-4">
-            <MudCardHeader>
-                <CardHeaderContent>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
-                        <MudText Typo="Typo.subtitle1">Dochádzka</MudText>
-                        <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
-                            <MudDatePicker @bind-Date="_attendanceFrom" Label="Od" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:130px;" />
-                            <MudDatePicker @bind-Date="_attendanceTo" Label="Do" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:130px;" />
-                            <MudButton OnClick="LoadAttendance" Variant="Variant.Text" Color="Color.Primary" Size="Size.Small">Zobraziť</MudButton>
-                        </MudStack>
-                    </MudStack>
-                </CardHeaderContent>
-            </MudCardHeader>
-            <MudCardContent>
-                @if (_stats is not null)
-                {
-                    <MudGrid Class="mb-3">
-                        <MudItem xs="4">
-                            <MudPaper Elevation="0" Class="pa-2 text-center">
-                                <MudText Typo="Typo.h6" Color="Color.Success">@_stats.Present</MudText>
-                                <MudText Typo="Typo.caption">Prítomný</MudText>
-                            </MudPaper>
-                        </MudItem>
-                        <MudItem xs="4">
-                            <MudPaper Elevation="0" Class="pa-2 text-center">
-                                <MudText Typo="Typo.h6" Color="Color.Error">@_stats.Absent</MudText>
-                                <MudText Typo="Typo.caption">Neprítomný</MudText>
-                            </MudPaper>
-                        </MudItem>
-                        <MudItem xs="4">
-                            <MudPaper Elevation="0" Class="pa-2 text-center">
-                                <MudText Typo="Typo.h6" Color="Color.Warning">@_stats.Excused</MudText>
-                                <MudText Typo="Typo.caption">Ospravedlnený</MudText>
-                            </MudPaper>
-                        </MudItem>
-                    </MudGrid>
-                }
+        <ChildAttendanceCard Stats="_stats"
+                             Records="_attendance"
+                             @bind-From="_attendanceFrom"
+                             @bind-To="_attendanceTo"
+                             OnReload="LoadAttendance" />
 
-                @if (!_attendance.Any())
-                {
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne záznamy za vybrané obdobie.</MudText>
-                }
-                else
-                {
-                    <MudTable Items="@_attendance" Dense="true" Hover="true">
-                        <HeaderContent>
-                            <MudTh>Dátum</MudTh>
-                            <MudTh>Tréning</MudTh>
-                            <MudTh>Stav</MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd>@context.Date.ToString("dd.MM.yyyy")</MudTd>
-                            <MudTd>@context.TrainingName</MudTd>
-                            <MudTd>
-                                <MudChip T="string" Size="Size.Small" Class="@GetStatusChipClass(context.Status)">
-                                    @GetStatusText(context.Status)
-                                </MudChip>
-                            </MudTd>
-                        </RowTemplate>
-                    </MudTable>
-                }
-            </MudCardContent>
-        </MudCard>
+        <ChildExcusesCard Excuses="_excuses" />
 
-        <MudCard Elevation="1" Class="mb-4">
-            <MudCardHeader>
-                <CardHeaderContent>
-                    <MudText Typo="Typo.subtitle1">Ospravedlnenky</MudText>
-                </CardHeaderContent>
-            </MudCardHeader>
-            <MudCardContent>
-                @if (!_excuses.Any())
-                {
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne ospravedlnenky.</MudText>
-                }
-                else
-                {
-                    <MudTable Items="@_excuses" Dense="true" Hover="true">
-                        <HeaderContent>
-                            <MudTh>Dátum</MudTh>
-                            <MudTh>Dôvod</MudTh>
-                            <MudTh>Stav</MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd>@FormatDateRange(context.DateFrom, context.DateTo)</MudTd>
-                            <MudTd>@(string.IsNullOrWhiteSpace(context.Reason) ? "-" : context.Reason)</MudTd>
-                            <MudTd>
-                                <MudChip T="string" Size="Size.Small" Color="@GetExcuseStatusColor(context.Status)">@GetExcuseStatusText(context.Status)</MudChip>
-                            </MudTd>
-                        </RowTemplate>
-                    </MudTable>
-                }
-            </MudCardContent>
-        </MudCard>
-
-        <MudCard Elevation="1" Class="mb-4">
-            <MudCardHeader>
-                <CardHeaderContent>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
-                        <MudText Typo="Typo.subtitle1">Rodičia</MudText>
-                        @if (_canManageParents)
-                        {
-                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
-                                       StartIcon="@Icons.Material.Filled.PersonAdd"
-                                       OnClick="OpenInviteDialog">
-                                Pozvať ďalšieho rodiča
-                            </MudButton>
-                        }
-                    </MudStack>
-                </CardHeaderContent>
-            </MudCardHeader>
-            <MudCardContent>
-                @if (!_parents.Any())
-                {
-                    <MudText Typo="Typo.body2" Color="Color.Default">Žiadni rodičia nie sú priradení.</MudText>
-                }
-                else
-                {
-                    <MudStack Spacing="2">
-                        @foreach (var parent in _parents)
-                        {
-                            <MudPaper Elevation="0" Outlined="true" Class="pa-3">
-                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                    <MudStack Spacing="0">
-                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                                            <MudText Typo="Typo.body1">@parent.FirstName @parent.LastName</MudText>
-                                            @if (parent.IsPrimary)
-                                            {
-                                                <MudChip T="string" Size="Size.Small" Color="Color.Primary">Primárny</MudChip>
-                                            }
-                                        </MudStack>
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@parent.Email</MudText>
-                                    </MudStack>
-                                    @if (_callerId == parent.UserId || _isAdmin)
-                                    {
-                                        <MudIconButton Icon="@Icons.Material.Filled.PersonRemove"
-                                                       Color="Color.Error"
-                                                       Size="Size.Small"
-                                                       OnClick="@(() => ConfirmRemoveParent(parent))"
-                                                       Title="Odstrániť väzbu" />
-                                    }
-                                </MudStack>
-                            </MudPaper>
-                        }
-                    </MudStack>
-                }
-            </MudCardContent>
-        </MudCard>
+        <ChildParentsCard Parents="_parents"
+                          CanInvite="_canManageParents"
+                          CallerId="@_callerId"
+                          IsAdmin="_isAdmin"
+                          OnInvite="OpenInviteDialog"
+                          OnRemove="ConfirmRemoveParent" />
     }
 </MudContainer>
 
@@ -363,48 +197,9 @@
         }
     }
 
-    private Color GetStatusColor(AttendanceStatus status) => status switch
-    {
-        AttendanceStatus.Present => Color.Success,
-        AttendanceStatus.Absent => Color.Error,
-        AttendanceStatus.Excused => Color.Warning,
-        _ => Color.Default
-    };
 
-    private string GetStatusChipClass(AttendanceStatus status) => status switch
-    {
-        AttendanceStatus.Present => "attendance-chip-present",
-        AttendanceStatus.Absent => "attendance-chip-absent",
-        AttendanceStatus.Excused => "attendance-chip-excused",
-        _ => string.Empty
-    };
 
-    private string GetStatusText(AttendanceStatus status) => status switch
-    {
-        AttendanceStatus.Present => "Prítomný",
-        AttendanceStatus.Absent => "Neprítomný",
-        AttendanceStatus.Excused => "Ospravedlnený",
-        _ => "Neznámy"
-    };
 
-    private Color GetExcuseStatusColor(ExcuseStatus status) => status switch
-    {
-        ExcuseStatus.Received => Color.Info,
-        _ => Color.Default
-    };
 
-    private string GetExcuseStatusText(ExcuseStatus status) => status switch
-    {
-        ExcuseStatus.Received => "Prijaté",
-        _ => status.ToString()
-    };
 
-    private static string FormatDateRange(DateTime? from, DateTime? to)
-    {
-        if (from.HasValue && to.HasValue)
-            return $"{from.Value:dd.MM.yyyy} - {to.Value:dd.MM.yyyy}";
-        if (from.HasValue)
-            return from.Value.ToString("dd.MM.yyyy");
-        return "-";
-    }
 }

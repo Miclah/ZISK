@@ -1,4 +1,5 @@
-@page "/oznamy"
+﻿@page "/oznamy"
+@using ZISK.Client.Display
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Announcements
 @using ZISK.Shared.Enums
@@ -73,8 +74,8 @@ else
                                     }
                                 </MudText>
                             </MudStack>
-                            <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(announcement.Priority)">
-                                @GetPriorityText(announcement.Priority)
+                            <MudChip T="string" Size="Size.Small" Color="@DomainLabels.PriorityColor(announcement.Priority)">
+                                @DomainLabels.PriorityText(announcement.Priority)
                             </MudChip>
                         </MudStack>
 
@@ -156,21 +157,7 @@ else
         return $"border-left: 4px solid {borderColor};";
     }
 
-    private Color GetPriorityColor(AnnouncementPriority priority) => priority switch
-    {
-        AnnouncementPriority.High => Color.Error,
-        AnnouncementPriority.Medium => Color.Warning,
-        AnnouncementPriority.Low => Color.Info,
-        _ => Color.Default
-    };
 
-    private string GetPriorityText(AnnouncementPriority priority) => priority switch
-    {
-        AnnouncementPriority.High => "Dôležité",
-        AnnouncementPriority.Medium => "Stredná",
-        AnnouncementPriority.Low => "Informačné",
-        _ => "?"
-    };
 
     private async Task DeleteAnnouncement(Guid id)
     {

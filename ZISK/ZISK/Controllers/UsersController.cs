@@ -98,7 +98,6 @@ public class UsersController : ControllerBase
             await _userService.AssignTeamAsync(userId, teamId, isPrimary);
             return Ok();
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("Databáza")) { return StatusCode(500, ex.Message); }
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
 

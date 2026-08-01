@@ -1,0 +1,82 @@
+@using ZISK.Shared.DTOs.Attendance
+@using ZISK.Shared.DTOs.Trainings
+@*
+    One child's tile on the parent dashboard: name, team, age, next training, monthly attendance and
+    unread-announcement count, plus a link into the child's detail page.
+*@
+
+<MudPaper Class="card-standard card-hover h-100 pa-4" Elevation="0">
+    <MudStack Spacing="3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudAvatar Color="Color.Primary" Size="Size.Medium">@Initial</MudAvatar>
+            <MudStack Spacing="0" Style="flex:1; min-width:0;">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.Wrap">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight:600;">
+                        @Child.FirstName @Child.LastName
+                    </MudText>
+                    @if (!string.IsNullOrWhiteSpace(Child.TeamName))
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default"
+                                 Icon="@Icons.Material.Rounded.Group" Style="height:20px;">
+                            @Child.TeamName
+                        </MudChip>
+                    }
+                </MudStack>
+                @if (Age.HasValue)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@Age rokov</MudText>
+                }
+            </MudStack>
+        </MudStack>
+
+        <MudDivider />
+
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Najbližší tréning</MudText>
+            @if (NextTraining is null)
+            {
+                <MudText Typo="Typo.body2">Žiadne plánované tréningy</MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Style="font-weight:500;">
+                    @NextTraining.StartTime.ToString("dd.MM. HH:mm")
+                </MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @(NextTraining.Location ?? "Bez miesta") — @NextTraining.Title
+                </MudText>
+            }
+        </MudStack>
+
+        <MudStack Row="true" Spacing="4">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Dochádzka tento mesiac</MudText>
+                <MudText Typo="Typo.body2" Style="font-weight:500;">@MonthlyPresent / @MonthlyTotal</MudText>
+            </MudStack>
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Nové oznamy</MudText>
+                <MudText Typo="Typo.body2" Style="font-weight:500;">@RecentAnnouncementCount</MudText>
+            </MudStack>
+        </MudStack>
+
+        <MudButton Variant="Variant.Text" Color="Color.Primary" FullWidth="true"
+                   EndIcon="@Icons.Material.Rounded.ChevronRight"
+                   OnClick="OnOpenDetail">
+            Zobraziť detaily
+        </MudButton>
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public ChildDto Child { get; set; } = default!;
+    [Parameter] public int? Age { get; set; }
+    [Parameter] public TrainingEventDto? NextTraining { get; set; }
+    [Parameter] public int MonthlyPresent { get; set; }
+    [Parameter] public int MonthlyTotal { get; set; }
+    [Parameter] public int RecentAnnouncementCount { get; set; }
+
+    [Parameter] public EventCallback OnOpenDetail { get; set; }
+
+    private string Initial =>
+        (Child.FirstName.Length > 0 ? Child.FirstName[0] : '?').ToString().ToUpper();
+}

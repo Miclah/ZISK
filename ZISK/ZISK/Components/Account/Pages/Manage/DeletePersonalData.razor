@@ -4,10 +4,12 @@
 @using Microsoft.AspNetCore.Identity
 @using ZISK.Data
 
+@using ZISK.Services
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
 @inject IdentityUserAccessor UserAccessor
 @inject IdentityRedirectManager RedirectManager
+@inject IUserService UserService
 @inject ILogger<DeletePersonalData> Logger
 
 <PageTitle>Odstrániť osobné údaje</PageTitle>
@@ -27,17 +29,18 @@
         <MudStack Spacing="3">
             @if (requirePassword)
             {
-                <MudStaticTextField Value="@Input.Password" For="@(() => Input.Password)"
+                <MudTextField Value="@Input.Password" For="@(() => Input.Password)"
                                     Label="Heslo" Variant="Variant.Outlined"
                                     InputType="InputType.Password"
-                                    Placeholder="Zadajte svoje heslo na potvrdenie" />
+                                    Placeholder="Zadajte svoje heslo na potvrdenie"
+                                    UserAttributes="@(new Dictionary<string, object> { ["name"] = "Input.Password" })" />
             }
 
-            <MudStaticButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
                              Color="Color.Error" Size="Size.Large"
                              StartIcon="@Icons.Material.Rounded.DeleteForever">
                 Odstrániť údaje a zrušiť účet
-            </MudStaticButton>
+            </MudButton>
         </MudStack>
     </EditForm>
 </MudStack>
@@ -73,10 +76,18 @@
             return;
         }
 
-        var result = await UserManager.DeleteAsync(user);
-        if (!result.Succeeded)
+        // Goes through UserService.DeleteUserAsync (not UserManager.DeleteAsync directly) because it
+        // cleans up Restrict-FK rows first (CoachTeam, TrainingSeries.CoachId, ParentInvitation,
+        // ParentChild, AttendanceRecord, AbsenceRequest) — without that cleanup, SaveChangesAsync throws
+        // a raw DbUpdateException for almost any account that isn't brand new. Same fix as MeController.DeleteMyAccount.
+        try
         {
-            throw new InvalidOperationException("Unexpected error occurred deleting user.");
+            await UserService.DeleteUserAsync(user.Id, HttpContext.User);
+        }
+        catch (InvalidOperationException ex)
+        {
+            message = $"Chyba: {ex.Message}";
+            return;
         }
 
         await SignInManager.SignOutAsync();

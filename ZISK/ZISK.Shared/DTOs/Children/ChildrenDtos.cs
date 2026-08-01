@@ -3,12 +3,12 @@ using System.ComponentModel.DataAnnotations;
 namespace ZISK.Shared.DTOs.Children;
 
 public record CreateChildRequest(
-    [Required][MaxLength(100)] string FirstName,
-    [Required][MaxLength(100)] string LastName,
-    [Required] DateOnly DateOfBirth,
+    [Required(ErrorMessage = "Meno je povinné.")][MaxLength(100, ErrorMessage = "Meno môže mať max 100 znakov.")] string FirstName,
+    [Required(ErrorMessage = "Priezvisko je povinné.")][MaxLength(100, ErrorMessage = "Priezvisko môže mať max 100 znakov.")] string LastName,
+    [Required(ErrorMessage = "Dátum narodenia je povinný.")] DateOnly DateOfBirth,
     string? Email,
     bool SameAddressAsParent,
-    [MaxLength(300)] string? Bydlisko,
+    [MaxLength(300, ErrorMessage = "Bydlisko môže mať max 300 znakov.")] string? Bydlisko,
     Guid? TeamId,
     bool CreateCredentials,
     string? Password,
@@ -25,10 +25,10 @@ public record ParentDto(
 );
 
 public record UpdateChildRequest(
-    [Required][MaxLength(100)] string FirstName,
-    [Required][MaxLength(100)] string LastName,
-    [MaxLength(300)] string? Bydlisko,
-    [Required] DateOnly DateOfBirth,
+    [Required(ErrorMessage = "Meno je povinné.")][MaxLength(100, ErrorMessage = "Meno môže mať max 100 znakov.")] string FirstName,
+    [Required(ErrorMessage = "Priezvisko je povinné.")][MaxLength(100, ErrorMessage = "Priezvisko môže mať max 100 znakov.")] string LastName,
+    [MaxLength(300, ErrorMessage = "Bydlisko môže mať max 300 znakov.")] string? Bydlisko,
+    [Required(ErrorMessage = "Dátum narodenia je povinný.")] DateOnly DateOfBirth,
     Guid? TeamId
 );
 
