@@ -1,0 +1,61 @@
+@using ZISK.Client.Components
+@using ZISK.Client.Services
+@*
+    "Moje deti" (parents only): pick a child and view their read-only details.
+*@
+
+<ProfileSectionHeading Icon="@Icons.Material.Rounded.FamilyRestroom" Title="Moje deti" />
+
+@if (IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (Children.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+        Zatiaľ nemáte priradené žiadne dieťa. Pridať môžete cez sekciu „Prehľad" pomocou kódu pozvánky.
+    </MudAlert>
+}
+else
+{
+    @if (Children.Count > 1)
+    {
+        <MudSelect T="string" Value="SelectedChildId" ValueChanged="OnChildSelected"
+                   Label="Vyberte dieťa" Variant="Variant.Outlined"
+                   Class="mb-4" Style="max-width:360px;">
+            @foreach (var child in Children)
+            {
+                <MudSelectItem @key="child.Id" T="string" Value="@child.Id">@child.FirstName @child.LastName</MudSelectItem>
+            }
+        </MudSelect>
+    }
+
+    @if (SelectedChild is not null)
+    {
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="6">
+                <ReadOnlyField Label="Meno" Value="@SelectedChild.FirstName" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <ReadOnlyField Label="Priezvisko" Value="@SelectedChild.LastName" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <ReadOnlyField Label="Dátum narodenia" Value="@SelectedChildBirthDateText" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <ReadOnlyField Label="Tím" Value="@(SelectedChild.TeamName ?? "—")" />
+            </MudItem>
+        </MudGrid>
+    }
+}
+
+@code {
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter, EditorRequired] public IReadOnlyList<ChildDto> Children { get; set; } = [];
+
+    [Parameter] public string? SelectedChildId { get; set; }
+    [Parameter] public EventCallback<string> OnChildSelected { get; set; }
+
+    [Parameter] public ChildDto? SelectedChild { get; set; }
+    [Parameter] public string SelectedChildBirthDateText { get; set; } = "—";
+}
