@@ -1,7 +1,8 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using ZISK.Client.Components;
+using ZISK.Client.Display;
 using ZISK.Client.Services;
 using ZISK.Shared.DTOs.Users;
 
@@ -21,26 +22,81 @@ public partial class AdminUsers
     private List<UserListDto> _users = new();
     private List<ParentOptionDto> _parents = new();
 
+    // Search/role are routed through properties so the filtered list is rebuilt once per input change.
+    // Previously FilteredUsers was a computed IEnumerable that the markup enumerated three times
+    // (desktop table, mobile .Any(), mobile @foreach), so every keystroke re-ran the whole
+    // filter + sort three times over the full roster.
     private string _searchText = string.Empty;
+    private string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (_searchText == value) return;
+            _searchText = value;
+            ApplyFilter();
+        }
+    }
+
     private string? _selectedRole;
+    private string? SelectedRole
+    {
+        get => _selectedRole;
+        set
+        {
+            if (_selectedRole == value) return;
+            _selectedRole = value;
+            ApplyFilter();
+        }
+    }
 
     private bool _editDialogVisible;
     private UserListDto? _selectedUser;
 
     private EditUserFormModel _editModel = new();
     private HashSet<string> _selectedParentIds = new();
+
     private string _parentSearch = string.Empty;
+    private string ParentSearch
+    {
+        get => _parentSearch;
+        set
+        {
+            if (_parentSearch == value) return;
+            _parentSearch = value;
+            ApplyParentFilter();
+        }
+    }
 
-private IEnumerable<UserListDto> FilteredUsers => _users
-        .Where(u => string.IsNullOrWhiteSpace(_searchText)
-            || ($"{u.FirstName} {u.LastName}").Contains(_searchText, StringComparison.OrdinalIgnoreCase)
-            || (!string.IsNullOrWhiteSpace(u.PhoneNumber) && u.PhoneNumber.Contains(_searchText, StringComparison.OrdinalIgnoreCase)))
-        .Where(u => string.IsNullOrWhiteSpace(_selectedRole) || u.Role == _selectedRole)
-        .OrderBy(u => u.LastName)
-        .ThenBy(u => u.FirstName);
+    private List<UserListDto> _filteredUsers = new();
+    private List<ParentOptionDto> _filteredParents = new();
 
-    private IEnumerable<ParentOptionDto> FilteredParents => _parents
-        .Where(p => string.IsNullOrWhiteSpace(_parentSearch) || p.FullName.Contains(_parentSearch, StringComparison.OrdinalIgnoreCase));
+    private void ApplyFilter()
+    {
+        IEnumerable<UserListDto> query = _users;
+
+        if (!string.IsNullOrWhiteSpace(_searchText))
+        {
+            query = query.Where(u =>
+                ($"{u.FirstName} {u.LastName}").Contains(_searchText, StringComparison.OrdinalIgnoreCase)
+                || (!string.IsNullOrWhiteSpace(u.PhoneNumber) && u.PhoneNumber.Contains(_searchText, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(_selectedRole))
+            query = query.Where(u => u.Role == _selectedRole);
+
+        _filteredUsers = query
+            .OrderBy(u => u.LastName)
+            .ThenBy(u => u.FirstName)
+            .ToList();
+    }
+
+    private void ApplyParentFilter()
+    {
+        _filteredParents = string.IsNullOrWhiteSpace(_parentSearch)
+            ? _parents
+            : _parents.Where(p => p.FullName.Contains(_parentSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -62,10 +118,13 @@ private IEnumerable<UserListDto> FilteredUsers => _users
             await Task.WhenAll(usersTask, parentsTask);
             _users = await usersTask;
             _parents = await parentsTask;
+
+            ApplyFilter();
+            ApplyParentFilter();
         }
         catch (Exception ex)
         {
-            _error = $"Nepodarilo sa načítať používateľov: {ex.Message}";
+            _error = $"Nepodarilo sa načítať používateľov: {ApiErrorFormatter.ToUserMessage(ex)}";
         }
         finally
         {
@@ -121,7 +180,8 @@ private IEnumerable<UserListDto> FilteredUsers => _users
             Phone = user.PhoneNumber
         };
         _selectedParentIds = new HashSet<string>();
-        _parentSearch = string.Empty;
+        ParentSearch = string.Empty;
+        ApplyParentFilter();
 
         try
         {
@@ -228,35 +288,8 @@ private IEnumerable<UserListDto> FilteredUsers => _users
         }
     }
 
-    private static string GetRoleText(string role) => role switch
-    {
-        "Admin" => "Admin",
-        "Coach" => "Tréner",
-        "Parent" => "Rodič",
-        "Athlete" => "Športovec",
-        "Child" => "Dieťa",
-        _ => role
-    };
 
-    private static Color GetRoleColor(string role) => role switch
-    {
-        "Admin" => Color.Error,
-        "Coach" => Color.Primary,
-        "Parent" => Color.Secondary,
-        "Athlete" => Color.Info,
-        "Child" => Color.Success,
-        _ => Color.Default
-    };
 
-    private static string GetRoleBorderColor(string role) => role switch
-    {
-        "Admin" => "var(--mud-palette-error)",
-        "Coach" => "var(--mud-palette-primary)",
-        "Parent" => "var(--mud-palette-secondary)",
-        "Athlete" => "var(--mud-palette-info)",
-        "Child" => "var(--mud-palette-success)",
-        _ => "var(--mud-palette-default)"
-    };
 
     private static string GetUserInitials(UserListDto user)
     {

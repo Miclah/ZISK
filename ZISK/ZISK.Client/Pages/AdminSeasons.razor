@@ -1,4 +1,5 @@
-@page "/admin/sezony"
+﻿@page "/admin/sezony"
+@using ZISK.Client.Components
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Seasons
 @inject ISeasonsApi SeasonsApi
@@ -10,16 +11,14 @@
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
-<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-        <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Large" Color="Color.Primary" />
-        <MudText Typo="Typo.h4">Správa sezón</MudText>
-    </MudStack>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-               OnClick="OpenCreateDialog">
-        Nová sezóna
-    </MudButton>
-</MudStack>
+<PageHeader Icon="@Icons.Material.Filled.CalendarMonth" Title="Správa sezón">
+    <Actions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenCreateDialog">
+            Nová sezóna
+        </MudButton>
+    </Actions>
+</PageHeader>
 
 @if (_isLoading)
 {
@@ -260,7 +259,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add(ex.Message, Severity.Error);
+            Snackbar.Add(ApiErrorFormatter.ToUserMessage(ex), Severity.Error);
         }
     }
 
@@ -274,7 +273,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add(ex.Message, Severity.Error);
+            Snackbar.Add(ApiErrorFormatter.ToUserMessage(ex), Severity.Error);
         }
     }
 
@@ -294,7 +293,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add(ex.Message, Severity.Error);
+            Snackbar.Add(ApiErrorFormatter.ToUserMessage(ex), Severity.Error);
         }
     }
 
