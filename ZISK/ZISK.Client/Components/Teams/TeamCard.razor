@@ -1,0 +1,61 @@
+@using ZISK.Shared.DTOs.Teams
+@*
+    One team tile on the admin teams page: name, short-name chip, coaches, member count, description,
+    an overflow menu (rename / delete) and a link into roster management.
+*@
+
+<MudCard Elevation="2" Class="rounded-lg hover-effect"
+         Style="height: 100%; border-top: 4px solid var(--mud-palette-primary);">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">@Team.Name</MudText>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                @if (!string.IsNullOrWhiteSpace(Team.ShortName))
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Dark" Class="ml-auto">@Team.ShortName</MudChip>
+                }
+                <MudMenu Icon="@Icons.Material.Filled.MoreVert" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="OnEdit">Upraviť názov</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="OnDelete">Zmazať tím</MudMenuItem>
+                </MudMenu>
+            </MudStack>
+        </CardHeaderActions>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <div class="d-flex align-center mb-1">
+            <MudIcon Icon="@Icons.Material.Filled.Sports" Size="Size.Small" Class="mr-2" Color="Color.Secondary" />
+            <MudText Typo="Typo.body2">Tréneri: @CoachNames</MudText>
+        </div>
+        <div class="d-flex align-center mb-1">
+            <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" Class="mr-2" Color="Color.Secondary" />
+            <MudText Typo="Typo.body2">Členovia: @Team.MemberCount</MudText>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(Team.Description))
+        {
+            <div class="d-flex align-start mt-2">
+                <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Class="mr-2 mt-1" Color="Color.Secondary" />
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@Team.Description</MudText>
+            </div>
+        }
+    </MudCardContent>
+
+    <MudCardActions Class="justify-end">
+        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="OnManageRoster">
+            Spravovať súpisku
+        </MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    [Parameter, EditorRequired] public TeamDto Team { get; set; } = default!;
+
+    /// <summary>Pre-resolved coach names; the page owns the coach→team lookup.</summary>
+    [Parameter] public string CoachNames { get; set; } = "";
+
+    [Parameter] public EventCallback OnEdit { get; set; }
+    [Parameter] public EventCallback OnDelete { get; set; }
+    [Parameter] public EventCallback OnManageRoster { get; set; }
+}

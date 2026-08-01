@@ -283,7 +283,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní tímu: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Chyba pri načítaní tímu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {

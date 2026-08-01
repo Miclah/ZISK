@@ -1,0 +1,101 @@
+﻿@*
+    Two-column roster editor: available players on the left, current squad on the right, click to move
+    between them. Body of the "Spravovanie súpisky" dialog.
+*@
+
+@if (IsLoading)
+{
+    <MudStack Spacing="2">
+        @for (int i = 0; i < 4; i++)
+        {
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="56px" />
+        }
+    </MudStack>
+}
+else
+{
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="1"
+                      Style="height: 400px; display: grid; grid-template-rows: auto auto 1fr; overflow: hidden;">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">Dostupní / v iných tímoch</MudText>
+                <MudTextField Value="_search" ValueChanged="@((string v) => OnSearchChanged(v))"
+                              Immediate="true"
+                              Label="Hľadať" Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-2" />
+                <div style="overflow-y: auto; min-height: 0;">
+                    @if (_filteredAvailable.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-2">Žiadni dostupní hráči</MudText>
+                    }
+                    @foreach (var child in _filteredAvailable)
+                    {
+                        <MudButton @key="child.Id" FullWidth="true" Variant="Variant.Text" Color="Color.Default"
+                                   OnClick="@(() => OnAdd.InvokeAsync(child.Id))"
+                                   Style="justify-content: space-between; text-transform: none; height: 40px; padding: 0 8px;">
+                            <MudText Typo="Typo.body2">@child.FirstName @child.LastName</MudText>
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" Color="Color.Primary" />
+                        </MudButton>
+                    }
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="1"
+                      Style="height: 400px; display: grid; grid-template-rows: auto 1fr; overflow: hidden;">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">Aktuálna súpiska tímu (@Members.Count)</MudText>
+                <div style="overflow-y: auto; min-height: 0;">
+                    @if (Members.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-2">Tím je momentálne prázdny</MudText>
+                    }
+                    @foreach (var member in Members)
+                    {
+                        <MudButton @key="member.Id" FullWidth="true" Variant="Variant.Text" Color="Color.Default"
+                                   OnClick="@(() => OnRemove.InvokeAsync(member.Id))"
+                                   Style="justify-content: space-between; text-transform: none; height: 40px; padding: 0 8px;">
+                            <MudText Typo="Typo.body2">@member.FirstName @member.LastName</MudText>
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Color="Color.Error" />
+                        </MudButton>
+                    }
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public bool IsLoading { get; set; }
+
+    /// <summary>
+    /// The two sides come from different DTOs (ChildDto vs TeamMemberDto) that share only these display
+    /// fields, so the panel takes a neutral view record and hands back ids for the page to resolve.
+    /// </summary>
+    public record RosterEntry(string Id, string FirstName, string LastName);
+
+    [Parameter, EditorRequired] public IReadOnlyList<RosterEntry> Available { get; set; } = [];
+    [Parameter, EditorRequired] public IReadOnlyList<RosterEntry> Members { get; set; } = [];
+
+    [Parameter] public EventCallback<string> OnAdd { get; set; }
+    [Parameter] public EventCallback<string> OnRemove { get; set; }
+
+    // Rebuilt on search or list change rather than inside the markup, where it re-ran on every render.
+    private string _search = string.Empty;
+    private List<RosterEntry> _filteredAvailable = new();
+
+    protected override void OnParametersSet() => ApplyFilter();
+
+    private void OnSearchChanged(string value)
+    {
+        _search = value;
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        _filteredAvailable = string.IsNullOrEmpty(_search)
+            ? Available.ToList()
+            : Available.Where(c => $"{c.FirstName} {c.LastName}".Contains(_search, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+}

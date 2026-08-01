@@ -1,0 +1,51 @@
+@using ZISK.Client.Display
+@using ZISK.Shared.DTOs.Excuses
+@*
+    "Ospravedlnenky": absence requests recorded for this child.
+*@
+
+<MudCard Elevation="1" Class="mb-4">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.subtitle1">Ospravedlnenky</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        @if (Excuses.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne ospravedlnenky.</MudText>
+        }
+        else
+        {
+            <MudTable Items="@Excuses" Dense="true" Hover="true">
+                <HeaderContent>
+                    <MudTh>Dátum</MudTh>
+                    <MudTh>Dôvod</MudTh>
+                    <MudTh>Stav</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@FormatDateRange(context.DateFrom, context.DateTo)</MudTd>
+                    <MudTd>@(string.IsNullOrWhiteSpace(context.Reason) ? "-" : context.Reason)</MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small" Color="@DomainLabels.ExcuseStatusColor(context.Status)">
+                            @DomainLabels.ExcuseStatusText(context.Status)
+                        </MudChip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ExcuseListDto> Excuses { get; set; } = [];
+
+    private static string FormatDateRange(DateTime? from, DateTime? to)
+    {
+        if (from.HasValue && to.HasValue)
+            return $"{from.Value:dd.MM.yyyy} – {to.Value:dd.MM.yyyy}";
+        if (from.HasValue)
+            return from.Value.ToString("dd.MM.yyyy");
+        return "—";
+    }
+}
