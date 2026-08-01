@@ -28,7 +28,7 @@
 
     <MudStack Spacing="3" Style="max-width:520px;">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-            <MudStaticTextField Value="@(email ?? string.Empty)"
+            <MudTextField Value="@(email ?? string.Empty)"
                                 Label="@(isEmailConfirmed ? "Aktuálny email" : "Aktuálny email (neoverený)")"
                                 Variant="Variant.Outlined" Disabled="true" Class="flex-grow-1" />
             @if (isEmailConfirmed)
@@ -46,14 +46,15 @@
             </MudButton>
         }
 
-        <MudStaticTextField Value="@Input.NewEmail" For="@(() => Input.NewEmail)"
+        <MudTextField Value="@Input.NewEmail" For="@(() => Input.NewEmail)"
                             Label="Nová emailová adresa" Variant="Variant.Outlined"
-                            Placeholder="novy@email.sk" InputType="InputType.Email" />
+                            Placeholder="novy@email.sk" InputType="InputType.Email"
+                            UserAttributes="@(new Dictionary<string, object> { ["name"] = "Input.NewEmail" })" />
 
-        <MudStaticButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
                          Color="Color.Primary" StartIcon="@Icons.Material.Rounded.Email">
             Zmeniť email
-        </MudStaticButton>
+        </MudButton>
     </MudStack>
 </EditForm>
 
