@@ -149,6 +149,71 @@ public class DeletePathFixesTests
     }
 
     [Fact]
+    public async Task UserService_DeleteUserAsync_Succeeds_WhenParentHasLinkedChildAndAbsenceRequests()
+    {
+        // Regression test for MeController.DeleteMyAccount previously calling _userManager.DeleteAsync
+        // directly instead of UserService.DeleteUserAsync. ParentChild.ParentId and
+        // AbsenceRequest.ChildId/ParentId are Restrict FKs, so self-deleting an ordinary Parent
+        // account (the most common case, not just the Coach/TrainingSeries one above) used to throw
+        // a raw DbUpdateException.
+        var services = new ServiceCollection();
+        services.AddDbContext<ApplicationDbContext>(opt => opt.UseInMemoryDatabase(nameof(UserService_DeleteUserAsync_Succeeds_WhenParentHasLinkedChildAndAbsenceRequests)));
+        services.AddDataProtection();
+        services.AddLogging(b => b.SetMinimumLevel(LogLevel.None));
+        services.AddIdentityCore<ApplicationUser>(opt =>
+        {
+            opt.Password.RequiredLength = 4;
+            opt.Password.RequireDigit = false;
+            opt.Password.RequireUppercase = false;
+            opt.Password.RequireLowercase = false;
+            opt.Password.RequireNonAlphanumeric = false;
+        }).AddEntityFrameworkStores<ApplicationDbContext>();
+
+        var sp = services.BuildServiceProvider();
+        var scope = sp.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await db.Database.EnsureCreatedAsync();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        var parent = new ApplicationUser { UserName = "parent_del", Email = "parent_del@test.sk", FirstName = "P", LastName = "Del", EmailConfirmed = true };
+        await userManager.CreateAsync(parent, "pass");
+        var child = new ApplicationUser { UserName = "child_del", FirstName = "C", LastName = "Del", EmailConfirmed = true };
+        await userManager.CreateAsync(child);
+
+        db.ParentChildren.Add(new ParentChild { ParentId = parent.Id, ChildId = child.Id, IsPrimary = true });
+
+        var team = MakeTeam(db);
+        var season = new Season { Id = Guid.NewGuid(), Name = "S", StartDate = new DateOnly(2026, 1, 1), EndDate = new DateOnly(2026, 6, 30), IsActive = true, CreatedAt = DateTime.UtcNow };
+        db.Seasons.Add(season);
+        var training = new TrainingEvent
+        {
+            Id = Guid.NewGuid(), TeamId = team.Id, SeasonId = season.Id, Title = "T",
+            StartTime = DateTime.UtcNow.AddDays(-1), EndTime = DateTime.UtcNow.AddDays(-1).AddHours(1), CreatedAt = DateTime.UtcNow
+        };
+        db.TrainingEvents.Add(training);
+
+        db.AttendanceRecords.Add(new AttendanceRecord
+        {
+            Id = Guid.NewGuid(), TrainingEventId = training.Id, ChildId = child.Id,
+            Status = AttendanceStatus.Present, RecordedAt = DateTime.UtcNow
+        });
+        db.AbsenceRequests.Add(new AbsenceRequest
+        {
+            Id = Guid.NewGuid(), ChildId = child.Id, ParentId = parent.Id,
+            DateFrom = DateTime.UtcNow, DateTo = DateTime.UtcNow.AddDays(1), CreatedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var svc = new UserService(db, userManager, new NoopAudit(), new NoopFileService(), new LoggerFactory().CreateLogger<UserService>());
+
+        await svc.DeleteUserAsync(parent.Id, AdminUser());
+
+        Assert.Null(await userManager.FindByIdAsync(parent.Id));
+        Assert.False(await db.ParentChildren.AnyAsync(pc => pc.ParentId == parent.Id));
+        Assert.False(await db.AbsenceRequests.AnyAsync(a => a.ParentId == parent.Id));
+    }
+
+    [Fact]
     public async Task TrainingSeriesService_ThrowsUnauthorized_ForCoachOutsideTeam()
     {
         var db = await BuildDbAsync(nameof(TrainingSeriesService_ThrowsUnauthorized_ForCoachOutsideTeam));
