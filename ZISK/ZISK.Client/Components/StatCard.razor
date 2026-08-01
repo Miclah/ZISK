@@ -1,0 +1,43 @@
+@*
+    Headline metric tile: caption, large value, and a faded trailing icon.
+
+    The dashboards each repeated this MudCard block once per statistic (four times on AdminDashboard alone),
+    differing only in label, value, icon and colour.
+*@
+
+<MudCard Elevation="2" Class="@(IsClickable ? "cursor-pointer" : null)" @onclick="OnCardClick">
+    <MudCardContent>
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.body2" Color="Color.Default">@Label</MudText>
+                <MudText Typo="Typo.h4">@Value</MudText>
+                @if (!string.IsNullOrWhiteSpace(Caption))
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@Caption</MudText>
+                }
+            </MudStack>
+            <MudIcon Icon="@Icon" Color="@IconColor" Style="opacity: 0.35;" />
+        </MudStack>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = default!;
+
+    /// <summary>The metric itself. Typed as string so callers can pass "55%" or a formatted count.</summary>
+    [Parameter, EditorRequired] public string Value { get; set; } = default!;
+
+    [Parameter, EditorRequired] public string Icon { get; set; } = default!;
+
+    [Parameter] public Color IconColor { get; set; } = Color.Primary;
+
+    /// <summary>Optional smaller line under the value, e.g. "za aktuálny týždeň".</summary>
+    [Parameter] public string? Caption { get; set; }
+
+    /// <summary>When set, the whole card becomes clickable and navigates/acts on click.</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private bool IsClickable => OnClick.HasDelegate;
+
+    private Task OnCardClick() => IsClickable ? OnClick.InvokeAsync() : Task.CompletedTask;
+}
