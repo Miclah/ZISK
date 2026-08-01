@@ -123,8 +123,7 @@ public class InvitationsController : ControllerBase
             pi.ChildUserId,
             pi.Child != null ? $"{pi.Child.FirstName} {pi.Child.LastName}" : pi.ChildUserId,
             pi.Initiator != null ? $"{pi.Initiator.FirstName} {pi.Initiator.LastName}" : pi.InitiatorUserId,
-            pi.ExpiresAt,
-            pi.CodeHash 
+            pi.ExpiresAt
         )).ToList();
 
         return Ok(result);

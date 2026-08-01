@@ -16,6 +16,7 @@
 @inject ILogger<Register> Logger
 @inject NavigationManager NavigationManager
 @inject UsernameGenerator UsernameGenerator
+@inject IParentInvitationService InvitationService
 @* docasne zablokovanie emailu
 @inject Microsoft.AspNetCore.Identity.UI.Services.IEmailSender EmailSender
 @inject RegistrationDraftService Drafts
@@ -167,6 +168,9 @@
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
+    [SupplyParameterFromQuery]
+    private string? Invite { get; set; }
+
     // zatial vypnutie email overenia
     // protected override void OnInitialized()
     // {
@@ -280,6 +284,16 @@
 
         await UserManager.AddToRoleAsync(user, "Parent");
         Logger.LogInformation("Registered new user {UserId} ({Email})", user.Id, user.Email);
+
+        // A parent invitation link for a not-yet-registered email carries its token as ?invite=...
+        // (see InvitationsController.SendEmailInvitation) so the new account gets linked to the
+        // child right away instead of leaving the invitation permanently unredeemable.
+        if (!string.IsNullOrWhiteSpace(Invite))
+        {
+            var redeemResult = await InvitationService.RedeemEmailLinkAsync(Invite, user.Id);
+            if (redeemResult.Status != InvitationRedeemStatus.Success)
+                Logger.LogWarning("Post-registration invitation redemption failed for user {UserId}: {Status}", user.Id, redeemResult.Status);
+        }
 
         await SignInManager.SignInAsync(user, isPersistent: false);
         var target = string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : ReturnUrl;

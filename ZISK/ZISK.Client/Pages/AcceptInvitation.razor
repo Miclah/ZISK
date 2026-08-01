@@ -1,0 +1,76 @@
+@page "/pozvanka/prijat"
+@inject IInvitationsApi InvitationsApi
+@inject IChildrenApi ChildrenApi
+@inject UserContextService UserContextService
+@inject NavigationManager Navigation
+
+<PageTitle>Prijatie pozvánky</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+    <MudPaper Class="pa-8 text-center" Elevation="2">
+        @if (_status == Status.Loading)
+        {
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mb-4" />
+            <MudText>Overujem pozvánku...</MudText>
+        }
+        else if (_status == Status.Success)
+        {
+            <MudIcon Icon="@Icons.Material.Rounded.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mb-4" Style="font-size: 4rem;" />
+            <MudText Typo="Typo.h5" Class="mb-2">Pozvánka bola prijatá</MudText>
+            <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">Boli ste úspešne prepojení s dieťaťom.</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => Navigation.NavigateTo("/domov"))">
+                Pokračovať
+            </MudButton>
+        }
+        else
+        {
+            <MudIcon Icon="@Icons.Material.Rounded.ErrorOutline" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 4rem;" />
+            <MudText Typo="Typo.h5" Class="mb-2">Pozvánku sa nepodarilo prijať</MudText>
+            <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">@_errorMessage</MudText>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => Navigation.NavigateTo("/domov"))">
+                Domov
+            </MudButton>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [SupplyParameterFromQuery]
+    private string? Token { get; set; }
+
+    private enum Status { Loading, Success, Error }
+
+    private Status _status = Status.Loading;
+    private string _errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Token))
+        {
+            _status = Status.Error;
+            _errorMessage = "Odkaz na pozvánku je neplatný alebo neúplný.";
+            return;
+        }
+
+        try
+        {
+            await InvitationsApi.AcceptAsync(Token);
+            _status = Status.Success;
+
+            // Best-effort refresh of the parent/child switcher so the newly linked child appears
+            // without requiring a manual reload; a failure here shouldn't block the success screen.
+            try
+            {
+                var children = await ChildrenApi.GetMyChildrenAsync();
+                UserContextService.SetOptions(children.Select(c => new UserContextOption(
+                    c.Id, $"{c.FirstName} {c.LastName}", c.Id, c.TeamId, c.IsOwnProfile)));
+            }
+            catch { }
+        }
+        catch (Exception ex)
+        {
+            _status = Status.Error;
+            _errorMessage = ApiErrorFormatter.ToUserMessage(ex);
+        }
+    }
+}
