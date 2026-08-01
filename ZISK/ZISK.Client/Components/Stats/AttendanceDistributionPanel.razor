@@ -1,0 +1,28 @@
+@using ZISK.Shared.DTOs.Stats
+@*
+    Present / absent / excused split for the selected period, as three labelled progress bars.
+*@
+
+<MudPaper Class="pa-4" Elevation="2" Style="height: 100%;">
+    <MudText Typo="Typo.h6" Class="mb-4">Rozdelenie účasti</MudText>
+
+    @if (Stats is null || (Stats.PresentPercent + Stats.AbsentPercent + Stats.ExcusedPercent) == 0)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne dáta za zvolené obdobie.</MudText>
+    }
+    else
+    {
+        <MudStack Spacing="4">
+            <DistributionBar Icon="@Icons.Material.Filled.CheckCircle" BarColor="Color.Success"
+                             Label="Účasť" Percent="@Stats.PresentPercent" />
+            <DistributionBar Icon="@Icons.Material.Filled.Cancel" BarColor="Color.Error"
+                             Label="Neospravedlnené" Percent="@Stats.AbsentPercent" />
+            <DistributionBar Icon="@Icons.Material.Filled.EventBusy" BarColor="Color.Warning"
+                             Label="Ospravedlnené" Percent="@Stats.ExcusedPercent" />
+        </MudStack>
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public AttendanceStatsDto? Stats { get; set; }
+}

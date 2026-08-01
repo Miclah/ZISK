@@ -1,0 +1,84 @@
+@using ZISK.Client.Layout
+@using ZISK.Shared.DTOs.Stats
+@*
+    Ranked team list by average attendance. The "top" and "bottom" panels on the stats page were two
+    near-identical blocks differing only in sort direction, heading and medal colours — this is both.
+*@
+
+<MudPaper Class="pa-4" Elevation="2" Style="height: 100%;">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3" Spacing="2">
+        <MudIcon Icon="@Icon" Color="@IconColor" />
+        <MudText Typo="Typo.h6">@Title</MudText>
+    </MudStack>
+
+    @if (Teams.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne dáta.</MudText>
+    }
+    else
+    {
+        <MudStack Spacing="3">
+            @{ var rank = 0; }
+            @foreach (var team in Ranked)
+            {
+                rank++;
+                var currentRank = rank;
+                <MudStack @key="team.TeamId" Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                    <MudAvatar Size="Size.Medium" Style="@RankAvatarStyle(currentRank)">
+                        <MudText Typo="Typo.subtitle2" Style="font-weight:700;">@currentRank</MudText>
+                    </MudAvatar>
+                    <MudStack Spacing="1" Style="flex:1;">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@team.TeamName</MudText>
+                            <MudText Typo="Typo.subtitle2" Style="font-weight:700;">@team.AverageAttendance%</MudText>
+                        </MudStack>
+                        <MudProgressLinear Value="@((double)team.AverageAttendance)"
+                                           Color="@AttendanceColor(team.AverageAttendance)"
+                                           Rounded="true" Size="Size.Medium" />
+                    </MudStack>
+                </MudStack>
+            }
+        </MudStack>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<TeamStatsDto> Teams { get; set; } = [];
+
+    [Parameter, EditorRequired] public string Title { get; set; } = default!;
+    [Parameter, EditorRequired] public string Icon { get; set; } = default!;
+    [Parameter] public Color IconColor { get; set; } = Color.Primary;
+
+    /// <summary>True ranks best-first (gold/silver), false ranks worst-first (red/amber).</summary>
+    [Parameter] public bool BestFirst { get; set; } = true;
+
+    [Parameter] public int Take { get; set; } = 3;
+
+    private IEnumerable<TeamStatsDto> Ranked => (BestFirst
+            ? Teams.OrderByDescending(t => t.AverageAttendance)
+            : Teams.OrderBy(t => t.AverageAttendance))
+        .Take(Take);
+
+    private static Color AttendanceColor(decimal percent) => percent switch
+    {
+        >= 80 => Color.Success,
+        >= 60 => Color.Warning,
+        _ => Color.Error
+    };
+
+    private string RankAvatarStyle(int rank) => BestFirst
+        ? rank switch
+        {
+            1 => $"background:{ThemeColors.Secondary};color:#fff;",
+            2 => $"background:{ThemeColors.TextSecondary};color:#fff;",
+            3 => $"background:{ThemeColors.Secondary};color:#fff;opacity:0.65;",
+            _ => $"background:{ThemeColors.Divider};color:{ThemeColors.Primary};"
+        }
+        : rank switch
+        {
+            1 => $"background:{ThemeColors.Error};color:#fff;",
+            2 => $"background:{ThemeColors.Warning};color:#fff;",
+            3 => $"background:{ThemeColors.Warning};color:#fff;opacity:0.65;",
+            _ => $"background:{ThemeColors.Divider};color:{ThemeColors.Primary};"
+        };
+}

@@ -1,0 +1,21 @@
+@*
+    Icon + label on the left, percentage on the right, progress bar underneath.
+*@
+
+<MudStack Spacing="1">
+    <MudStack Row="true" Justify="Justify.SpaceBetween">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+            <MudIcon Icon="@Icon" Color="@BarColor" Size="Size.Small" />
+            <MudText Typo="Typo.body2">@Label</MudText>
+        </MudStack>
+        <MudText Typo="Typo.body2"><strong>@Percent%</strong></MudText>
+    </MudStack>
+    <MudProgressLinear Value="@((double)Percent)" Color="@BarColor" Rounded="true" Size="Size.Medium" />
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public string Icon { get; set; } = default!;
+    [Parameter, EditorRequired] public string Label { get; set; } = default!;
+    [Parameter, EditorRequired] public decimal Percent { get; set; }
+    [Parameter] public Color BarColor { get; set; } = Color.Primary;
+}

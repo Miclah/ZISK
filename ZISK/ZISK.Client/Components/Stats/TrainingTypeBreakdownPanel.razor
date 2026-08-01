@@ -1,0 +1,69 @@
+@using ZISK.Client.Layout
+@using ZISK.Shared.DTOs.Stats
+@*
+    Training counts by type, as share-of-total bars. Bars are scaled against the largest type so the
+    distribution stays readable even when one type dominates; the percentage shown is share of total.
+*@
+
+<MudPaper Class="pa-4" Elevation="2">
+    <MudText Typo="Typo.h6" Class="mb-3">Tréningy podľa typu</MudText>
+
+    @if (Types.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne tréningy za zvolené obdobie.</MudText>
+    }
+    else
+    {
+        var total = Types.Sum(t => t.Count);
+        var sorted = Types.OrderByDescending(t => t.Count).ToList();
+        var maxCount = sorted[0].Count;
+
+        <MudStack Spacing="2">
+            @foreach (var item in sorted)
+            {
+                var pct = total > 0 ? (double)item.Count / total * 100 : 0;
+                var fillPct = maxCount > 0 ? (double)item.Count / maxCount * 100 : 0;
+                var hex = TypeHex(item.Type);
+                <div @key="item.Type">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-1">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <div style="@($"width:10px;height:10px;border-radius:50%;background:{hex};flex-shrink:0;")"></div>
+                            <MudText Typo="Typo.body2" Style="font-weight:500;">@TypeLabel(item.Type)</MudText>
+                        </MudStack>
+                        <MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="2">
+                            <MudText Typo="Typo.body2" Style="font-weight:700;">@item.Count</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@pct.ToString("0")%</MudText>
+                        </MudStack>
+                    </MudStack>
+                    <MudProgressLinear Value="@fillPct" Rounded="true" Size="Size.Medium"
+                                       Style="@($"--mud-palette-primary:{hex};")" />
+                </div>
+            }
+        </MudStack>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<TrainingTypeStatDto> Types { get; set; } = [];
+
+    // The stats API returns the training type as a string, so this maps names rather than the enum
+    // that DomainLabels.TrainingTypeText covers.
+    private static string TypeLabel(string type) => type switch
+    {
+        "Conditioning" => "Kondičný",
+        "Technical" => "Technický",
+        "Match" => "Herný",
+        "Recovery" => "Regeneračný",
+        "Other" => "Ostatné",
+        _ => type
+    };
+
+    private static string TypeHex(string type) => type switch
+    {
+        "Conditioning" => ThemeColors.Primary,
+        "Technical" => ThemeColors.Secondary,
+        "Match" => ThemeColors.Tertiary,
+        "Recovery" => ThemeColors.Success,
+        _ => ThemeColors.TextSecondary
+    };
+}
