@@ -1,0 +1,59 @@
+@using ZISK.Client.Display
+@using ZISK.Shared.DTOs.Trainings
+@*
+    "Najbližšie tréningy" card: a short list of upcoming trainings with team, start time and a type chip.
+*@
+
+<MudPaper Class="pa-5" Elevation="2" Style="height: 100%;">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Event" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">@Title</MudText>
+        </MudStack>
+        @if (OnShowAll.HasDelegate)
+        {
+            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="OnShowAll">
+                @ShowAllText
+            </MudButton>
+        }
+    </MudStack>
+
+    @if (Trainings.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@EmptyText</MudText>
+    }
+    else
+    {
+        <MudStack Spacing="2">
+            @foreach (var t in Trainings)
+            {
+                <MudPaper @key="t.Id" Class="pa-2" Elevation="0" Outlined="true">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.body2"><strong>@t.Title</strong></MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @t.TeamName · @t.StartTime.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                            </MudText>
+                        </MudStack>
+                        <MudChip T="string" Size="Size.Small" Color="@DomainLabels.TrainingTypeColor(t.Type)">
+                            @DomainLabels.TrainingTypeText(t.Type)
+                        </MudChip>
+                    </MudStack>
+                </MudPaper>
+            }
+        </MudStack>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<TrainingEventDto> Trainings { get; set; } = [];
+
+    [Parameter] public string Title { get; set; } = "Najbližšie tréningy";
+
+    [Parameter] public string EmptyText { get; set; } = "Žiadne tréningy v najbližších 7 dňoch.";
+
+    [Parameter] public string ShowAllText { get; set; } = "Všetky";
+
+    /// <summary>When set, a "show all" button appears in the header.</summary>
+    [Parameter] public EventCallback OnShowAll { get; set; }
+}

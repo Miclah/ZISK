@@ -1,0 +1,66 @@
+@using ZISK.Shared.DTOs.Trainings
+@*
+    Sidebar list of the next few trainings. Each entry may be tagged with the family member it belongs to,
+    which is what distinguishes this from the full-width <see cref="UpcomingTrainingsPanel"/>.
+*@
+
+<MudPaper Class="card-standard pa-4" Elevation="0">
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@Title</MudText>
+        @if (OnShowAll.HasDelegate)
+        {
+            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                       EndIcon="@Icons.Material.Rounded.ChevronRight" OnClick="OnShowAll">
+                @ShowAllText
+            </MudButton>
+        }
+    </MudStack>
+
+    @if (Items.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@EmptyText</MudText>
+    }
+    else
+    {
+        <MudStack Spacing="2">
+            @foreach (var item in Items.Take(MaxItems))
+            {
+                <MudStack @key="@($"{item.Training.Id}-{item.OwnerName}")"
+                          Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.body2" Style="font-weight:500;">@item.Training.Title</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @item.Training.StartTime.ToString("dd.MM. HH:mm")
+                            @if (!string.IsNullOrWhiteSpace(item.Training.Location))
+                            {
+                                <span> · @item.Training.Location</span>
+                            }
+                        </MudText>
+                    </MudStack>
+                    @if (ShowOwnerChip)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info">@item.OwnerName</MudChip>
+                    }
+                </MudStack>
+                <MudDivider />
+            }
+        </MudStack>
+    }
+</MudPaper>
+
+@code {
+    /// <summary>A training plus the name of the family member it is for.</summary>
+    public record Item(TrainingEventDto Training, string OwnerName);
+
+    [Parameter, EditorRequired] public IReadOnlyList<Item> Items { get; set; } = [];
+
+    /// <summary>Only meaningful for a parent with several children; an athlete sees only their own.</summary>
+    [Parameter] public bool ShowOwnerChip { get; set; }
+
+    [Parameter] public string Title { get; set; } = "Najbližšie tréningy";
+    [Parameter] public string EmptyText { get; set; } = "Žiadne nadchádzajúce tréningy.";
+    [Parameter] public string ShowAllText { get; set; } = "Kalendár";
+    [Parameter] public int MaxItems { get; set; } = 5;
+
+    [Parameter] public EventCallback OnShowAll { get; set; }
+}

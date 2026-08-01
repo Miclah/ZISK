@@ -1,0 +1,23 @@
+@*
+    Compact KPI tile used in the family dashboard's four-across row: leading icon, value, caption.
+    Distinct from <see cref="StatCard"/>, which is the larger admin variant with a trailing faded icon.
+*@
+
+<MudCard Elevation="2">
+    <MudCardContent Class="pa-3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icon" Color="@IconColor" />
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h5" Style="font-weight:700;">@Value</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@Label</MudText>
+            </MudStack>
+        </MudStack>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter, EditorRequired] public string Icon { get; set; } = default!;
+    [Parameter, EditorRequired] public string Value { get; set; } = default!;
+    [Parameter, EditorRequired] public string Label { get; set; } = default!;
+    [Parameter] public Color IconColor { get; set; } = Color.Primary;
+}

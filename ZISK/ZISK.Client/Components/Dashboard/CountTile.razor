@@ -1,0 +1,17 @@
+@*
+    Small tinted count tile — a number over a caption, on a 10%-alpha background of the given palette colour.
+    Takes a hex string rather than a MudBlazor Color because both the tint and the text colour are inline CSS.
+*@
+
+<MudPaper Elevation="0" Class="pa-2" Style="@($"background:{Hex}1A; border-radius:8px; text-align:center;")">
+    <MudText Typo="Typo.h6" Style="@($"font-weight:700; color:{Hex};")">@Value</MudText>
+    <MudText Typo="Typo.caption" Color="Color.Secondary">@Label</MudText>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public int Value { get; set; }
+    [Parameter, EditorRequired] public string Label { get; set; } = default!;
+
+    /// <summary>Palette hex, e.g. <c>ThemeColors.Success</c>.</summary>
+    [Parameter, EditorRequired] public string Hex { get; set; } = default!;
+}

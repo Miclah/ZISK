@@ -1,5 +1,6 @@
-@page "/dieta"
+﻿@page "/dieta"
 @using ZISK.Client.Layout
+@using ZISK.Client.Display
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Attendance
 @using ZISK.Shared.DTOs.Trainings
@@ -201,8 +202,8 @@
                                     <MudTd DataLabel="Dátum">@context.Date.ToString("dd.MM.yyyy")</MudTd>
                                     <MudTd DataLabel="Tréning">@context.TrainingName</MudTd>
                                     <MudTd DataLabel="Stav">
-                                        <MudChip T="string" Size="Size.Small" Class="@GetStatusChipClass(context.Status)">
-                                            @GetStatusText(context.Status)
+                                        <MudChip T="string" Size="Size.Small" Class="@DomainLabels.AttendanceStatusChipClass(context.Status)">
+                                            @DomainLabels.AttendanceStatusText(context.Status)
                                         </MudChip>
                                     </MudTd>
                                 </RowTemplate>
@@ -288,7 +289,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní prehľadu: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Chyba pri načítaní prehľadu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -306,29 +307,8 @@
             await OnInitializedAsync();
     }
 
-    private Color GetStatusColor(AttendanceStatus status) => status switch
-    {
-        AttendanceStatus.Present => Color.Success,
-        AttendanceStatus.Absent => Color.Error,
-        AttendanceStatus.Excused => Color.Warning,
-        _ => Color.Default
-    };
 
-    private string GetStatusChipClass(AttendanceStatus status) => status switch
-    {
-        AttendanceStatus.Present => "attendance-chip-present",
-        AttendanceStatus.Absent => "attendance-chip-absent",
-        AttendanceStatus.Excused => "attendance-chip-excused",
-        _ => string.Empty
-    };
 
-    private string GetStatusText(AttendanceStatus status) => status switch
-    {
-        AttendanceStatus.Present => "Prítomný",
-        AttendanceStatus.Absent => "Neprítomný",
-        AttendanceStatus.Excused => "Ospravedlnený",
-        _ => "Neznámy"
-    };
 
     private static readonly string _cPrimary = (string)AppTheme.SportClubTheme.PaletteLight.Primary;
     private static readonly string _cSuccess = (string)AppTheme.SportClubTheme.PaletteLight.Success;
