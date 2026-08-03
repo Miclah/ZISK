@@ -141,4 +141,64 @@ public class SeedModeTests
 
         await Assert.ThrowsAsync<SeedConfigurationException>(() => initializer.SeedAsync());
     }
+
+    [Fact]
+    public async Task RefreshDemoTemplateAsync_OutsideDemoMode_IsNoop()
+    {
+        var (_, initializer, _, db) = Build(nameof(RefreshDemoTemplateAsync_OutsideDemoMode_IsNoop), new());
+        await initializer.SeedAsync();
+
+        var trainingsBefore = await db.TrainingEvents.CountAsync();
+        await initializer.RefreshDemoTemplateAsync();
+
+        Assert.Equal(trainingsBefore, await db.TrainingEvents.CountAsync());
+    }
+
+    [Fact]
+    public async Task RefreshDemoTemplateAsync_WhenStale_RegeneratesTrainingsAroundNow()
+    {
+        var (_, initializer, _, db) = Build(
+            nameof(RefreshDemoTemplateAsync_WhenStale_RegeneratesTrainingsAroundNow),
+            new()
+            {
+                ["ZISK_SEED_MODE"] = "demo",
+                ["Seed:Passwords:Admin"] = "DemoAdminPw1",
+                ["Seed:Passwords:Coach"] = "DemoCoachPw1",
+                ["Seed:Passwords:Parent"] = "DemoParentPw1",
+                ["Seed:Passwords:Child"] = "DemoChildPw1"
+            });
+
+        await initializer.SeedAsync();
+        var trainingIdsBefore = await db.TrainingEvents.Select(t => t.Id).ToListAsync();
+        Assert.NotEmpty(trainingIdsBefore);
+
+        // Freshly seeded - refreshing immediately again must be a no-op (not stale yet).
+        await initializer.RefreshDemoTemplateAsync();
+        var trainingIdsAfterNoop = await db.TrainingEvents.Select(t => t.Id).ToListAsync();
+        Assert.Equal(trainingIdsBefore.OrderBy(x => x), trainingIdsAfterNoop.OrderBy(x => x));
+
+        // Force staleness by backdating the template meta row, then refresh again.
+        var meta = await db.DemoTemplateMetas.SingleAsync(m => m.Id == 1);
+        var backdatedGeneratedAt = DateTime.UtcNow.AddHours(-25);
+        meta.GeneratedAt = backdatedGeneratedAt;
+        await db.SaveChangesAsync();
+
+        await initializer.RefreshDemoTemplateAsync();
+
+        var trainingsAfter = await db.TrainingEvents.ToListAsync();
+        Assert.NotEmpty(trainingsAfter);
+        // Every regenerated training must sit within the ±90/+21 day window around "now" -
+        // this is the actual point of the refresh, distinct from the earlier fixed-2026 dates.
+        Assert.All(trainingsAfter, t =>
+        {
+            Assert.True(t.StartTime >= DateTime.UtcNow.AddDays(-91));
+            Assert.True(t.StartTime <= DateTime.UtcNow.AddDays(22));
+        });
+
+        // meta is the same tracked instance RefreshDemoTemplateAsync mutated in place (same
+        // DbContext, same PK - EF's identity map returns the existing tracked object rather
+        // than a fresh one), so the pre-refresh value had to be captured separately above.
+        var refreshedMeta = await db.DemoTemplateMetas.SingleAsync(m => m.Id == 1);
+        Assert.True(refreshedMeta.GeneratedAt > backdatedGeneratedAt);
+    }
 }
