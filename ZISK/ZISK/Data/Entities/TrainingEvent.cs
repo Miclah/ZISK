@@ -12,9 +12,11 @@ namespace ZISK.Data.Entities
         Other
     }
 
-    public class TrainingEvent
+    public class TrainingEvent : IDemoScoped
     {
         public Guid Id { get; set; }
+
+        public Guid? DemoSessionId { get; set; }
 
         public Guid TeamId { get; set; }
 

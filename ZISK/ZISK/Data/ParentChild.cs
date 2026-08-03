@@ -1,9 +1,12 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using ZISK.Data.Entities;
 
 namespace ZISK.Data
 {
-    public class ParentChild
+    public class ParentChild : IDemoScoped
     {
+        public Guid? DemoSessionId { get; set; }
+
         public string ParentId { get; set; } = string.Empty;
 
         [ForeignKey(nameof(ParentId))]

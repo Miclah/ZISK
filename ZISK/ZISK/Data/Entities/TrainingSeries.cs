@@ -3,9 +3,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ZISK.Data.Entities;
 
-public class TrainingSeries
+public class TrainingSeries : IDemoScoped
 {
     public Guid Id { get; set; }
+
+    public Guid? DemoSessionId { get; set; }
 
     public Guid TeamId { get; set; }
 

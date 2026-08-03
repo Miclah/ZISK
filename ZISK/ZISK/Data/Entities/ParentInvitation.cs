@@ -8,13 +8,15 @@ public enum ParentInvitationType
     ManualCode
 }
 
-public class ParentInvitation
+public class ParentInvitation : IDemoScoped
 {
     public const int LifetimeHours = 24;
     public const int MaxAttempts = 5;
     public const int MaxActiveInvitations = 3;
 
     public Guid Id { get; set; } = Guid.NewGuid();
+
+    public Guid? DemoSessionId { get; set; }
 
     [Required]
     [MaxLength(450)]
