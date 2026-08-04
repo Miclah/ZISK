@@ -84,20 +84,30 @@ public class SeasonService : ISeasonService
 
     public async Task<SeasonDto> ActivateAsync(Guid id)
     {
-        // Serializable is the strictest isolation level — it prevents a race condition where two concurrent
-        // activation requests could both pass the "deactivate all" step and leave two active seasons at once.
-        await using var transaction = await _context.Database.BeginTransactionAsync(
-            System.Data.IsolationLevel.Serializable);
+        // The SQL Server provider runs with a retrying execution strategy (see Program.cs), which
+        // refuses to start a user transaction unless the whole transactional block is handed to it -
+        // it has to be able to replay the block as a unit after a transient failure. Everything
+        // inside the delegate can therefore run more than once, so it re-reads its own state.
+        var strategy = _context.Database.CreateExecutionStrategy();
+        var season = await strategy.ExecuteAsync(async () =>
+        {
+            // Serializable is the strictest isolation level — it prevents a race condition where two concurrent
+            // activation requests could both pass the "deactivate all" step and leave two active seasons at once.
+            await using var transaction = await _context.Database.BeginTransactionAsync(
+                System.Data.IsolationLevel.Serializable);
 
-        var active = await _context.Seasons.Where(s => s.IsActive).ToListAsync();
-        foreach (var s in active)
-            s.IsActive = false;
+            var active = await _context.Seasons.Where(s => s.IsActive).ToListAsync();
+            foreach (var s in active)
+                s.IsActive = false;
 
-        var season = await _context.Seasons.FindAsync(id) ?? throw new KeyNotFoundException();
-        season.IsActive = true;
+            var target = await _context.Seasons.FindAsync(id) ?? throw new KeyNotFoundException();
+            target.IsActive = true;
 
-        await _context.SaveChangesAsync();
-        await transaction.CommitAsync();
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return target;
+        });
 
         return ToDto(season);
     }

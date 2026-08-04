@@ -17,8 +17,12 @@ param sqlAdminLogin string = 'ziskadmin'
 @description('SQL Server admin password. Must satisfy Azure SQL complexity policy (8+ chars, 3 of 4 categories).')
 param sqlAdminPassword string
 
+// Every seed password below must satisfy the app's own Identity policy (8+ chars, digit +
+// lowercase + uppercase), not just Azure SQL's. DatabaseInitializer validates them at startup
+// and refuses to boot otherwise - a Child password with no digit once silently cost the
+// deployment every child and athlete account while the site still looked healthy.
 @secure()
-@description('Seed:Passwords:Admin - see README.md "Demo accounts". Required because ZISK_SEED_MODE=demo.')
+@description('Seed:Passwords:Admin - see README.md "Demo accounts". Required because ZISK_SEED_MODE=demo. Must contain a digit, a lowercase and an uppercase letter, min 8 chars.')
 param seedAdminPassword string
 
 @secure()
@@ -120,7 +124,10 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
       connectionStrings: [
         {
           name: 'DefaultConnection'
-          connectionString: 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Database=${sqlDatabaseName};User ID=${sqlAdminLogin};Password=${sqlAdminPassword};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+          // Connection Timeout is 60, not the usual 30: the database is serverless with
+          // auto-pause, and resuming a paused database routinely takes longer than 30 seconds.
+          // The app also retries (EnableRetryOnFailure in Program.cs) - both are needed.
+          connectionString: 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Database=${sqlDatabaseName};User ID=${sqlAdminLogin};Password=${sqlAdminPassword};Encrypt=True;TrustServerCertificate=False;Connection Timeout=60;'
           type: 'SQLAzure'
         }
       ]

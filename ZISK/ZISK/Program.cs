@@ -84,7 +84,19 @@ builder.Services.AddScoped<DemoStampingInterceptor>();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
-    options.UseSqlServer(connectionString)
+    options.UseSqlServer(connectionString, sql =>
+           {
+               // The demo deployment runs on Azure SQL serverless with auto-pause. A paused
+               // database refuses the first connection and only *then* starts resuming, which
+               // takes the better part of a minute - without a retry policy every request that
+               // lands on a cold database fails outright. The 120s command timeout covers the
+               // same resume window for a query that gets through the handshake.
+               sql.EnableRetryOnFailure(
+                   maxRetryCount: 8,
+                   maxRetryDelay: TimeSpan.FromSeconds(15),
+                   errorNumbersToAdd: null);
+               sql.CommandTimeout(120);
+           })
            .AddInterceptors(sp.GetRequiredService<DemoStampingInterceptor>()));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
@@ -278,24 +290,45 @@ app.MapRazorComponents<App>()
 
 app.MapAdditionalIdentityEndpoints();
 
-using (var scope = app.Services.CreateScope())
 {
-    var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
-    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+    var startupLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
 
-    try
+    // Azure SQL serverless auto-pauses when idle, and the very first connection into a paused
+    // database fails (it only kicks off the resume). Retrying here matters more than anywhere
+    // else: this is where migrations run, so giving up leaves the app serving traffic against a
+    // schema-less database - which is exactly how /demo used to die with "couldn't prepare the
+    // demo data" instead of failing visibly at startup.
+    const int maxAttempts = 10;
+    var delay = TimeSpan.FromSeconds(5);
+
+    for (var attempt = 1; ; attempt++)
     {
-        await initializer.InitializeAsync();
-    }
-    catch (SeedConfigurationException)
-    {
-        // A demo/production deploy with missing Seed:* configuration must fail loudly at
-        // startup, not silently fall back to hardcoded local passwords or run with no admin.
-        throw;
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "Database initialization failed. Application will continue startup, but some seeded data may be missing.");
+        // A fresh scope per attempt: a DbContext that failed mid-migration must not be reused.
+        using var scope = app.Services.CreateScope();
+        var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
+
+        try
+        {
+            await initializer.InitializeAsync();
+            if (attempt > 1)
+                startupLogger.LogInformation("Database initialization succeeded on attempt {Attempt}.", attempt);
+            break;
+        }
+        catch (SeedConfigurationException)
+        {
+            // A demo/production deploy with missing Seed:* configuration must fail loudly at
+            // startup, not silently fall back to hardcoded local passwords or run with no admin.
+            // Retrying cannot help - the configuration is wrong, not the database.
+            throw;
+        }
+        catch (Exception ex) when (attempt < maxAttempts)
+        {
+            startupLogger.LogWarning(ex,
+                "Database initialization failed (attempt {Attempt}/{MaxAttempts}); retrying in {Delay}s.",
+                attempt, maxAttempts, delay.TotalSeconds);
+            await Task.Delay(delay);
+            delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 1.5, 30));
+        }
     }
 }
 

@@ -16,6 +16,7 @@ public class DatabaseInitializer
     private readonly IConfiguration _configuration;
     private readonly SeedPasswordOptions _passwordOptions;
     private readonly SeedInitialAdminOptions _initialAdminOptions;
+    private readonly IdentityOptions _identityOptions;
 
     public DatabaseInitializer(
         ApplicationDbContext context,
@@ -24,7 +25,8 @@ public class DatabaseInitializer
         ILogger<DatabaseInitializer> logger,
         IConfiguration configuration,
         IOptions<SeedPasswordOptions> passwordOptions,
-        IOptions<SeedInitialAdminOptions> initialAdminOptions)
+        IOptions<SeedInitialAdminOptions> initialAdminOptions,
+        IOptions<IdentityOptions> identityOptions)
     {
         _context = context;
         _userManager = userManager;
@@ -33,6 +35,7 @@ public class DatabaseInitializer
         _configuration = configuration;
         _passwordOptions = passwordOptions.Value;
         _initialAdminOptions = initialAdminOptions.Value;
+        _identityOptions = identityOptions.Value;
     }
 
     private sealed record SeedPasswordSet(string Admin, string Coach, string Parent, string Child)
@@ -55,7 +58,46 @@ public class DatabaseInitializer
                 $"ZISK_SEED_MODE=demo vyžaduje nasledujúce chýbajúce konfiguračné hodnoty: {string.Join(", ", missing)}.");
         }
 
-        return new SeedPasswordSet(_passwordOptions.Admin!, _passwordOptions.Coach!, _passwordOptions.Parent!, _passwordOptions.Child!);
+        var set = new SeedPasswordSet(_passwordOptions.Admin!, _passwordOptions.Coach!, _passwordOptions.Parent!, _passwordOptions.Child!);
+        ValidateAgainstPasswordPolicy(set);
+        return set;
+    }
+
+    /// <summary>
+    /// Fails the whole startup when a configured seed password cannot satisfy the Identity
+    /// password policy. Without this, <see cref="EnsureUserAsync"/> just logs a warning per
+    /// rejected user and carries on - a Seed:Passwords:Child value with no digit silently cost
+    /// the deployed demo every child and athlete account (and with them the rosters, attendance
+    /// and excuses built on top of them), while the site still looked like it had booted fine.
+    /// </summary>
+    private void ValidateAgainstPasswordPolicy(SeedPasswordSet set)
+    {
+        var policy = _identityOptions.Password;
+        var problems = new List<string>();
+
+        void Check(string settingName, string password)
+        {
+            var faults = new List<string>();
+            if (password.Length < policy.RequiredLength) faults.Add($"aspoň {policy.RequiredLength} znakov");
+            if (policy.RequireDigit && !password.Any(char.IsDigit)) faults.Add("aspoň jednu číslicu");
+            if (policy.RequireLowercase && !password.Any(char.IsLower)) faults.Add("aspoň jedno malé písmeno");
+            if (policy.RequireUppercase && !password.Any(char.IsUpper)) faults.Add("aspoň jedno veľké písmeno");
+            if (policy.RequireNonAlphanumeric && password.All(char.IsLetterOrDigit)) faults.Add("aspoň jeden špeciálny znak");
+
+            if (faults.Count > 0)
+                problems.Add($"{settingName} (chýba: {string.Join(", ", faults)})");
+        }
+
+        Check("Seed:Passwords:Admin", set.Admin);
+        Check("Seed:Passwords:Coach", set.Coach);
+        Check("Seed:Passwords:Parent", set.Parent);
+        Check("Seed:Passwords:Child", set.Child);
+
+        if (problems.Count > 0)
+        {
+            throw new SeedConfigurationException(
+                $"Nasledujúce seed heslá nespĺňajú politiku hesiel: {string.Join("; ", problems)}.");
+        }
     }
 
     private async Task EnsureProductionAdminAsync()
