@@ -140,18 +140,16 @@ public class DatabaseInitializer
 
         var anchor = DateTime.UtcNow;
 
-        var admin  = await EnsureUserAsync("admin@zisk.sk",  passwords.Admin,  "Admin",  "Miroslav", "Kráľ");
-        var coach  = await EnsureUserAsync("trener@zisk.sk", passwords.Coach, "Coach",  "Marek",    "Kováčik");
-        var parent = await EnsureUserAsync("rodic@zisk.sk",  passwords.Parent,  "Parent", "Peter",    "Novák");
-        var child  = await EnsureUserAsync("dieta@zisk.sk",  passwords.Child,  "Child",  "Tomáš",    "Novák");
+        // Relative to seed time rather than a fixed year, so a demo deployed years from now does
+        // not have an 11-year-old who is visibly 20. The day offset keeps the generated dates off
+        // the seeding date itself, which would otherwise be the same day and month for everyone.
+        var anchorDate = DateOnly.FromDateTime(anchor);
+        DateOnly BirthDate(int ageYears, int dayOffset) => anchorDate.AddYears(-ageYears).AddDays(-dayOffset);
 
-        if (child != null && child.DateOfBirth == null)
-        {
-            // Relative to seed time rather than a fixed year, so the demo doesn't have an
-            // 11-year-old who is visibly 20 a few years from now.
-            child.DateOfBirth = DateOnly.FromDateTime(anchor).AddYears(-12);
-            await _userManager.UpdateAsync(child);
-        }
+        var admin  = await EnsureUserAsync("admin@zisk.sk",  passwords.Admin,  "Admin",  "Miroslav", "Kráľ",    BirthDate(44, 137));
+        var coach  = await EnsureUserAsync("trener@zisk.sk", passwords.Coach,  "Coach",  "Marek",    "Kováčik", BirthDate(38, 291));
+        var parent = await EnsureUserAsync("rodic@zisk.sk",  passwords.Parent, "Parent", "Peter",    "Novák",   BirthDate(41, 58));
+        var child  = await EnsureUserAsync("dieta@zisk.sk",  passwords.Child,  "Child",  "Tomáš",    "Novák",   BirthDate(12, 96));
 
         await SeedTeamsAsync();
         await EnsureDefaultSeasonAsync(anchor);
@@ -230,7 +228,11 @@ public class DatabaseInitializer
 
         await EnsureSampleAttendanceAsync(sampleTrainings, sampleChildren, attendanceUser);
         await EnsureSampleAbsenceRequestsAsync(sampleTrainings, sampleChildren, parent);
-        await EnsureRichSampleHistoryAsync(teams, sampleChildren, attendanceUser, parent, anchor);
+
+        // The weekly plan survives the delete pass above, so this normally just reads the existing
+        // series back and re-expands them against the refreshed anchor.
+        var sampleSeries = await EnsureSampleTrainingSeriesAsync(teams);
+        await EnsureRichSampleHistoryAsync(teams, sampleSeries, sampleChildren, attendanceUser, parent, anchor);
 
         var announcementAuthor = admin ?? coach;
         await EnsureSampleAnnouncementsAsync(announcementAuthor, teams, anchor);
@@ -363,6 +365,8 @@ public class DatabaseInitializer
                 IsActive       = true
             };
 
+            ApplyDemoProfileDetails(user, email, dateOfBirth);
+
             var result = await _userManager.CreateAsync(user, password);
             if (!result.Succeeded)
             {
@@ -371,11 +375,62 @@ public class DatabaseInitializer
                 return await _userManager.FindByEmailAsync(email);
             }
         }
+        else if (ApplyDemoProfileDetails(user, email, dateOfBirth))
+        {
+            // Backfill for accounts that predate these fields. A demo deployment keeps its user
+            // rows across restarts, so filling the profile in only at creation time would leave
+            // every already-deployed demo with the empty phone/birth-number/address columns this
+            // is meant to remove.
+            await _userManager.UpdateAsync(user);
+        }
 
         if (!await _userManager.IsInRoleAsync(user, role))
             await _userManager.AddToRoleAsync(user, role);
 
         return user;
+    }
+
+    /// <summary>
+    /// Fills in the fictional phone number, birth number and address that make the demo read like a
+    /// real club register. Only accounts listed in <see cref="SeedPersonDirectory"/> are touched, so
+    /// a production admin never gets made-up data, and only blank fields are written, so anything a
+    /// demo visitor edits survives the next startup. Returns true when something changed.
+    /// </summary>
+    private static bool ApplyDemoProfileDetails(ApplicationUser user, string email, DateOnly? dateOfBirth)
+    {
+        var person = SeedPersonDirectory.Find(email);
+        if (person is null)
+            return false;
+
+        var changed = false;
+
+        if (user.DateOfBirth is null && dateOfBirth is not null)
+        {
+            user.DateOfBirth = dateOfBirth;
+            changed = true;
+        }
+
+        if (string.IsNullOrWhiteSpace(user.PhoneNumber))
+        {
+            user.PhoneNumber = person.Phone;
+            changed = true;
+        }
+
+        if (string.IsNullOrWhiteSpace(user.Bydlisko))
+        {
+            user.Bydlisko = person.Address;
+            changed = true;
+        }
+
+        // Derived from the birth date that is already on the account, so the number a coach sees
+        // always agrees with the date of birth shown next to it.
+        if (string.IsNullOrWhiteSpace(user.RodneCislo) && user.DateOfBirth is { } dob)
+        {
+            user.RodneCislo = SeedPersonDirectory.BuildRodneCislo(dob, person.IsFemale, person.Serial);
+            changed = true;
+        }
+
+        return changed;
     }
 
     private async Task SeedTeamsAsync()
@@ -457,7 +512,8 @@ public class DatabaseInitializer
         var sampleParent = sampleUsers.Parents.FirstOrDefault() ?? defaultParent;
         await EnsureSampleAbsenceRequestsAsync(sampleTrainings, sampleChildren, sampleParent);
 
-        await EnsureRichSampleHistoryAsync(teams, sampleChildren, attendanceUser, sampleParent, anchor);
+        var sampleSeries = await EnsureSampleTrainingSeriesAsync(teams);
+        await EnsureRichSampleHistoryAsync(teams, sampleSeries, sampleChildren, attendanceUser, sampleParent, anchor);
 
         var announcementAuthor = admin ?? defaultCoach ?? sampleUsers.Coaches.FirstOrDefault();
         await EnsureSampleAnnouncementsAsync(announcementAuthor, teams, anchor);
@@ -478,30 +534,34 @@ public class DatabaseInitializer
         DateOnly BirthDate(int ageYears, int dayOffset) => anchorDate.AddYears(-ageYears).AddDays(-dayOffset);
 
         // Tréneri
-        foreach (var (email, fn, ln) in new[]
+        foreach (var (email, fn, ln, dob) in new[]
         {
-            ("rastislav.horvath@zisk.sk", "Rastislav", "Horváth"),
-            ("tomas.balaz@zisk.sk",       "Tomáš",     "Baláž"),
-            ("jan.minac@zisk.sk",         "Ján",       "Mináč")
+            ("rastislav.horvath@zisk.sk", "Rastislav", "Horváth", BirthDate(45, 172)),
+            ("tomas.balaz@zisk.sk",       "Tomáš",     "Baláž",   BirthDate(36, 24)),
+            ("jan.minac@zisk.sk",         "Ján",       "Mináč",   BirthDate(51, 309))
         })
         {
-            var u = await EnsureUserAsync(email, passwords.Coach, "Coach", fn, ln);
+            var u = await EnsureUserAsync(email, passwords.Coach, "Coach", fn, ln, dob);
             if (u != null) coaches.Add(u);
         }
 
         // Rodičia
-        foreach (var (email, fn, ln) in new[]
+        foreach (var (email, fn, ln, dob) in new[]
         {
-            ("jana.novakova@zisk.sk",   "Jana",    "Nováková"),
-            ("milan.horak@zisk.sk",     "Milan",   "Horák"),
-            ("andrea.blahova@zisk.sk",  "Andrea",  "Bláhová"),
-            ("lukas.kral@zisk.sk",      "Lukáš",   "Kráľ"),
-            ("monika.simonova@zisk.sk", "Monika",  "Šimonová"),
-            ("juraj.balog@zisk.sk",     "Juraj",   "Balog"),
-            ("zuzana.oravec@zisk.sk",   "Zuzana",  "Oravec")
+            ("jana.novakova@zisk.sk",   "Jana",     "Nováková", BirthDate(39, 214)),
+            ("milan.horak@zisk.sk",     "Milan",    "Horák",    BirthDate(47, 96)),
+            ("andrea.blahova@zisk.sk",  "Andrea",   "Bláhová",  BirthDate(43, 341)),
+            ("lukas.kral@zisk.sk",      "Lukáš",    "Kráľ",     BirthDate(45, 63)),
+            ("monika.simonova@zisk.sk", "Monika",   "Šimonová", BirthDate(42, 188)),
+            ("juraj.balog@zisk.sk",     "Juraj",    "Balog",    BirthDate(46, 275)),
+            ("zuzana.oravec@zisk.sk",   "Zuzana",   "Oravec",   BirthDate(40, 131)),
+            ("eva.mala@zisk.sk",        "Eva",      "Malá",     BirthDate(44, 41)),
+            ("ivan.varga@zisk.sk",      "Ivan",     "Varga",    BirthDate(48, 226)),
+            ("marta.cierna@zisk.sk",    "Marta",    "Čierna",   BirthDate(41, 158)),
+            ("vladimir.holub@zisk.sk",  "Vladimír", "Holúb",    BirthDate(39, 87))
         })
         {
-            var u = await EnsureUserAsync(email, passwords.Parent, "Parent", fn, ln);
+            var u = await EnsureUserAsync(email, passwords.Parent, "Parent", fn, ln, dob);
             if (u != null) parents.Add(u);
         }
 
@@ -607,27 +667,39 @@ public class DatabaseInitializer
         async Task<ApplicationUser?> FindChild(string email) =>
             await _userManager.FindByEmailAsync(email);
 
+        // Every child and athlete must appear here at least once. A player without a parent shows up
+        // in the coach's roster as "kontakt na rodiča nie je k dispozícii", which in a demo reads as
+        // a bug rather than as an intentionally empty state.
         var links = new List<(string ParentEmail, string ChildEmail, bool IsPrimary)>
         {
-            // Jana Nováková je sekundárna mama Tomáša (primárny otec Peter Novák — linknutý cez EnsureChildSeedUserAsync)
-            ("jana.novakova@zisk.sk", "dieta@zisk.sk",         false),
-            // Peter Novák (rodic@zisk.sk) — aj Samuel
-            ("rodic@zisk.sk",         "samuel.novak@zisk.sk",  true),
-            // Milan Horák — Martin a Petra
-            ("milan.horak@zisk.sk",   "martin.horak@zisk.sk",  true),
-            ("milan.horak@zisk.sk",   "petra.horakova@zisk.sk",true),
-            // Andrea Bláhová — Jakub a Nina
-            ("andrea.blahova@zisk.sk","jakub.blaha@zisk.sk",   true),
-            ("andrea.blahova@zisk.sk","nina.blahova@zisk.sk",  true),
-            // Lukáš Kráľ — Adam a Zuzana
-            ("lukas.kral@zisk.sk",    "adam.kral@zisk.sk",     true),
-            ("lukas.kral@zisk.sk",    "zuzana.kralova@zisk.sk",true),
-            // Monika Šimonová — Michal
-            ("monika.simonova@zisk.sk","michal.simon@zisk.sk", true),
-            // Juraj Balog — Juraj Jr.
-            ("juraj.balog@zisk.sk",   "juraj.balog.jr@zisk.sk",true),
-            // Zuzana Oravec — Klára
-            ("zuzana.oravec@zisk.sk", "klara.oravec@zisk.sk",  true)
+            // Novákovci: otec Peter (primárny, linknutý cez EnsureChildSeedUserAsync), mama Jana
+            ("jana.novakova@zisk.sk",  "dieta@zisk.sk",          false),
+            ("rodic@zisk.sk",          "samuel.novak@zisk.sk",   true),
+            ("jana.novakova@zisk.sk",  "samuel.novak@zisk.sk",   false),
+            // Horákovci: Martin a Petra
+            ("milan.horak@zisk.sk",    "martin.horak@zisk.sk",   true),
+            ("milan.horak@zisk.sk",    "petra.horakova@zisk.sk", true),
+            // Bláhovci: Jakub a Nina
+            ("andrea.blahova@zisk.sk", "jakub.blaha@zisk.sk",    true),
+            ("andrea.blahova@zisk.sk", "nina.blahova@zisk.sk",   true),
+            // Kráľovci: Adam a Zuzana
+            ("lukas.kral@zisk.sk",     "adam.kral@zisk.sk",      true),
+            ("lukas.kral@zisk.sk",     "zuzana.kralova@zisk.sk", true),
+            // Šimonovci: Michal
+            ("monika.simonova@zisk.sk","michal.simon@zisk.sk",   true),
+            // Balogovci: Juraj ml.
+            ("juraj.balog@zisk.sk",    "juraj.balog.jr@zisk.sk", true),
+            // Oravcovci: Klára
+            ("zuzana.oravec@zisk.sk",  "klara.oravec@zisk.sk",   true),
+            // Malí: Lukáš a Ondrej, súrodenci naprieč A-tímom a Prípravkou
+            ("eva.mala@zisk.sk",       "lukas.maly@zisk.sk",     true),
+            ("eva.mala@zisk.sk",       "ondrej.maly@zisk.sk",    true),
+            // Vargovci: Richard
+            ("ivan.varga@zisk.sk",     "richard.varga@zisk.sk",  true),
+            // Čierni: Filip
+            ("marta.cierna@zisk.sk",   "filip.cerny@zisk.sk",    true),
+            // Holúbovci: Ema
+            ("vladimir.holub@zisk.sk", "ema.holubova@zisk.sk",   true)
         };
 
         foreach (var (parentEmail, childEmail, isPrimary) in links)
@@ -853,8 +925,99 @@ public class DatabaseInitializer
         await _context.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// Creates the weekly plan each team trains on. These rows are what the "Opakované" tab shows,
+    /// and <see cref="EnsureRichSampleHistoryAsync"/> expands them into the calendar, so every
+    /// recurring training in the demo belongs to a series a visitor can open, edit and regenerate.
+    /// <para>
+    /// Deliberately left out of <see cref="RefreshDemoTemplateAsync"/>'s delete pass: a weekly plan
+    /// is not date-bound, only the instances generated from it are. It is also what keeps
+    /// <see cref="TrainingSeriesGeneratorWorker"/> extending the calendar on its own after the seed.
+    /// </para>
+    /// </summary>
+    private async Task<List<TrainingSeries>> EnsureSampleTrainingSeriesAsync(List<Team> teams)
+    {
+        var existing = await _context.TrainingSeries
+            .Include(ts => ts.Season)
+            .Where(ts => ts.IsActive)
+            .ToListAsync();
+
+        if (existing.Count > 0)
+            return existing;
+
+        var activeSeason = await _context.Seasons.FirstOrDefaultAsync(s => s.IsActive);
+        if (activeSeason == null)
+            return [];
+
+        var teamByName = teams.ToDictionary(t => t.Name, t => t);
+
+        // A series needs a coach (CoachId is a Restrict FK), so resolve each team's primary coach and
+        // fall back to any coach at all rather than dropping the series.
+        var coachTeams = await _context.CoachTeams.ToListAsync();
+        var coachByTeam = coachTeams
+            .GroupBy(ct => ct.TeamId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(ct => ct.IsPrimary).First().CoachId);
+
+        var fallbackCoachId = (await _userManager.GetUsersInRoleAsync("Coach")).FirstOrDefault()?.Id;
+
+        var templates = new (string TeamName, string Title, Weekdays Days, int Hour, int Minute, int Minutes, string Location, TrainingType Type, string Note)[]
+        {
+            ("A-tím",     "Kondičný tréning – A",     Weekdays.Monday,    17, 0, 90, "Posilňovňa",             TrainingType.Conditioning, "Sila, výbušnosť a core. Vlastné rukavice so sebou."),
+            ("A-tím",     "Herné situácie – A",       Weekdays.Wednesday, 17, 0, 105, "Štadión – hlavné ihrisko", TrainingType.Match,      "Presilovky, štandardné situácie, záverečný zápas."),
+            ("A-tím",     "Regeneračná jednotka – A", Weekdays.Friday,    18, 0, 60, "Posilňovňa",             TrainingType.Recovery,     "Strečing, kompenzačné cvičenia, bazén podľa počasia."),
+            ("B-tím",     "Technika a prihrávky – B", Weekdays.Tuesday,   18, 0, 90, "Hlavná telocvičňa",      TrainingType.Technical,    "Práca s loptou, krátke prihrávky, 1 na 1."),
+            ("B-tím",     "Taktický tréning – B",     Weekdays.Thursday,  18, 0, 90, "Štadión – hlavné ihrisko", TrainingType.Technical,  "Rozostavenie, presun bloku, kombinácie po krídle."),
+            ("Žiaci",     "Všeobecná príprava – Ž",   Weekdays.Tuesday,   16, 0, 90, "Hlavná telocvičňa",      TrainingType.Conditioning, "Koordinácia, rýchlosť a obratnosť formou hier."),
+            ("Žiaci",     "Zápasová simulácia – Ž",   Weekdays.Thursday,  16, 0, 105, "Štadión – hlavné ihrisko", TrainingType.Match,     "Modelové herné situácie a rohové kopy."),
+            ("Prípravka", "Pohybová príprava – P",    Weekdays.Monday,    16, 0, 60, "Vedľajšia telocvičňa",   TrainingType.Conditioning, "Základná pohybová abeceda, prekážkové dráhy."),
+            ("Prípravka", "Hravý tréning – P",        Weekdays.Wednesday, 16, 0, 60, "Hlavná telocvičňa",      TrainingType.Technical,    "Práca s loptou formou hry, striedanie stanovíšť.")
+        };
+
+        var created = new List<TrainingSeries>();
+
+        foreach (var t in templates)
+        {
+            if (!teamByName.TryGetValue(t.TeamName, out var team))
+                continue;
+
+            var coachId = coachByTeam.GetValueOrDefault(team.Id) ?? fallbackCoachId;
+            if (coachId == null)
+                continue;
+
+            var start = new TimeOnly(t.Hour, t.Minute);
+
+            created.Add(new TrainingSeries
+            {
+                Id         = Guid.NewGuid(),
+                TeamId     = team.Id,
+                CoachId    = coachId,
+                SeasonId   = activeSeason.Id,
+                Title      = t.Title,
+                DaysOfWeek = (int)t.Days,
+                StartTime  = start,
+                EndTime    = start.AddMinutes(t.Minutes),
+                Location   = t.Location,
+                Type       = t.Type,
+                CoachNote  = t.Note,
+                IsActive   = true
+            });
+        }
+
+        _context.TrainingSeries.AddRange(created);
+        await _context.SaveChangesAsync();
+
+        // BuildMissingInstances reads series.Season, and the tracked entities above were built from
+        // raw ids, so hand it the season the rows were just created against.
+        foreach (var series in created)
+            series.Season = activeSeason;
+
+        _logger.LogInformation("Naseedovaných {Count} opakovaných tréningov.", created.Count);
+        return created;
+    }
+
     private async Task EnsureRichSampleHistoryAsync(
         List<Team> teams,
+        List<TrainingSeries> series,
         List<ApplicationUser> sampleChildren,
         ApplicationUser? markedByUser,
         ApplicationUser? parent,
@@ -882,28 +1045,6 @@ public class DatabaseInitializer
         var attendances = new List<AttendanceRecord>();
         var excuses    = new List<AbsenceRequest>();
 
-        var typeRotation = new[]
-        {
-            TrainingType.Conditioning,
-            TrainingType.Technical,
-            TrainingType.Match,
-            TrainingType.Recovery,
-            TrainingType.Conditioning,
-            TrainingType.Technical
-        };
-
-        var locations = new[] { "Hlavná telocvičňa", "Vedľajšia telocvičňa", "Štadión", "Posilňovňa" };
-        var titles    = new[]
-        {
-            "Kondičný tréning",
-            "Technika a prihrávky",
-            "Taktický tréning",
-            "Zápasová simulácia",
-            "Regeneračná jednotka",
-            "Rýchlosť a obratnosť",
-            "Herné situácie"
-        };
-
         var teamMemberCache = new Dictionary<Guid, List<string>>();
         foreach (var team in teams)
         {
@@ -915,65 +1056,46 @@ public class DatabaseInitializer
             teamMemberCache[team.Id] = members;
         }
 
-        // Generujeme tréningy za posledných 90 dní + 21 dní dopredu (dosť budúcich tréningov na
-        // to, aby si návštevník mohol reálne vytvoriť ospravedlnenku na niečo, čo ešte nezačalo)
-        for (var day = startWindow.Date; day <= now.Date.AddDays(21); day = day.AddDays(1))
+        // Expanded from the weekly plan through the same pure function the "Generate" button and the
+        // nightly worker use, so the calendar a visitor sees is exactly what those series produce.
+        // 90 days back gives the statistics something to chart; 21 days forward leaves enough
+        // untouched trainings for a visitor to actually file an excuse against one.
+        var from = DateOnly.FromDateTime(startWindow.Date);
+        var to   = DateOnly.FromDateTime(now.Date.AddDays(21));
+
+        foreach (var s in series)
+            trainings.AddRange(TrainingSeriesInstanceGenerator.BuildMissingInstances(s, from, to, []));
+
+        foreach (var training in trainings)
         {
-            for (var teamIndex = 0; teamIndex < teams.Count; teamIndex++)
+            // The generator stamps CreatedAt with "now" because that is right for a training being
+            // scheduled today. For back-dated demo history it would make a three-month-old training
+            // look like it was created this morning.
+            training.CreatedAt = training.StartTime.AddDays(-14);
+
+            // Dochádzka len pre minulé tréningy
+            if (training.StartTime > now)
+                continue;
+
+            var members = teamMemberCache.GetValueOrDefault(training.TeamId) ?? [];
+            foreach (var childId in members)
             {
-                var team      = teams[teamIndex];
-                var dayOfWeek = (int)day.DayOfWeek;
-                // Párne tímy: pondelok + streda (1, 3); nepárne: utorok + štvrtok (2, 4)
-                var trainingDays = teamIndex % 2 == 0 ? new[] { 1, 3 } : new[] { 2, 4 };
-                if (!trainingDays.Contains(dayOfWeek))
-                    continue;
+                // Distribúcia: 70 % Prítomný / 18 % Ospravedlnený / 12 % Neprítomný
+                var roll   = rng.Next(100);
+                var status = roll < 70 ? AttendanceStatus.Present
+                           : roll < 88 ? AttendanceStatus.Excused
+                           : AttendanceStatus.Absent;
 
-                var hour      = 16 + (teamIndex % 3);
-                var startTime = day.AddHours(hour);
-                var type      = typeRotation[(teamIndex + day.DayOfYear) % typeRotation.Length];
-                var titleBase = titles[(teamIndex + day.DayOfYear) % titles.Length];
-                var title     = $"{titleBase} – {team.ShortName}";
-
-                var training = new TrainingEvent
+                attendances.Add(new AttendanceRecord
                 {
-                    Id        = Guid.NewGuid(),
-                    TeamId    = team.Id,
-                    SeasonId  = activeSeason.Id,
-                    Title     = title,
-                    StartTime = startTime,
-                    EndTime   = startTime.AddMinutes(90),
-                    Location  = locations[(teamIndex + day.DayOfYear) % locations.Length],
-                    Type      = type,
-                    CoachNote = null,
-                    CreatedAt = startTime.AddDays(-7),
-                    IsLocked  = false
-                };
-                trainings.Add(training);
-
-                // Dochádzka len pre minulé tréningy
-                if (training.StartTime > now)
-                    continue;
-
-                var members = teamMemberCache[team.Id];
-                foreach (var childId in members)
-                {
-                    // Distribúcia: 70 % Prítomný / 18 % Ospravedlnený / 12 % Neprítomný
-                    var roll   = rng.Next(100);
-                    var status = roll < 70 ? AttendanceStatus.Present
-                               : roll < 88 ? AttendanceStatus.Excused
-                               : AttendanceStatus.Absent;
-
-                    attendances.Add(new AttendanceRecord
-                    {
-                        Id              = Guid.NewGuid(),
-                        TrainingEventId = training.Id,
-                        ChildId         = childId,
-                        Status          = status,
-                        Note            = status == AttendanceStatus.Absent ? "Neospravedlnená absencia" : null,
-                        MarkedByUserId  = markedByUser?.Id,
-                        RecordedAt      = training.StartTime.AddHours(2)
-                    });
-                }
+                    Id              = Guid.NewGuid(),
+                    TrainingEventId = training.Id,
+                    ChildId         = childId,
+                    Status          = status,
+                    Note            = status == AttendanceStatus.Absent ? "Neospravedlnená absencia" : null,
+                    MarkedByUserId  = markedByUser?.Id,
+                    RecordedAt      = training.StartTime.AddHours(2)
+                });
             }
         }
 

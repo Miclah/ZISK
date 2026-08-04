@@ -16,9 +16,13 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
 builder.Services.AddMudServices(config =>
 {
-    config.SnackbarConfiguration.VisibleStateDuration = 1000;
+    // Snackbars carry the reason an action was refused (why a training cannot be deleted, for
+    // example). At the previous 1000 ms they were gone before that sentence could be read.
+    config.SnackbarConfiguration.VisibleStateDuration = 8000;
     config.SnackbarConfiguration.ShowTransitionDuration = 100;
     config.SnackbarConfiguration.HideTransitionDuration = 300;
+    config.SnackbarConfiguration.ShowCloseIcon = true;
+    config.SnackbarConfiguration.PreventDuplicates = false;
 });
 builder.Services.AddAuthorizationCore();
 builder.Services.AddCascadingAuthenticationState();

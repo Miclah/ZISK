@@ -135,6 +135,50 @@ body {
     padding: 0 10px !important;
 }
 
+/* Language switch: a two-segment pill in the app bar. Replaces a globe icon that opened a menu,
+   which hid both the available languages and the one currently in use behind a click. */
+.appbar-lang-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.appbar-lang-option {
+    appearance: none;
+    border: 0;
+    cursor: pointer;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.65);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    padding: 5px 10px;
+    border-radius: 999px;
+    transition: background-color 120ms ease, color 120ms ease;
+}
+
+.appbar-lang-option:hover:not(.appbar-lang-option--active) {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--zisk-text-on-dark);
+}
+
+.appbar-lang-option:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.7);
+    outline-offset: 1px;
+}
+
+.appbar-lang-option--active {
+    background: var(--zisk-text-on-dark);
+    color: var(--zisk-primary);
+    cursor: default;
+}
+
 .appbar-context-select {
     max-width: 220px;
     background: rgba(255, 255, 255, 0.06);
@@ -838,14 +882,26 @@ a:focus-visible {
    TRANSITIONS & ANIMATIONS (Phase 5)
 ============================================================ */
 
-/* Route fade-in: applied to <main> on each route change */
+/* Route fade-in on each route change. Two identical keyframe sets on purpose: MainLayout alternates
+   between --a and --b so the animation name changes, which is what makes the browser replay it. A
+   single class would only ever animate once, because re-rendering with the same animation-name does
+   not restart it. The alternative (re-creating the element via @key) rebuilt the whole page. */
 @keyframes ziskFadeIn {
     from { opacity: 0; }
     to   { opacity: 1; }
 }
 
-.route-transition {
+@keyframes ziskFadeInAlt {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.route-transition--a {
     animation: ziskFadeIn 150ms ease-in;
+}
+
+.route-transition--b {
+    animation: ziskFadeInAlt 150ms ease-in;
 }
 
 /* Button press: smooth background colour change, no transform */
@@ -929,7 +985,8 @@ a:focus-visible {
 
 /* Reduced motion: disable all decorative animations */
 @media (prefers-reduced-motion: reduce) {
-    .route-transition,
+    .route-transition--a,
+    .route-transition--b,
     .mud-dialog,
     .mud-overlay-dialog,
     .mud-drawer.mud-drawer--open.mud-drawer-anchor-left,

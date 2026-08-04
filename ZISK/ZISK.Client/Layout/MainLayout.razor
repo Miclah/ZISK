@@ -146,7 +146,15 @@
             }
             <ErrorBoundary>
                 <ChildContent>
-                    <div class="route-transition" @key="_routeKey">
+                    @* The fade is restarted by swapping between two identical animations rather
+                       than by @key-ing this div on the URL. The key looked equivalent but was not:
+                       the Router renders the new page synchronously from its own LocationChanged
+                       handler, before this layout's handler updates the key, so the page was built
+                       once under the old key and then thrown away and built a second time when the
+                       new key arrived. Every page therefore ran OnInitializedAsync twice - which
+                       double-loaded its data, and on the pages that open a create dialog from a
+                       ?action=create deep link, opened that dialog twice. *@
+                    <div class="@RouteTransitionClass">
                         @Body
                     </div>
                 </ChildContent>
@@ -181,7 +189,15 @@
     private bool _demoNoticeDismissed;
     private string? _coachTeamName;
     private List<PendingInvitationDto> _pendingInvitations = new();
-    private string _routeKey = string.Empty;
+    private bool _routeTransitionFlipped;
+
+    /// <summary>
+    /// Alternates between two classes carrying identical fade keyframes. Changing the animation name
+    /// is what makes the browser replay it; the element itself stays put, so the page inside is not
+    /// torn down and rebuilt.
+    /// </summary>
+    private string RouteTransitionClass =>
+        _routeTransitionFlipped ? "route-transition route-transition--b" : "route-transition route-transition--a";
 
     private string MainContentStyle => "background: var(--zisk-bg); min-height: 100vh;";
 
@@ -189,7 +205,6 @@
 
     protected override void OnInitialized()
     {
-        _routeKey = NavigationManager.Uri;
         ActivityTracker.StateChanged += OnActivityChanged;
         NavigationManager.LocationChanged += OnLocationChanged;
         LanguageService.Changed += OnLanguageChanged;
@@ -267,7 +282,7 @@
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
-        _routeKey = e.Location;
+        _routeTransitionFlipped = !_routeTransitionFlipped;
         InvokeAsync(StateHasChanged);
     }
 
