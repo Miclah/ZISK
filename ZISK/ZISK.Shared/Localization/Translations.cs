@@ -80,33 +80,41 @@ public static class Translations
         ["demoReset.back"] = ("Späť", "Back"),
 
         // ---- /demo landing page ----
-        ["demo.title"] = ("ZISK - verejné demo", "ZISK - public demo"),
+        // Each role description opens with a different kind of sentence on purpose. Four
+        // identically built noun phrases read as generated filler; a verb sentence followed by
+        // a list, or a fragment followed by a verb sentence, reads as if a person wrote them.
+        ["demo.title"] = ("ZISK demo", "ZISK demo"),
+        ["demo.tagline"] = ("Systém na správu športového klubu", "Sports club management system"),
         ["demo.intro"] = (
-            "Vyberte si rolu a vyskúšajte si aplikáciu naostro - vytvárajte, upravujte a mažte dáta bez obmedzení. Vaše zmeny sú súkromné, vidíte len vy, a po 24 hodinách nečinnosti sa automaticky vymažú.",
-            "Pick a role and try the app for real - create, edit, and delete data without limits. Your changes are private, only you can see them, and they're automatically deleted after 24 hours of inactivity."),
+            "Dochádzka, rozvrhy tréningov a komunikácia trénera s rodičmi. Vyberte si rolu a prihláste sa. Čokoľvek tu pridáte alebo zmeníte, uvidíte len vy. Po dni sa to zmaže.",
+            "Attendance tracking, training schedules, and coach to parent messaging. Pick a role to sign in. Anything you add or change here is visible only to you and gets cleared out after a day."),
         ["demo.role.admin.title"] = ("Administrátor", "Administrator"),
         ["demo.role.admin.desc"] = (
-            "Správa celého klubu - tímy, používatelia, sezóny, štatistiky a systémové oznamy.",
-            "Manage the whole club - teams, users, seasons, statistics, and system announcements."),
+            "Riadi celý klub. Tímy, účty, sezóny a celoklubové oznamy.",
+            "Runs the club. Teams, accounts, seasons, and club wide announcements."),
         ["demo.role.admin.button"] = ("Vyskúšať ako Admin", "Try as Admin"),
         ["demo.role.coach.title"] = ("Tréner", "Coach"),
         ["demo.role.coach.desc"] = (
-            "Tréningy vlastného tímu, zapisovanie dochádzky, schvaľovanie ospravedlneniek a oznamy.",
-            "Your own team's trainings, recording attendance, approving excuse requests, and announcements."),
+            "Tréningy jedného tímu. Zapisuje dochádzku a schvaľuje ospravedlnenky.",
+            "One team's trainings. Marks attendance and approves absence requests."),
         ["demo.role.coach.button"] = ("Vyskúšať ako Tréner", "Try as Coach"),
         ["demo.role.parent.title"] = ("Rodič", "Parent"),
         ["demo.role.parent.desc"] = (
-            "Prehľad tréningov a dochádzky detí, podávanie a úprava ospravedlneniek.",
-            "Overview of your children's trainings and attendance, submitting and editing excuse requests."),
+            "Sleduje vlastné deti. Kontroluje im dochádzku, ospravedlňuje ich z tréningu.",
+            "Follows their own children. Checks attendance, excuses them from training."),
         ["demo.role.parent.button"] = ("Vyskúšať ako Rodič", "Try as Parent"),
         ["demo.role.child.title"] = ("Dieťa / Športovec", "Child / Athlete"),
         ["demo.role.child.desc"] = (
-            "Vlastný rozvrh tréningov, dochádzka a (u starších športovcov) vlastné ospravedlnenky.",
-            "Your own training schedule, attendance, and (for older athletes) your own excuse requests."),
+            "Vlastný rozvrh a dochádzka. Starší športovci si ospravedlnenky podávajú sami.",
+            "Own schedule and attendance. Older athletes file their own absences."),
         ["demo.role.child.button"] = ("Vyskúšať ako Dieťa", "Try as Child"),
+        // The cold start warning is load bearing: without it a visitor stares at a blank tab for
+        // half a minute and leaves thinking the app is broken.
         ["demo.footerNote"] = (
-            "Toto je portfóliové demo bez reálnych dát klubu. Žiadne emaily sa neodosielajú.",
-            "This is a portfolio demo with no real club data. No emails are ever sent."),
+            "Aplikácia beží na Azure, prvé načítanie preto môže trvať až pol minúty. Všetky údaje v deme sú ukážkové.",
+            "The app runs on Azure, so the first load can take up to half a minute. All data in the demo is made up."),
+        ["demo.builtBy"] = ("Autor: Michal Petrán", "Built by Michal Petrán"),
+        ["demo.sourceLink"] = ("Zdrojový kód na GitHube", "Source on GitHub"),
         ["demo.error.prepareFailed"] = (
             "Nepodarilo sa pripraviť demo dáta. Skúste to prosím znova.",
             "Couldn't prepare the demo data. Please try again."),
