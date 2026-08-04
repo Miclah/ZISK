@@ -408,6 +408,8 @@ CLAUDE.md.bak
 misc/
 07_IMPLEMENTACNY_PLAN.md
 azure/main.bicepparam
+azure/main.bicepparam.example
 azure/main.json
+azure/README.md
 docs/DEMO_MODE_HANDOFF.md
 scripts/
