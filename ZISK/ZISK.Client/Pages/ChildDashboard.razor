@@ -1,4 +1,4 @@
-﻿@page "/dieta"
+@page "/dieta"
 @inherits LocalizedComponentBase
 @using ZISK.Client.Layout
 @using ZISK.Client.Display
@@ -11,11 +11,13 @@
 @inject ITrainingsApi TrainingsApi
 @inject IAnnouncementsApi AnnouncementsApi
 @inject IAttendanceApi AttendanceApi
+@inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject AuthenticationStateProvider AuthStateProvider
 @attribute [Authorize(Roles = "Child,Athlete")]
 @using ZISK.Client.Components
+@using ZISK.Client.Components.Dashboard
 
 <PageTitle>@T("dashboard.child.pageTitle")</PageTitle>
 
@@ -23,31 +25,27 @@
     @if (_isLoading)
     {
         <MudStack Spacing="3">
-            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="80px" />
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="88px" />
             <MudGrid Spacing="3">
-                @for (int i = 0; i < 3; i++)
+                @for (int i = 0; i < 4; i++)
                 {
-                    <MudItem xs="12" sm="4">
-                        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="120px" />
+                    <MudItem xs="6" md="3">
+                        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="76px" />
                     </MudItem>
                 }
             </MudGrid>
-            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="240px" />
+            <MudGrid Spacing="3">
+                <MudItem xs="12" lg="8"><MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="260px" /></MudItem>
+                <MudItem xs="12" lg="4"><MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="260px" /></MudItem>
+            </MudGrid>
         </MudStack>
     }
     else
     {
-        <MudPaper Elevation="0" Class="dashboard-hero mb-3">
-            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                    <MudAvatar Color="Color.Surface" Size="Size.Medium" Style="@($"color:{_cPrimary};")">
-                        @((_profile?.FirstName ?? "?").Substring(0, 1).ToUpper())
-                    </MudAvatar>
-                    <MudStack Spacing="0">
-                        <h1 class="dashboard-hero__greeting">@T("dashboard.child.greeting") @(_profile?.FirstName ?? "")</h1>
-                        <div class="dashboard-hero__subtitle">@(_profile?.TeamName ?? T("dashboard.child.noTeam"))</div>
-                    </MudStack>
-                </MudStack>
+        <DashboardHero FirstName="@(_profile?.FirstName ?? "")"
+                       Greeting="@T("dashboard.child.greeting")"
+                       Subtitle="@HeroSubtitle">
+            <Actions>
                 @* Athlete can submit excuses themselves; Child cannot — a Parent does it on their behalf. *@
                 @if (_isAthlete)
                 {
@@ -58,142 +56,112 @@
                         @T("dashboard.family.newExcuse")
                     </MudButton>
                 }
-            </MudStack>
-        </MudPaper>
+                <MudButton Variant="Variant.Outlined" Color="Color.Inherit"
+                           Style="border-color: rgba(255,255,255,0.4); color: #fff;"
+                           StartIcon="@Icons.Material.Rounded.CalendarMonth"
+                           OnClick="@(() => NavigationManager.NavigateTo("/kalendar"))">
+                    @T("dashboard.panel.calendar")
+                </MudButton>
+            </Actions>
+        </DashboardHero>
 
         <MudGrid Spacing="3" Class="mb-3">
-            <MudItem xs="12" md="4">
-                <MudCard Elevation="2" Class="h-100">
-                    <MudCardContent>
-                        <MudText Typo="Typo.h6" Class="mb-3">@T("dashboard.child.myProfile")</MudText>
-                        @if (_profile is null)
-                        {
-                            <MudText Typo="Typo.body2">@T("dashboard.child.profileUnavailable")</MudText>
-                        }
-                        else
-                        {
-                            <MudStack Spacing="2">
-                                <div>
-                                    <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">@T("dashboard.child.name")</MudText>
-                                    <MudText Typo="Typo.body1" Style="font-weight:600;">@_profile.FirstName @_profile.LastName</MudText>
-                                </div>
-                                <div>
-                                    <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">@T("dashboard.child.dateOfBirth")</MudText>
-                                    <MudText Typo="Typo.body1">@(_profile.DateOfBirth?.ToString("dd.MM.yyyy") ?? "-")</MudText>
-                                </div>
-                                <div>
-                                    <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">@T("dashboard.team")</MudText>
-                                    <MudText Typo="Typo.body1">@(_profile.TeamName ?? T("dashboard.child.noTeam"))</MudText>
-                                </div>
-                            </MudStack>
-                        }
-                    </MudCardContent>
-                </MudCard>
+            <MudItem xs="6" md="3">
+                <CompactStatCard Icon="@Icons.Material.Rounded.TrendingUp"
+                                 Value="@($"{_attendancePercent}%")"
+                                 Label="@T("dashboard.child.attendance")"
+                                 IconColor="Color.Primary" />
             </MudItem>
-
-            <MudItem xs="12" md="4">
-                <MudCard Elevation="2" Class="h-100">
-                    <MudCardContent>
-                        <MudText Typo="Typo.h6" Class="mb-3">@T("dashboard.panel.upcomingTrainings")</MudText>
-                        @if (!_upcomingTrainings.Any())
-                        {
-                            <MudText Typo="Typo.body2">@T("dashboard.child.noUpcomingTraining")</MudText>
-                        }
-                        else
-                        {
-                            <MudStack Spacing="2">
-                                @{ var first = _upcomingTrainings.First(); }
-                                <div>
-                                    <MudText Typo="Typo.body1" Style="font-weight:600;">@first.Title</MudText>
-                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                                        <MudIcon Icon="@Icons.Material.Rounded.Schedule" Size="Size.Small" Style="@($"color:{_cPrimary};")" />
-                                        <MudText Typo="Typo.body2">@first.StartTime.ToString("dd.MM.yyyy HH:mm") – @first.EndTime.ToString("HH:mm")</MudText>
-                                    </MudStack>
-                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                                        <MudIcon Icon="@Icons.Material.Rounded.Place" Size="Size.Small" Style="@($"color:{_cPrimary};")" />
-                                        <MudText Typo="Typo.body2">@(first.Location ?? T("dashboard.locationNotSpecified"))</MudText>
-                                    </MudStack>
-                                </div>
-                                @if (_upcomingTrainings.Count > 1)
-                                {
-                                    <MudDivider />
-                                    <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">@T("dashboard.child.otherTrainings")</MudText>
-                                    @foreach (var t in _upcomingTrainings.Skip(1).Take(3))
-                                    {
-                                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Spacing="2">
-                                            <MudStack Spacing="0" Style="min-width:0;">
-                                                <MudText Typo="Typo.body2" Style="font-weight:500;">@t.Title</MudText>
-                                                <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">@(t.Location ?? T("dashboard.locationNotSpecified"))</MudText>
-                                            </MudStack>
-                                            <MudText Typo="Typo.caption" Style="font-weight:500;">@t.StartTime.ToString("dd.MM. HH:mm")</MudText>
-                                        </MudStack>
-                                    }
-                                }
-                            </MudStack>
-                        }
-                    </MudCardContent>
-                </MudCard>
+            <MudItem xs="6" md="3">
+                <CompactStatCard Icon="@Icons.Material.Rounded.CheckCircle"
+                                 Value="@((_stats?.Present ?? 0).ToString())"
+                                 Label="@T("dashboard.child.presentShort")"
+                                 IconColor="Color.Success" />
             </MudItem>
-
-            <MudItem xs="12" md="4">
-                <MudCard Elevation="2" Class="h-100">
-                    <MudCardContent>
-                        <MudText Typo="Typo.h6" Class="mb-3">@T("dashboard.child.myAttendance")</MudText>
-                        @if (_stats is not null && _stats.Total > 0)
-                        {
-                            <MudStack Spacing="3">
-                                <MudGrid Spacing="2">
-                                    <MudItem xs="4">
-                                        <MudPaper Elevation="0" Class="pa-2 text-center" Style="@($"background:{_cSuccess}14; border-radius:8px;")">
-                                            <MudText Typo="Typo.h6" Style="@($"color:{_cSuccess}; font-weight:700;")">@_stats.Present</MudText>
-                                            <MudText Typo="Typo.caption">@DomainLabels.AttendanceStatusText(AttendanceStatus.Present)</MudText>
-                                        </MudPaper>
-                                    </MudItem>
-                                    <MudItem xs="4">
-                                        <MudPaper Elevation="0" Class="pa-2 text-center" Style="@($"background:{_cError}14; border-radius:8px;")">
-                                            <MudText Typo="Typo.h6" Style="@($"color:{_cError}; font-weight:700;")">@_stats.Absent</MudText>
-                                            <MudText Typo="Typo.caption">@DomainLabels.AttendanceStatusText(AttendanceStatus.Absent)</MudText>
-                                        </MudPaper>
-                                    </MudItem>
-                                    <MudItem xs="4">
-                                        <MudPaper Elevation="0" Class="pa-2 text-center" Style="@($"background:{_cWarning}14; border-radius:8px;")">
-                                            <MudText Typo="Typo.h6" Style="@($"color:{_cWarning}; font-weight:700;")">@_stats.Excused</MudText>
-                                            <MudText Typo="Typo.caption">@DomainLabels.AttendanceStatusText(AttendanceStatus.Excused)</MudText>
-                                        </MudPaper>
-                                    </MudItem>
-                                </MudGrid>
-                                <MudDivider />
-                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                    <MudStack Spacing="0">
-                                        <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">@T("dashboard.child.attendance")</MudText>
-                                        <MudText Typo="Typo.body1" Style="font-weight:600;">@string.Format(T("dashboard.child.presentOfTotal"), _stats.Present, _stats.Total)</MudText>
-                                    </MudStack>
-                                    <MudText Typo="Typo.h5" Style="@($"color:{_cPrimary}; font-weight:700;")">@_attendancePercent%</MudText>
-                                </MudStack>
-                                <MudProgressLinear Color="Color.Success" Value="@_attendancePercent" Class="my-1" Rounded="true" Size="Size.Medium" />
-                            </MudStack>
-                        }
-                        else
-                        {
-                            <MudText Typo="Typo.body2">@T("dashboard.child.noDataYet")</MudText>
-                        }
-                    </MudCardContent>
-                </MudCard>
+            <MudItem xs="6" md="3">
+                <CompactStatCard Icon="@Icons.Material.Rounded.EventBusy"
+                                 Value="@((_stats?.Excused ?? 0).ToString())"
+                                 Label="@T("dashboard.child.excusedShort")"
+                                 IconColor="Color.Warning" />
+            </MudItem>
+            <MudItem xs="6" md="3">
+                <CompactStatCard Icon="@Icons.Material.Rounded.Cancel"
+                                 Value="@((_stats?.Absent ?? 0).ToString())"
+                                 Label="@T("dashboard.child.absentShort")"
+                                 IconColor="Color.Error" />
             </MudItem>
         </MudGrid>
 
+        @if (_stats is { Total: > 0 })
+        {
+            <MudPaper Class="card-standard pa-4 mb-3" Elevation="0">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-2">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        @string.Format(T("dashboard.child.presentOfTotal"), _stats.Present, _stats.Total)
+                    </MudText>
+                    <MudText Typo="Typo.subtitle1" Style="font-weight:700;">@_attendancePercent%</MudText>
+                </MudStack>
+                <MudProgressLinear Color="Color.Success" Value="@_attendancePercent" Rounded="true" Size="Size.Medium" />
+            </MudPaper>
+        }
+
         <MudGrid Spacing="3">
             <MudItem xs="12" lg="8">
-                <MudCard Elevation="2" Class="h-100">
-                    <MudCardContent>
-                        <MudText Typo="Typo.h6" Class="mb-3">@T("dashboard.child.recentAttendanceRecords")</MudText>
-                        @if (!_recentAttendance.Any())
+                <MudStack Spacing="3">
+                    <MudPaper Class="card-standard pa-4" Elevation="0">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudIcon Icon="@Icons.Material.Rounded.Event" Color="Color.Primary" />
+                                <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@T("dashboard.child.nextTraining")</MudText>
+                            </MudStack>
+                            @if (NextTraining is not null)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Primary">@CountdownLabel(NextTraining.StartTime)</MudChip>
+                            }
+                        </MudStack>
+
+                        @if (NextTraining is null)
                         {
-                            <MudText Typo="Typo.body2">@T("dashboard.child.noRecordsYet")</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@T("dashboard.child.noUpcomingTraining")</MudText>
                         }
                         else
                         {
-                            <MudTable Items="@_recentAttendance" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+                            <MudPaper Elevation="0" Class="pa-4"
+                                      Style="@($"background:{ThemeColors.Tint(ThemeColors.Primary)}; border-left:4px solid {ThemeColors.Primary}; border-radius:8px;")">
+                                <MudStack Spacing="2">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+                                        <MudText Typo="Typo.h5" Style="font-weight:700;">@NextTraining.Title</MudText>
+                                        <MudChip T="string" Size="Size.Small" Color="@DomainLabels.TrainingTypeColor(NextTraining.Type)">
+                                            @DomainLabels.TrainingTypeText(NextTraining.Type)
+                                        </MudChip>
+                                    </MudStack>
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                        <MudIcon Icon="@Icons.Material.Rounded.Schedule" Size="Size.Small" Color="Color.Primary" />
+                                        <MudText Typo="Typo.body1">
+                                            @NextTraining.StartTime.ToString("dddd d. MMMM, HH:mm") @("–") @NextTraining.EndTime.ToString("HH:mm")
+                                        </MudText>
+                                    </MudStack>
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                        <MudIcon Icon="@Icons.Material.Rounded.Place" Size="Size.Small" Color="Color.Primary" />
+                                        <MudText Typo="Typo.body1">@(NextTraining.Location ?? T("dashboard.locationNotSpecified"))</MudText>
+                                    </MudStack>
+                                </MudStack>
+                            </MudPaper>
+                        }
+                    </MudPaper>
+
+                    <MudPaper Class="card-standard pa-4" Elevation="0">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Rounded.History" Color="Color.Primary" />
+                            <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@T("dashboard.child.recentAttendanceRecords")</MudText>
+                        </MudStack>
+                        @if (!_recentAttendance.Any())
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@T("dashboard.child.noRecordsYet")</MudText>
+                        }
+                        else
+                        {
+                            <MudTable Items="@_recentAttendance" Dense="true" Hover="true" Elevation="0" Breakpoint="Breakpoint.Sm">
                                 <HeaderContent>
                                     <MudTh>@T("dashboard.child.date")</MudTh>
                                     <MudTh>@T("dashboard.child.training")</MudTh>
@@ -210,33 +178,22 @@
                                 </RowTemplate>
                             </MudTable>
                         }
-                    </MudCardContent>
-                </MudCard>
+                    </MudPaper>
+                </MudStack>
             </MudItem>
 
             <MudItem xs="12" lg="4">
-                <MudCard Elevation="2" Class="h-100">
-                    <MudCardContent>
-                        <MudText Typo="Typo.h6" Class="mb-3">@T("dashboard.panel.recentAnnouncements")</MudText>
-                        @if (!_announcements.Any())
-                        {
-                            <MudText Typo="Typo.body2">@T("dashboard.child.noTeamAnnouncements")</MudText>
-                        }
-                        else
-                        {
-                            <MudStack Spacing="2">
-                                @foreach (var announcement in _announcements.Take(3))
-                                {
-                                    <MudPaper Elevation="0" Class="pa-3" Style="@($"background:{_cPrimary}0A; border-left:3px solid {_cPrimary}; border-radius:6px;")">
-                                        <MudText Typo="Typo.subtitle2" Style="font-weight:600;">@announcement.Title</MudText>
-                                        <MudText Typo="Typo.body2" Class="mt-1">@announcement.ContentPreview</MudText>
-                                        <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">@announcement.PublishDate.ToString("dd.MM.yyyy HH:mm")</MudText>
-                                    </MudPaper>
-                                }
-                            </MudStack>
-                        }
-                    </MudCardContent>
-                </MudCard>
+                <MudStack Spacing="3">
+                    <UpcomingTrainingsMiniPanel Items="@OtherTrainings"
+                                                Title="@T("dashboard.child.otherTrainingsPanel")"
+                                                EmptyText="@T("dashboard.panel.noUpcomingTrainings")"
+                                                MaxItems="4"
+                                                OnShowAll="@(() => NavigationManager.NavigateTo("/kalendar"))" />
+
+                    <RecentAnnouncementsPanel Announcements="@_announcements"
+                                              EmptyText="@T("dashboard.child.noTeamAnnouncements")"
+                                              OnShowAll="@(() => NavigationManager.NavigateTo("/oznamy"))" />
+                </MudStack>
             </MudItem>
         </MudGrid>
     }
@@ -251,6 +208,42 @@
     private List<UserAttendanceDto> _recentAttendance = new();
     private AttendanceStatsDto? _stats;
     private int _attendancePercent;
+
+    private TrainingEventDto? NextTraining => _upcomingTrainings.FirstOrDefault();
+
+    /// <summary>Everything after the first entry, which is already shown as the highlighted card.</summary>
+    private List<UpcomingTrainingsMiniPanel.Item> OtherTrainings => _upcomingTrainings
+        .Skip(1)
+        .Select(t => new UpcomingTrainingsMiniPanel.Item(t, string.Empty))
+        .ToList();
+
+    private string HeroSubtitle
+    {
+        get
+        {
+            var team = _profile?.TeamName ?? T("dashboard.child.noTeam");
+            return _profile?.DateOfBirth is { } dob
+                ? $"{team} · {T("dashboard.child.bornPrefix")} {dob:dd.MM.yyyy}"
+                : team;
+        }
+    }
+
+    /// <summary>
+    /// "Dnes" / "Zajtra" / "o N dní". Slovak picks between three plural forms, which is why this is a
+    /// switch rather than a single format string.
+    /// </summary>
+    private string CountdownLabel(DateTime start)
+    {
+        var days = (start.Date - DateTime.Now.Date).Days;
+
+        return days switch
+        {
+            <= 0 => T("dashboard.child.today"),
+            1 => T("dashboard.child.tomorrow"),
+            <= 4 => string.Format(T("dashboard.child.inDaysFew"), days),
+            _ => string.Format(T("dashboard.child.inDaysMany"), days)
+        };
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -270,7 +263,7 @@
                 var trainings = await TrainingsApi.GetTrainingsAsync(_profile.TeamId, DateTime.Now, DateTime.Now.AddMonths(1));
                 _upcomingTrainings = trainings.OrderBy(t => t.StartTime).ToList();
                 _announcements = (await AnnouncementsApi.GetAnnouncementsAsync(_profile.TeamId, null))
-                    .OrderByDescending(a => a.PublishDate).ToList();
+                    .OrderByDescending(a => a.PublishDate).Take(3).ToList();
             }
 
             try
@@ -284,7 +277,7 @@
             try
             {
                 _recentAttendance = (await AttendanceApi.GetMyAttendanceAsync(seasonStart, DateTime.Now))
-                    .OrderByDescending(a => a.Date).Take(3).ToList();
+                    .OrderByDescending(a => a.Date).Take(6).ToList();
             }
             catch { }
         }
@@ -307,13 +300,4 @@
         if (result is { Canceled: false })
             await OnInitializedAsync();
     }
-
-
-
-
-    private static readonly string _cPrimary = (string)AppTheme.SportClubTheme.PaletteLight.Primary;
-    private static readonly string _cSuccess = (string)AppTheme.SportClubTheme.PaletteLight.Success;
-    private static readonly string _cError = (string)AppTheme.SportClubTheme.PaletteLight.Error;
-    private static readonly string _cWarning = (string)AppTheme.SportClubTheme.PaletteLight.Warning;
-    private static readonly string _cTextSecondary = (string)AppTheme.SportClubTheme.PaletteLight.TextSecondary;
 }

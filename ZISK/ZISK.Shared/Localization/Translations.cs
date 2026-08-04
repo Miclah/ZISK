@@ -52,9 +52,10 @@ public static class Translations
 
         // ---- Main layout chrome ----
         ["layout.resetTooltip"] = ("Obnoviť demo dáta", "Reset demo data"),
+        ["layout.languageSwitch"] = ("Prepnúť jazyk", "Switch language"),
         ["layout.demoBanner"] = (
-            "Verejné demo – vaše zmeny sú súkromné pre vašu reláciu a po 24 hodinách nečinnosti sa vymažú.",
-            "Public demo – your changes are private to your session and are deleted after 24 hours of inactivity."),
+            "Verejné demo – vaše zmeny sú súkromné pre vašu reláciu a po 24 hodinách nečinnosti sa vymažú. Všetky mená, telefónne čísla, rodné čísla a adresy sú vymyslené.",
+            "Public demo – your changes are private to your session and are deleted after 24 hours of inactivity. All names, phone numbers, birth numbers and addresses are fictional."),
         ["layout.offlineWarning"] = (
             "Aplikácia vyžaduje pripojenie na internet. Skontrolujte prosím svoje sieťové nastavenia.",
             "This app requires an internet connection. Please check your network settings."),
@@ -248,6 +249,18 @@ public static class Translations
         ["dashboard.child.training"] = ("Tréning", "Training"),
         ["dashboard.child.status"] = ("Stav", "Status"),
         ["dashboard.child.noTeamAnnouncements"] = ("Zatiaľ žiadne oznamy tímu.", "No team announcements yet."),
+        ["dashboard.child.nextTraining"] = ("Najbližší tréning", "Next training"),
+        ["dashboard.child.otherTrainingsPanel"] = ("Ďalšie tréningy", "Further trainings"),
+        ["dashboard.child.bornPrefix"] = ("nar.", "b."),
+        ["dashboard.child.today"] = ("Dnes", "Today"),
+        ["dashboard.child.tomorrow"] = ("Zajtra", "Tomorrow"),
+        // Slovak needs separate plural forms for 2-4 ("dni") and 5+ ("dní"); English reuses one. The
+        // singular never appears here because one day out is rendered as "Zajtra".
+        ["dashboard.child.inDaysFew"] = ("o {0} dni", "in {0} days"),
+        ["dashboard.child.inDaysMany"] = ("o {0} dní", "in {0} days"),
+        ["dashboard.child.presentShort"] = ("Prítomný", "Present"),
+        ["dashboard.child.absentShort"] = ("Neprítomný", "Absent"),
+        ["dashboard.child.excusedShort"] = ("Ospravedlnený", "Excused"),
         ["dashboard.child.errorLoading"] = ("Chyba pri načítaní prehľadu:", "Error loading overview:"),
 
         // ---- Attendance page (Attendance.razor + Attendance/ tabs) ----

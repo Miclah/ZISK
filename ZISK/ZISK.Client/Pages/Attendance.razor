@@ -162,8 +162,11 @@
         if (firstRender && _openCreateOnLoad && _canCreateExcuse)
         {
             _openCreateOnLoad = false;
+            // Strip ?create before opening rather than after. Stripping afterwards left the marker in
+            // the URL for as long as the dialog stayed open, so a refresh at that point reopened it,
+            // and the navigation landed while the dialog was still being torn down.
+            NavigationManager.NavigateTo(NavigationManager.Uri.Split('?')[0], replace: true);
             await OpenCreateExcuseDialog();
-            NavigationManager.NavigateTo(NavigationManager.Uri.Split('?')[0], replace: true); // strip ?create from URL after opening so a page refresh does not re-open the dialog
         }
     }
 

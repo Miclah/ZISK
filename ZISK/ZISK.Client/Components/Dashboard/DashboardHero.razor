@@ -11,7 +11,7 @@
                 @Initial
             </MudAvatar>
             <MudStack Spacing="0">
-                <h1 class="dashboard-hero__greeting">@T("dashboard.hero.welcomePrefix") @FirstName</h1>
+                <h1 class="dashboard-hero__greeting">@(Greeting ?? T("dashboard.hero.welcomePrefix")) @FirstName</h1>
                 <div class="dashboard-hero__subtitle">@Subtitle</div>
             </MudStack>
         </MudStack>
@@ -29,6 +29,11 @@
 
     /// <summary>Fallback initial when the user has no first name (e.g. "T" for tréner).</summary>
     [Parameter] public string FallbackInitial { get; set; } = "?";
+
+    /// <summary>
+    /// Overrides the formal "Vitajte," prefix. The child dashboard addresses its user informally.
+    /// </summary>
+    [Parameter] public string? Greeting { get; set; }
 
     [Parameter] public RenderFragment? Actions { get; set; }
 

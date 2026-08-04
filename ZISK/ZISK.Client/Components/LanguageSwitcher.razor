@@ -1,15 +1,38 @@
 @using ZISK.Shared.Localization
-@inject ILanguageService LanguageService
+@inherits LocalizedComponentBase
 
-<MudMenu Icon="@Icons.Material.Rounded.Language" Color="Color.Inherit" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
-    <MudMenuItem OnClick="@(() => Switch(Lang.Sk))">
-        🇸🇰 Slovenčina
-    </MudMenuItem>
-    <MudMenuItem OnClick="@(() => Switch(Lang.En))">
-        🇬🇧 English
-    </MudMenuItem>
-</MudMenu>
+@* Both options stay on screen with the active one filled in, so the current language and the
+   alternative are readable at a glance. The globe icon this replaces hid both behind a menu. *@
+<div class="appbar-lang-switch" role="group" aria-label="@T("layout.languageSwitch")">
+    @foreach (var option in Options)
+    {
+        var isActive = LanguageService.Current == option.Lang;
+
+        <button type="button"
+                class="appbar-lang-option @(isActive ? "appbar-lang-option--active" : null)"
+                aria-pressed="@isActive"
+                title="@option.Title"
+                disabled="@isActive"
+                @onclick="@(() => Switch(option.Lang))">
+            @option.Code
+        </button>
+    }
+</div>
 
 @code {
-    private async Task Switch(Lang lang) => await LanguageService.SetAsync(lang);
+    private sealed record LanguageOption(Lang Lang, string Code, string Title);
+
+    private static readonly LanguageOption[] Options =
+    [
+        new(Lang.Sk, "SK", "Slovenčina"),
+        new(Lang.En, "EN", "English")
+    ];
+
+    private async Task Switch(Lang lang)
+    {
+        if (LanguageService.Current == lang)
+            return;
+
+        await LanguageService.SetAsync(lang);
+    }
 }

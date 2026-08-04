@@ -101,7 +101,7 @@ public partial class AdminUsers
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
-        if (NavigationManager.Uri.Contains("action=create", StringComparison.OrdinalIgnoreCase))
+        if (CreateDeepLink.Consume(NavigationManager))
             await OpenCreateDialog();
     }
 

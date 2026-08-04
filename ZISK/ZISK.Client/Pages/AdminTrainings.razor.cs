@@ -77,7 +77,7 @@ public partial class AdminTrainings
         }
 
         // Deep-link support: other pages navigate here with ?action=create to open the create dialog automatically.
-        if (NavigationManager.Uri.Contains("action=create", StringComparison.OrdinalIgnoreCase))
+        if (CreateDeepLink.Consume(NavigationManager))
             await OpenCreateDialog();
     }
 
