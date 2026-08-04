@@ -28,7 +28,7 @@ public class AttendanceAutoCloseTests
 
     private static AttendanceAutoCloseWorker MakeWorker(ApplicationDbContext db)
     {
-        var attendanceService = new AttendanceService(db, new NoTeamAccess(), new NoopAudit());
+        var attendanceService = new AttendanceService(db, new NoTeamAccess(), new NoopAudit(), new FakeCurrentLanguage());
         return new AttendanceAutoCloseWorker(db, attendanceService, new NoopAudit(),
             new LoggerFactory().CreateLogger<AttendanceAutoCloseWorker>());
     }

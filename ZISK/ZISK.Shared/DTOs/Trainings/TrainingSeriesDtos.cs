@@ -22,14 +22,14 @@ public record TrainingSeriesDto(
 );
 
 public record CreateTrainingSeriesRequest(
-    [Required(ErrorMessage = "Tím je povinný.")]
+    [Required(ErrorMessage = "validation.team.required")]
     Guid TeamId,
 
-    [Required(ErrorMessage = "Sezóna je povinná.")]
+    [Required(ErrorMessage = "validation.season.required")]
     Guid SeasonId,
 
-    [Required(ErrorMessage = "Názov je povinný.")]
-    [StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2–200 znakov.")]
+    [Required(ErrorMessage = "validation.name.required")]
+    [StringLength(200, MinimumLength = 2, ErrorMessage = "validation.name.length2to200")]
     string Title,
 
     int DaysOfWeek,
@@ -38,18 +38,18 @@ public record CreateTrainingSeriesRequest(
 
     TimeOnly EndTime,
 
-    [StringLength(200, ErrorMessage = "Miesto môže mať max 200 znakov.")]
+    [StringLength(200, ErrorMessage = "validation.location.maxLength200")]
     string? Location,
 
     string Type,
 
-    [StringLength(1000, ErrorMessage = "Poznámka môže mať max 1000 znakov.")]
+    [StringLength(1000, ErrorMessage = "validation.note.maxLength1000")]
     string? CoachNote
 );
 
 public record UpdateTrainingSeriesRequest(
-    [Required(ErrorMessage = "Názov je povinný.")]
-    [StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2–200 znakov.")]
+    [Required(ErrorMessage = "validation.name.required")]
+    [StringLength(200, MinimumLength = 2, ErrorMessage = "validation.name.length2to200")]
     string Title,
 
     int DaysOfWeek,
@@ -58,21 +58,21 @@ public record UpdateTrainingSeriesRequest(
 
     TimeOnly EndTime,
 
-    [StringLength(200, ErrorMessage = "Miesto môže mať max 200 znakov.")]
+    [StringLength(200, ErrorMessage = "validation.location.maxLength200")]
     string? Location,
 
     string Type,
 
-    [StringLength(1000, ErrorMessage = "Poznámka môže mať max 1000 znakov.")]
+    [StringLength(1000, ErrorMessage = "validation.note.maxLength1000")]
     string? CoachNote,
 
     bool IsActive
 );
 
 public record GenerateInstancesRequest(
-    [Required(ErrorMessage = "Dátum od je povinný.")]
+    [Required(ErrorMessage = "validation.dateFrom.required")]
     DateOnly From,
 
-    [Required(ErrorMessage = "Dátum do je povinný.")]
+    [Required(ErrorMessage = "validation.dateTo.required")]
     DateOnly To
 );

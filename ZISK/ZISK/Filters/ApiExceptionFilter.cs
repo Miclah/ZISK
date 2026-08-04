@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using ZISK.Services;
+using ZISK.Shared.Localization;
 
 namespace ZISK.Filters;
 
@@ -13,17 +15,19 @@ namespace ZISK.Filters;
 public class ApiExceptionFilter : IExceptionFilter
 {
     private readonly ILogger<ApiExceptionFilter> _logger;
+    private readonly ICurrentLanguage _currentLanguage;
 
-    public ApiExceptionFilter(ILogger<ApiExceptionFilter> logger)
+    public ApiExceptionFilter(ILogger<ApiExceptionFilter> logger, ICurrentLanguage currentLanguage)
     {
         _logger = logger;
+        _currentLanguage = currentLanguage;
     }
 
     public void OnException(ExceptionContext context)
     {
         _logger.LogError(context.Exception, "Unhandled exception in {Path}", context.HttpContext.Request.Path);
 
-        context.Result = new ObjectResult(new { message = "Nastala neočakávaná chyba. Skúste to znova." })
+        context.Result = new ObjectResult(new { message = Translations.Get(_currentLanguage.Current, "errors.unexpected") })
         {
             StatusCode = StatusCodes.Status500InternalServerError
         };

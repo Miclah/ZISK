@@ -9,8 +9,15 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Refit;
 using ZISK.Client.Services;
 using ZISK.Filters;
+using ZISK.Services;
+using ZISK.Shared.Localization;
 
 namespace ZISK.Tests;
+
+file class FakeCurrentLanguage : ICurrentLanguage
+{
+    public Lang Current => Lang.Sk;
+}
 
 /// <summary>
 /// End-to-end check that an unhandled server exception never reaches the user as raw
@@ -36,7 +43,7 @@ public class ApiErrorHandlingTests
     [Fact]
     public void ApiExceptionFilter_ProducesSlovak500Json_ForUnhandledException()
     {
-        var filter = new ApiExceptionFilter(NullLogger<ApiExceptionFilter>.Instance);
+        var filter = new ApiExceptionFilter(NullLogger<ApiExceptionFilter>.Instance, new FakeCurrentLanguage());
         var context = MakeExceptionContext(new InvalidOperationException("SqlException: FK constraint 'FK_TrainingSeries_Users' violated on column 'CoachId'."));
 
         filter.OnException(context);

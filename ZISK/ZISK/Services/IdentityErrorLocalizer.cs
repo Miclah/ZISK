@@ -1,37 +1,38 @@
 using Microsoft.AspNetCore.Identity;
+using ZISK.Shared.Localization;
 
 namespace ZISK.Services;
 
 public static class IdentityErrorLocalizer
 {
-    public static string Localize(IdentityError error) => error.Code switch
+    public static string Localize(IdentityError error, Lang lang) => error.Code switch
     {
-        "DuplicateUserName" => $"Používateľské meno '{ExtractQuoted(error.Description)}' je už obsadené.",
-        "DuplicateEmail" => $"Email '{ExtractQuoted(error.Description)}' je už obsadený.",
-        "InvalidUserName" => "Používateľské meno obsahuje nepovolené znaky.",
-        "InvalidEmail" => "Neplatný formát emailovej adresy.",
-        "PasswordTooShort" => $"Heslo musí mať aspoň {ExtractNumber(error.Description)} znakov.",
-        "PasswordRequiresNonAlphanumeric" => "Heslo musí obsahovať aspoň jeden špeciálny znak.",
-        "PasswordRequiresDigit" => "Heslo musí obsahovať aspoň jednu číslicu.",
-        "PasswordRequiresLower" => "Heslo musí obsahovať aspoň jedno malé písmeno.",
-        "PasswordRequiresUpper" => "Heslo musí obsahovať aspoň jedno veľké písmeno.",
-        "PasswordRequiresUniqueChars" => "Heslo musí obsahovať viac rôznych znakov.",
-        "PasswordMismatch" => "Nesprávne heslo.",
-        "InvalidToken" => "Neplatný alebo expirovaný token.",
-        "UserNotInRole" => "Používateľ nemá požadovanú rolu.",
-        "UserAlreadyInRole" => "Používateľ už má túto rolu.",
-        "UserAlreadyHasPassword" => "Používateľ už má nastavené heslo.",
-        "UserLockoutNotEnabled" => "Blokovanie účtu nie je povolené.",
-        "UserLockedOut" => "Účet je dočasne zablokovaný. Skúste to neskôr.",
-        "ConcurrencyFailure" => "Záznam bol medzičasom zmenený. Skúste to znova.",
-        "DefaultError" => "Nastala neočakávaná chyba.",
+        "DuplicateUserName" => string.Format(Translations.Get(lang, "identityError.duplicateUserName"), ExtractQuoted(error.Description)),
+        "DuplicateEmail" => string.Format(Translations.Get(lang, "identityError.duplicateEmail"), ExtractQuoted(error.Description)),
+        "InvalidUserName" => Translations.Get(lang, "identityError.invalidUserName"),
+        "InvalidEmail" => Translations.Get(lang, "identityError.invalidEmail"),
+        "PasswordTooShort" => string.Format(Translations.Get(lang, "identityError.passwordTooShort"), ExtractNumber(error.Description)),
+        "PasswordRequiresNonAlphanumeric" => Translations.Get(lang, "identityError.passwordRequiresNonAlphanumeric"),
+        "PasswordRequiresDigit" => Translations.Get(lang, "identityError.passwordRequiresDigit"),
+        "PasswordRequiresLower" => Translations.Get(lang, "identityError.passwordRequiresLower"),
+        "PasswordRequiresUpper" => Translations.Get(lang, "identityError.passwordRequiresUpper"),
+        "PasswordRequiresUniqueChars" => Translations.Get(lang, "identityError.passwordRequiresUniqueChars"),
+        "PasswordMismatch" => Translations.Get(lang, "identityError.passwordMismatch"),
+        "InvalidToken" => Translations.Get(lang, "identityError.invalidToken"),
+        "UserNotInRole" => Translations.Get(lang, "identityError.userNotInRole"),
+        "UserAlreadyInRole" => Translations.Get(lang, "identityError.userAlreadyInRole"),
+        "UserAlreadyHasPassword" => Translations.Get(lang, "identityError.userAlreadyHasPassword"),
+        "UserLockoutNotEnabled" => Translations.Get(lang, "identityError.userLockoutNotEnabled"),
+        "UserLockedOut" => Translations.Get(lang, "identityError.userLockedOut"),
+        "ConcurrencyFailure" => Translations.Get(lang, "identityError.concurrencyFailure"),
+        "DefaultError" => Translations.Get(lang, "identityError.defaultError"),
         _ => error.Description
     };
 
-    public static string LocalizeFirst(IEnumerable<IdentityError> errors)
+    public static string LocalizeFirst(IEnumerable<IdentityError> errors, Lang lang)
     {
         var first = errors.FirstOrDefault();
-        return first is null ? "Nastala neočakávaná chyba." : Localize(first);
+        return first is null ? Translations.Get(lang, "identityError.defaultError") : Localize(first, lang);
     }
 
     private static string ExtractQuoted(string description)

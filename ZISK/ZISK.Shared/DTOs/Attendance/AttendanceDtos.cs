@@ -48,27 +48,27 @@ public record MemberAttendanceStatsDto(
 );
 
 public record MarkAttendanceRequest(
-    [Required(ErrorMessage = "Tréning je povinný.")]
+    [Required(ErrorMessage = "validation.training.required")]
     Guid TrainingEventId,
 
-    [Required(ErrorMessage = "Člen je povinný.")]
+    [Required(ErrorMessage = "validation.member.required")]
     string ChildId,
 
     AttendanceStatus Status,
 
-    [StringLength(500, ErrorMessage = "Poznámka môže mať max 500 znakov.")]
+    [StringLength(500, ErrorMessage = "validation.note.maxLength500")]
     string? Note,
 
-    [StringLength(500, ErrorMessage = "Komentár trénera môže mať max 500 znakov.")]
+    [StringLength(500, ErrorMessage = "validation.coachComment.maxLength500")]
     string? CoachComment
 );
 
 public record BulkMarkAttendanceRequest(
-    [Required(ErrorMessage = "Tréning je povinný.")]
+    [Required(ErrorMessage = "validation.training.required")]
     Guid TrainingEventId,
 
-    [Required(ErrorMessage = "Záznamy sú povinné.")]
-    [MinLength(1, ErrorMessage = "Musí byť aspoň jeden záznam.")]
+    [Required(ErrorMessage = "validation.entries.required")]
+    [MinLength(1, ErrorMessage = "validation.entries.minOne")]
     List<AttendanceEntryDto> Entries
 );
 
@@ -76,6 +76,6 @@ public record AttendanceEntryDto(
     string ChildId,
     AttendanceStatus Status,
 
-    [StringLength(500, ErrorMessage = "Poznámka môže mať max 500 znakov.")]
+    [StringLength(500, ErrorMessage = "validation.note.maxLength500")]
     string? Note
 );

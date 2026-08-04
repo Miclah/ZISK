@@ -58,7 +58,7 @@ public class ChildUpgradeTests
     }
 
     private static ChildUpgradeWorker MakeWorker(ApplicationDbContext db, UserManager<ApplicationUser> um)
-        => new(db, um, new NoopEmailSender(), new NoopAudit(), new LoggerFactory().CreateLogger<ChildUpgradeWorker>());
+        => new(db, um, new NoopEmailSender(), new NoopAudit(), new LoggerFactory().CreateLogger<ChildUpgradeWorker>(), new FakeCurrentLanguage());
 
     private static ApplicationUser MakeChild(DateOnly dob) => new()
     {

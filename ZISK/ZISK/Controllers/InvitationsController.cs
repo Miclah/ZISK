@@ -6,6 +6,7 @@ using ZISK.Data;
 using ZISK.Data.Entities;
 using ZISK.Services;
 using ZISK.Shared.DTOs.Invitations;
+using ZISK.Shared.Localization;
 
 namespace ZISK.Controllers;
 
@@ -19,19 +20,22 @@ public class InvitationsController : ControllerBase
     private readonly SmtpEmailSender _emailSender;
     private readonly IConfiguration _config;
     private readonly ILogger<InvitationsController> _logger;
+    private readonly ICurrentLanguage _currentLanguage;
 
     public InvitationsController(
         ApplicationDbContext context,
         IParentInvitationService invitationService,
         SmtpEmailSender emailSender,
         IConfiguration config,
-        ILogger<InvitationsController> logger)
+        ILogger<InvitationsController> logger,
+        ICurrentLanguage currentLanguage)
     {
         _context = context;
         _invitationService = invitationService;
         _emailSender = emailSender;
         _config = config;
         _logger = logger;
+        _currentLanguage = currentLanguage;
     }
 
     [HttpPost("children/{childId}/invitations/email")]
@@ -47,7 +51,7 @@ public class InvitationsController : ControllerBase
         if (result.Status == InvitationIssueStatus.Forbidden)
             return Forbid();
         if (result.Status == InvitationIssueStatus.TooManyActive)
-            return BadRequest("Príliš veľa aktívnych pozvánok pre toto dieťa.");
+            return BadRequest(Translations.Get(_currentLanguage.Current, "errors.invitation.tooManyActive"));
         if (result.Invitation is null || result.PlainCode is null)
             return StatusCode(500);
 
@@ -88,7 +92,7 @@ public class InvitationsController : ControllerBase
         if (result.Status == InvitationIssueStatus.Forbidden)
             return Forbid();
         if (result.Status == InvitationIssueStatus.TooManyActive)
-            return BadRequest("Príliš veľa aktívnych pozvánok pre toto dieťa.");
+            return BadRequest(Translations.Get(_currentLanguage.Current, "errors.invitation.tooManyActive"));
         if (result.Invitation is null || result.PlainCode is null)
             return StatusCode(500);
 
@@ -140,11 +144,11 @@ public class InvitationsController : ControllerBase
         return result.Status switch
         {
             InvitationRedeemStatus.Success => Ok(),
-            InvitationRedeemStatus.AlreadyLinked => BadRequest("Ste už prepojený s týmto dieťaťom."),
-            InvitationRedeemStatus.AlreadyUsed => BadRequest("Pozvánka bola už použitá."),
-            InvitationRedeemStatus.Expired => BadRequest("Pozvánka vypršala."),
-            InvitationRedeemStatus.TooManyAttempts => BadRequest("Príliš veľa pokusov."),
-            _ => BadRequest("Pozvánka nebola nájdená.")
+            InvitationRedeemStatus.AlreadyLinked => BadRequest(Translations.Get(_currentLanguage.Current, "errors.invitation.alreadyLinked")),
+            InvitationRedeemStatus.AlreadyUsed => BadRequest(Translations.Get(_currentLanguage.Current, "errors.invitation.alreadyUsed")),
+            InvitationRedeemStatus.Expired => BadRequest(Translations.Get(_currentLanguage.Current, "errors.invitation.expired")),
+            InvitationRedeemStatus.TooManyAttempts => BadRequest(Translations.Get(_currentLanguage.Current, "errors.invitation.tooManyAttempts")),
+            _ => BadRequest(Translations.Get(_currentLanguage.Current, "errors.invitation.notFound"))
         };
     }
 
@@ -159,11 +163,11 @@ public class InvitationsController : ControllerBase
         return result.Status switch
         {
             InvitationRedeemStatus.Success => Ok(),
-            InvitationRedeemStatus.AlreadyLinked => BadRequest("Ste už prepojený s týmto dieťaťom."),
-            InvitationRedeemStatus.AlreadyUsed => BadRequest("Pozvánka bola už použitá."),
-            InvitationRedeemStatus.Expired => BadRequest("Kód vypršal."),
-            InvitationRedeemStatus.TooManyAttempts => BadRequest("Príliš veľa nesprávnych pokusov."),
-            _ => BadRequest("Nesprávny kód.")
+            InvitationRedeemStatus.AlreadyLinked => BadRequest(Translations.Get(_currentLanguage.Current, "errors.invitation.alreadyLinked")),
+            InvitationRedeemStatus.AlreadyUsed => BadRequest(Translations.Get(_currentLanguage.Current, "errors.invitation.alreadyUsed")),
+            InvitationRedeemStatus.Expired => BadRequest(Translations.Get(_currentLanguage.Current, "errors.invitation.codeExpired")),
+            InvitationRedeemStatus.TooManyAttempts => BadRequest(Translations.Get(_currentLanguage.Current, "errors.invitation.tooManyWrongAttempts")),
+            _ => BadRequest(Translations.Get(_currentLanguage.Current, "errors.invitation.wrongCode"))
         };
     }
 }

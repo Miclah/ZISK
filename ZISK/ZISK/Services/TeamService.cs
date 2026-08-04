@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ZISK.Data;
 using ZISK.Data.Entities;
 using ZISK.Shared.DTOs.Teams;
+using ZISK.Shared.Localization;
 
 namespace ZISK.Services;
 
@@ -11,12 +12,14 @@ public class TeamService : ITeamService
     private readonly ApplicationDbContext _context;
     private readonly ITeamAccessService _teamAccessService;
     private readonly IAuditService _auditService;
+    private readonly ICurrentLanguage _currentLanguage;
 
-    public TeamService(ApplicationDbContext context, ITeamAccessService teamAccessService, IAuditService auditService)
+    public TeamService(ApplicationDbContext context, ITeamAccessService teamAccessService, IAuditService auditService, ICurrentLanguage currentLanguage)
     {
         _context = context;
         _teamAccessService = teamAccessService;
         _auditService = auditService;
+        _currentLanguage = currentLanguage;
     }
 
     public async Task<List<TeamDto>> GetTeamsAsync(bool? activeOnly, ClaimsPrincipal user)
@@ -76,10 +79,10 @@ public class TeamService : ITeamService
     public async Task<TeamDto> CreateTeamAsync(CreateTeamRequest request, ClaimsPrincipal user)
     {
         if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Length < 2 || request.Name.Length > 100)
-            throw new ArgumentException("Názov musí mať 2-100 znakov");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.team.nameLength"));
 
         if (request.ShortName != null && request.ShortName.Length > 10)
-            throw new ArgumentException("Skratka môže mať max 10 znakov");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.team.shortNameMaxLength10"));
 
         await EnsureUniqueNameAsync(request.Name);
 
@@ -103,10 +106,10 @@ public class TeamService : ITeamService
     public async Task UpdateTeamAsync(Guid id, UpdateTeamRequest request, ClaimsPrincipal user)
     {
         if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Length < 2 || request.Name.Length > 100)
-            throw new ArgumentException("Názov musí mať 2-100 znakov");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.team.nameLength"));
 
         if (request.ShortName != null && request.ShortName.Length > 10)
-            throw new ArgumentException("Skratka môže mať max 10 znakov");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.team.shortNameMaxLength10"));
 
         var team = await _context.Teams.FindAsync(id) ?? throw new KeyNotFoundException();
 
@@ -127,12 +130,12 @@ public class TeamService : ITeamService
             ?? throw new KeyNotFoundException();
 
         if (team.Memberships.Any())
-            throw new InvalidOperationException("Nemožno vymazať tím s členmi. Najprv presuňte členov do iného tímu.");
+            throw new InvalidOperationException(Translations.Get(_currentLanguage.Current, "errors.team.cannotDeleteHasMembers"));
 
         // Team->TrainingEvent->AttendanceRecord cascades on delete - without this check the
         // team's entire training/attendance history would be silently wiped with no warning.
         if (await _context.TrainingEvents.AnyAsync(te => te.TeamId == id))
-            throw new InvalidOperationException("Nemožno vymazať tím, ktorý má históriu tréningov a dochádzky.");
+            throw new InvalidOperationException(Translations.Get(_currentLanguage.Current, "errors.team.cannotDeleteHasHistory"));
 
         var series = await _context.TrainingSeries.Where(ts => ts.TeamId == id).ToListAsync();
         _context.TrainingSeries.RemoveRange(series);
@@ -148,8 +151,8 @@ public class TeamService : ITeamService
         if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(teamId))
             throw new UnauthorizedAccessException();
 
-        var team = await _context.Teams.FindAsync(teamId) ?? throw new KeyNotFoundException("Tím neexistuje");
-        var member = await _context.Users.FindAsync(userId) ?? throw new KeyNotFoundException("Člen neexistuje");
+        var team = await _context.Teams.FindAsync(teamId) ?? throw new KeyNotFoundException(Translations.Get(_currentLanguage.Current, "errors.team.notFound"));
+        var member = await _context.Users.FindAsync(userId) ?? throw new KeyNotFoundException(Translations.Get(_currentLanguage.Current, "errors.team.memberNotFound"));
 
         var alreadyMember = await _context.TeamMembers.AnyAsync(tm => tm.TeamId == teamId && tm.UserId == userId);
         if (!alreadyMember)
@@ -174,7 +177,7 @@ public class TeamService : ITeamService
 
         var membership = await _context.TeamMembers
             .FirstOrDefaultAsync(tm => tm.TeamId == teamId && tm.UserId == userId)
-            ?? throw new KeyNotFoundException("Člen nie je v tomto tíme");
+            ?? throw new KeyNotFoundException(Translations.Get(_currentLanguage.Current, "errors.team.memberNotInTeam"));
 
         _context.TeamMembers.Remove(membership);
         await _context.SaveChangesAsync();
@@ -188,6 +191,6 @@ public class TeamService : ITeamService
             : await _context.Teams.AnyAsync(t => t.Name == name);
 
         if (exists)
-            throw new InvalidOperationException("Tím s týmto názvom už existuje");
+            throw new InvalidOperationException(Translations.Get(_currentLanguage.Current, "errors.team.nameTaken"));
     }
 }

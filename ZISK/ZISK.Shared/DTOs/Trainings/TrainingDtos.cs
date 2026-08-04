@@ -46,45 +46,45 @@ public record TrainingAttendanceDto(
 );
 
 public record CancelTrainingRequest(
-    [Required(ErrorMessage = "Dôvod zrušenia je povinný.")]
-    [StringLength(500, ErrorMessage = "Dôvod môže mať max 500 znakov.")]
+    [Required(ErrorMessage = "validation.cancelReason.required")]
+    [StringLength(500, ErrorMessage = "validation.cancelReason.maxLength500")]
     string Reason
 );
 
 public record CreateTrainingEventRequest(
-    [Required(ErrorMessage = "Tím je povinný.")]
+    [Required(ErrorMessage = "validation.team.required")]
     Guid TeamId,
 
-    [Required(ErrorMessage = "Názov je povinný.")]
-    [StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 200 znakov.")]
+    [Required(ErrorMessage = "validation.name.required")]
+    [StringLength(200, MinimumLength = 2, ErrorMessage = "validation.name.length2to200")]
     string Title,
 
     DateTime StartTime,
     DateTime EndTime,
 
-    [StringLength(200, ErrorMessage = "Miesto môže mať max 200 znakov.")]
+    [StringLength(200, ErrorMessage = "validation.location.maxLength200")]
     string? Location,
 
     TrainingType Type,
 
-    [StringLength(1000, ErrorMessage = "Poznámka môže mať max 1000 znakov.")]
+    [StringLength(1000, ErrorMessage = "validation.note.maxLength1000")]
     string? CoachNote
 );
 
 public record UpdateTrainingEventRequest(
-    [Required(ErrorMessage = "Názov je povinný.")]
-    [StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 200 znakov.")]
+    [Required(ErrorMessage = "validation.name.required")]
+    [StringLength(200, MinimumLength = 2, ErrorMessage = "validation.name.length2to200")]
     string Title,
 
     DateTime StartTime,
     DateTime EndTime,
 
-    [StringLength(200, ErrorMessage = "Miesto môže mať max 200 znakov.")]
+    [StringLength(200, ErrorMessage = "validation.location.maxLength200")]
     string? Location,
 
     TrainingType Type,
 
-    [StringLength(1000, ErrorMessage = "Poznámka môže mať max 1000 znakov.")]
+    [StringLength(1000, ErrorMessage = "validation.note.maxLength1000")]
     string? CoachNote,
 
     bool IsLocked

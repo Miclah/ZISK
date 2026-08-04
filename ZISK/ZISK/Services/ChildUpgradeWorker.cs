@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ZISK.Data;
+using ZISK.Shared.Localization;
 
 namespace ZISK.Services;
 
@@ -12,19 +13,22 @@ public class ChildUpgradeWorker
     private readonly SmtpEmailSender _emailSender;
     private readonly IAuditService _auditService;
     private readonly ILogger<ChildUpgradeWorker> _logger;
+    private readonly ICurrentLanguage _currentLanguage;
 
     public ChildUpgradeWorker(
         ApplicationDbContext context,
         UserManager<ApplicationUser> userManager,
         SmtpEmailSender emailSender,
         IAuditService auditService,
-        ILogger<ChildUpgradeWorker> logger)
+        ILogger<ChildUpgradeWorker> logger,
+        ICurrentLanguage currentLanguage)
     {
         _context = context;
         _userManager = userManager;
         _emailSender = emailSender;
         _auditService = auditService;
         _logger = logger;
+        _currentLanguage = currentLanguage;
     }
 
     public async Task UpgradeSingleAsync(string userId, ClaimsPrincipal? caller = null, CancellationToken ct = default)
@@ -34,7 +38,7 @@ public class ChildUpgradeWorker
 
         var roles = await _userManager.GetRolesAsync(user);
         if (!roles.Contains("Child"))
-            throw new InvalidOperationException("Používateľ nemá rolu Dieťa.");
+            throw new InvalidOperationException(Translations.Get(_currentLanguage.Current, "errors.childUpgrade.notChildRole"));
 
         await _userManager.RemoveFromRoleAsync(user, "Child");
         await _userManager.AddToRoleAsync(user, "Athlete");

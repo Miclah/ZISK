@@ -77,7 +77,7 @@ public class TrainingSeriesGenerationParityTests
     }
 
     private static TrainingSeriesService MakeService(ApplicationDbContext db)
-        => new(db, new NoTeamAccess(), new NoopAudit());
+        => new(db, new NoTeamAccess(), new NoopAudit(), new FakeCurrentLanguage());
 
     private static TrainingSeriesGeneratorWorker MakeWorker(ApplicationDbContext db)
         => new(db, new LoggerFactory().CreateLogger<TrainingSeriesGeneratorWorker>());

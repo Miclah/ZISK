@@ -5,6 +5,7 @@ using ZISK.Data;
 using ZISK.Data.Entities;
 using ZISK.Services;
 using ZISK.Shared.DTOs.Trainings;
+using ZISK.Shared.Localization;
 using AttendanceStatus = ZISK.Shared.Enums.AttendanceStatus;
 using TrainingType = ZISK.Shared.Enums.TrainingType;
 
@@ -17,19 +18,22 @@ public class TrainingService : ITrainingService
     private readonly IAuditService _auditService;
     private readonly IEmailSender _emailSender;
     private readonly ILogger<TrainingService> _logger;
+    private readonly ICurrentLanguage _currentLanguage;
 
     public TrainingService(
         ApplicationDbContext context,
         ITeamAccessService teamAccessService,
         IAuditService auditService,
         IEmailSender emailSender,
-        ILogger<TrainingService> logger)
+        ILogger<TrainingService> logger,
+        ICurrentLanguage currentLanguage)
     {
         _context = context;
         _teamAccessService = teamAccessService;
         _auditService = auditService;
         _emailSender = emailSender;
         _logger = logger;
+        _currentLanguage = currentLanguage;
     }
 
     public async Task<List<TrainingEventDto>> GetTrainingsAsync(Guid? teamId, DateTime? from, DateTime? to, ClaimsPrincipal user)
@@ -107,16 +111,16 @@ public class TrainingService : ITrainingService
     public async Task<TrainingEventDto> CreateTrainingAsync(CreateTrainingEventRequest request, ClaimsPrincipal user)
     {
         if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Length < 3 || request.Title.Length > 100)
-            throw new ArgumentException("Názov musí mať 3-100 znakov");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.training.nameLength"));
 
         if (request.EndTime <= request.StartTime)
-            throw new ArgumentException("Čas konca musí byť po čase začiatku");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.training.endAfterStart"));
 
         if (request.Location != null && request.Location.Length > 200)
-            throw new ArgumentException("Miesto môže mať max 200 znakov");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.training.locationMaxLength200"));
 
         var team = await _context.Teams.FindAsync(request.TeamId)
-            ?? throw new ArgumentException("Tím neexistuje");
+            ?? throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.training.teamNotFound"));
 
         var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
         if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(request.TeamId))
@@ -131,7 +135,7 @@ public class TrainingService : ITrainingService
                          .FirstOrDefaultAsync()
                      ?? await _context.Seasons.FirstOrDefaultAsync(s => s.IsActive)
                      ?? await _context.Seasons.OrderByDescending(s => s.StartDate).FirstOrDefaultAsync()
-                     ?? throw new InvalidOperationException("V systéme nie je definovaná žiadna sezóna.");
+                     ?? throw new InvalidOperationException(Translations.Get(_currentLanguage.Current, "errors.training.noSeasonDefined"));
 
         var training = new TrainingEvent
         {
@@ -162,13 +166,13 @@ public class TrainingService : ITrainingService
     public async Task UpdateTrainingAsync(Guid id, UpdateTrainingEventRequest request, ClaimsPrincipal user)
     {
         if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Length < 3 || request.Title.Length > 100)
-            throw new ArgumentException("Názov musí mať 3-100 znakov");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.training.nameLength"));
 
         if (request.EndTime <= request.StartTime)
-            throw new ArgumentException("Čas konca musí byť po čase začiatku");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.training.endAfterStart"));
 
         if (request.Location != null && request.Location.Length > 200)
-            throw new ArgumentException("Miesto môže mať max 200 znakov");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.training.locationMaxLength200"));
 
         var training = await _context.TrainingEvents.FindAsync(id)
             ?? throw new KeyNotFoundException();

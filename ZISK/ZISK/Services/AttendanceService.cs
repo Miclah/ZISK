@@ -5,6 +5,7 @@ using ZISK.Data.Entities;
 using ZISK.Extensions;
 using ZISK.Helpers;
 using ZISK.Shared.DTOs.Attendance;
+using ZISK.Shared.Localization;
 using AttendanceStatus = ZISK.Shared.Enums.AttendanceStatus;
 
 namespace ZISK.Services;
@@ -14,12 +15,14 @@ public class AttendanceService : IAttendanceService
     private readonly ApplicationDbContext _context;
     private readonly ITeamAccessService _teamAccessService;
     private readonly IAuditService _auditService;
+    private readonly ICurrentLanguage _currentLanguage;
 
-    public AttendanceService(ApplicationDbContext context, ITeamAccessService teamAccessService, IAuditService auditService)
+    public AttendanceService(ApplicationDbContext context, ITeamAccessService teamAccessService, IAuditService auditService, ICurrentLanguage currentLanguage)
     {
         _context = context;
         _teamAccessService = teamAccessService;
         _auditService = auditService;
+        _currentLanguage = currentLanguage;
     }
 
     public async Task<List<AttendanceRecordDto>> GetTrainingAttendanceAsync(Guid trainingEventId, ClaimsPrincipal user)
@@ -29,7 +32,7 @@ public class AttendanceService : IAttendanceService
             .FirstOrDefaultAsync(t => t.Id == trainingEventId);
 
         if (training == null)
-            throw new KeyNotFoundException("Tréning neexistuje");
+            throw new KeyNotFoundException(Translations.Get(_currentLanguage.Current, "errors.attendance.trainingNotFound"));
 
         var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
         if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(training.TeamId))
@@ -187,17 +190,17 @@ public class AttendanceService : IAttendanceService
         var userId = user.GetRequiredUserId();
 
         var training = await _context.TrainingEvents.FindAsync(request.TrainingEventId)
-            ?? throw new KeyNotFoundException("Tréning neexistuje");
+            ?? throw new KeyNotFoundException(Translations.Get(_currentLanguage.Current, "errors.attendance.trainingNotFound"));
 
         var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
         if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(training.TeamId))
             throw new UnauthorizedAccessException();
 
         if (training.IsLocked)
-            throw new InvalidOperationException("Dochádzka pre tento tréning je uzamknutá");
+            throw new InvalidOperationException(Translations.Get(_currentLanguage.Current, "errors.attendance.locked"));
 
         var child = await _context.Users.FindAsync(request.ChildId)
-            ?? throw new KeyNotFoundException("Člen neexistuje");
+            ?? throw new KeyNotFoundException(Translations.Get(_currentLanguage.Current, "errors.attendance.memberNotFound"));
 
         var existingRecord = await _context.AttendanceRecords
             .FirstOrDefaultAsync(ar => ar.TrainingEventId == request.TrainingEventId && ar.ChildId == request.ChildId);
@@ -248,14 +251,14 @@ public class AttendanceService : IAttendanceService
         var userId = user.GetRequiredUserId();
 
         var training = await _context.TrainingEvents.FindAsync(request.TrainingEventId)
-            ?? throw new KeyNotFoundException("Tréning neexistuje");
+            ?? throw new KeyNotFoundException(Translations.Get(_currentLanguage.Current, "errors.attendance.trainingNotFound"));
 
         var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
         if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(training.TeamId))
             throw new UnauthorizedAccessException();
 
         if (training.IsLocked)
-            throw new InvalidOperationException("Dochádzka pre tento tréning je uzamknutá");
+            throw new InvalidOperationException(Translations.Get(_currentLanguage.Current, "errors.attendance.locked"));
 
         // Load every existing record for this training up front. Looking each one up inside the loop
         // issued one round-trip per child, so marking a full team's attendance cost N queries.

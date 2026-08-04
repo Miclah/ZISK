@@ -85,7 +85,7 @@ public class BulkAttendanceTests
     }
 
     private static AttendanceService MakeService(ApplicationDbContext db)
-        => new(db, new NoTeamAccess(), new NoopAudit());
+        => new(db, new NoTeamAccess(), new NoopAudit(), new FakeCurrentLanguage());
 
     [Fact]
     public async Task InsertsRecords_ForEveryEntry()

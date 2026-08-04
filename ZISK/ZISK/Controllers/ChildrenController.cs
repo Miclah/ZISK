@@ -6,6 +6,7 @@ using System.Security.Claims;
 using ZISK.Data;
 using ZISK.Services;
 using ZISK.Shared.DTOs.Children;
+using ZISK.Shared.Localization;
 
 namespace ZISK.Controllers;
 
@@ -21,6 +22,7 @@ public class ChildrenController : ControllerBase
     private readonly SmtpEmailSender _emailSender;
     private readonly ITeamAccessService _teamAccessService;
     private readonly ILogger<ChildrenController> _logger;
+    private readonly ICurrentLanguage _currentLanguage;
 
     public ChildrenController(
         ApplicationDbContext context,
@@ -29,7 +31,8 @@ public class ChildrenController : ControllerBase
         IAuditService auditService,
         SmtpEmailSender emailSender,
         ITeamAccessService teamAccessService,
-        ILogger<ChildrenController> logger)
+        ILogger<ChildrenController> logger,
+        ICurrentLanguage currentLanguage)
     {
         _context = context;
         _userManager = userManager;
@@ -38,6 +41,7 @@ public class ChildrenController : ControllerBase
         _emailSender = emailSender;
         _teamAccessService = teamAccessService;
         _logger = logger;
+        _currentLanguage = currentLanguage;
     }
 
     [HttpGet("my")]
@@ -155,18 +159,18 @@ public class ChildrenController : ControllerBase
         // Validate age < 18
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         if (request.DateOfBirth > today.AddYears(-0) || request.DateOfBirth <= today.AddYears(-18)) // AddYears(-0) == today; rejects future dates
-            return BadRequest("Dieťa musí byť mladšie ako 18 rokov.");
+            return BadRequest(Translations.Get(_currentLanguage.Current, "errors.child.mustBeUnder18"));
 
         if (string.IsNullOrWhiteSpace(request.FirstName) || request.FirstName.Length < 2)
-            return BadRequest("Meno musí mať aspoň 2 znaky.");
+            return BadRequest(Translations.Get(_currentLanguage.Current, "errors.child.firstNameMinLength2"));
 
         if (string.IsNullOrWhiteSpace(request.LastName) || request.LastName.Length < 2)
-            return BadRequest("Priezvisko musí mať aspoň 2 znaky.");
+            return BadRequest(Translations.Get(_currentLanguage.Current, "errors.child.lastNameMinLength2"));
 
         if (request.CreateCredentials)
         {
             if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 6)
-                return BadRequest("Heslo musí mať aspoň 6 znakov.");
+                return BadRequest(Translations.Get(_currentLanguage.Current, "errors.child.passwordMinLength6"));
         }
 
         string bydlisko = request.Bydlisko ?? string.Empty;
@@ -289,9 +293,9 @@ public class ChildrenController : ControllerBase
             return Unauthorized();
 
         if (string.IsNullOrWhiteSpace(request.FirstName) || request.FirstName.Length < 2)
-            return BadRequest("Meno musí mať aspoň 2 znaky.");
+            return BadRequest(Translations.Get(_currentLanguage.Current, "errors.child.firstNameMinLength2"));
         if (string.IsNullOrWhiteSpace(request.LastName) || request.LastName.Length < 2)
-            return BadRequest("Priezvisko musí mať aspoň 2 znaky.");
+            return BadRequest(Translations.Get(_currentLanguage.Current, "errors.child.lastNameMinLength2"));
 
         var child = await _context.Users.FirstOrDefaultAsync(u => u.Id == childId);
         if (child == null)
@@ -313,7 +317,7 @@ public class ChildrenController : ControllerBase
         // Two-step team change validation: (1) Parent cannot change teams at all;
         // (2) Coach can only change to/from teams they have access to. Order matters — Parent check is first.
         if (teamChangeRequested && isParent && !isAdmin && !isCoach)
-            return BadRequest("Zmenu tímu môže vykonať len tréner alebo administrátor.");
+            return BadRequest(Translations.Get(_currentLanguage.Current, "errors.child.onlyCoachOrAdminCanChangeTeam"));
 
         if (teamChangeRequested && isCoach && !isAdmin)
         {
@@ -338,7 +342,7 @@ public class ChildrenController : ControllerBase
             {
                 var teamExists = await _context.Teams.AnyAsync(t => t.Id == request.TeamId.Value);
                 if (!teamExists)
-                    return BadRequest("Zvolený tím neexistuje.");
+                    return BadRequest(Translations.Get(_currentLanguage.Current, "errors.child.selectedTeamNotFound"));
 
                 _context.TeamMembers.Add(new Data.Entities.TeamMember
                 {
@@ -438,7 +442,7 @@ public class ChildrenController : ControllerBase
 
         var totalParents = await _context.ParentChildren.CountAsync(pc => pc.ChildId == childId);
         if (totalParents <= 1)
-            return BadRequest("Posledný rodič nemôže byť odstránený – kontaktujte administrátora.");
+            return BadRequest(Translations.Get(_currentLanguage.Current, "errors.child.lastParentCannotBeRemoved"));
 
         _context.ParentChildren.Remove(link);
         await _context.SaveChangesAsync();

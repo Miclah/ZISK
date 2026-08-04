@@ -4,6 +4,7 @@ using ZISK.Data;
 using ZISK.Data.Entities;
 using ZISK.Extensions;
 using ZISK.Shared.DTOs.Announcements;
+using ZISK.Shared.Localization;
 using AnnouncementPriority = ZISK.Shared.Enums.AnnouncementPriority;
 using TargetAudience = ZISK.Shared.Enums.TargetAudience;
 
@@ -14,12 +15,14 @@ public class AnnouncementService : IAnnouncementService
     private readonly ApplicationDbContext _context;
     private readonly ITeamAccessService _teamAccessService;
     private readonly IFileService _fileService;
+    private readonly ICurrentLanguage _currentLanguage;
 
-    public AnnouncementService(ApplicationDbContext context, ITeamAccessService teamAccessService, IFileService fileService)
+    public AnnouncementService(ApplicationDbContext context, ITeamAccessService teamAccessService, IFileService fileService, ICurrentLanguage currentLanguage)
     {
         _context = context;
         _teamAccessService = teamAccessService;
         _fileService = fileService;
+        _currentLanguage = currentLanguage;
     }
 
     public async Task<List<AnnouncementListDto>> GetAnnouncementsAsync(Guid? teamId, TargetAudience? audience, ClaimsPrincipal user)
@@ -81,16 +84,16 @@ public class AnnouncementService : IAnnouncementService
     public async Task<AnnouncementDto> CreateAnnouncementAsync(CreateAnnouncementRequest request, ClaimsPrincipal user)
     {
         if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Length < 3 || request.Title.Length > 200)
-            throw new ArgumentException("Nadpis musí mať 3-200 znakov");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.announcement.titleLength"));
 
         if (string.IsNullOrWhiteSpace(request.Content) || request.Content.Length < 10)
-            throw new ArgumentException("Obsah musí mať minimálne 10 znakov");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.announcement.contentMinLength"));
 
         if (request.TargetTeamId.HasValue && !await _context.Teams.AnyAsync(t => t.Id == request.TargetTeamId.Value))
-            throw new ArgumentException("Neplatný tím");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.announcement.invalidTeam"));
 
         if (request.ValidUntil.HasValue && request.ValidUntil.Value < DateTime.UtcNow)
-            throw new ArgumentException("Dátum platnosti nemôže byť v minulosti");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.announcement.validUntilPast"));
 
         var userId = user.GetRequiredUserId();
         var authorUser = await _context.Users.FindAsync(userId)
@@ -127,13 +130,13 @@ public class AnnouncementService : IAnnouncementService
     public async Task UpdateAnnouncementAsync(Guid id, UpdateAnnouncementRequest request, ClaimsPrincipal user)
     {
         if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Length < 3 || request.Title.Length > 200)
-            throw new ArgumentException("Nadpis musí mať 3-200 znakov");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.announcement.titleLength"));
 
         if (string.IsNullOrWhiteSpace(request.Content) || request.Content.Length < 10)
-            throw new ArgumentException("Obsah musí mať minimálne 10 znakov");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.announcement.contentMinLength"));
 
         if (request.TargetTeamId.HasValue && !await _context.Teams.AnyAsync(t => t.Id == request.TargetTeamId.Value))
-            throw new ArgumentException("Neplatný tím");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.announcement.invalidTeam"));
 
         var userId = user.GetUserId();
         var announcement = await _context.Announcements.FindAsync(id)

@@ -65,7 +65,8 @@ public class TrainingCancellationTests
             teamAccess ?? new NoTeamAccess(),
             new NoopAudit(),
             emailSender ?? new FakeEmailSender(),
-            new LoggerFactory().CreateLogger<TrainingService>());
+            new LoggerFactory().CreateLogger<TrainingService>(),
+            new FakeCurrentLanguage());
 
     private static ApplicationUser MakeUser(string suffix, string? email = null) => new()
     {

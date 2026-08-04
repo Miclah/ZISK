@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace ZISK.Shared.DTOs.Invitations;
 
 public record SendEmailInvitationRequest(
-    [Required(ErrorMessage = "Email je povinný.")][EmailAddress(ErrorMessage = "Neplatný formát emailu.")] string TargetEmail);
+    [Required(ErrorMessage = "validation.email.required")][EmailAddress(ErrorMessage = "validation.email.invalidFormat")] string TargetEmail);
 
 public record InvitationCodeResponse(string Code, DateTime ExpiresAt);
 
@@ -15,4 +15,4 @@ public record PendingInvitationDto(
     DateTime ExpiresAt
 );
 
-public record RedeemCodeRequest([Required(ErrorMessage = "Kód je povinný.")] string Code);
+public record RedeemCodeRequest([Required(ErrorMessage = "validation.code.required")] string Code);
