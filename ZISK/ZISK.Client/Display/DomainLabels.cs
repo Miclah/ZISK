@@ -1,15 +1,21 @@
 using MudBlazor;
 using ZISK.Shared.Enums;
+using ZISK.Shared.Localization;
 
 namespace ZISK.Client.Display;
 
 /// <summary>
-/// Slovak display text and MudBlazor colours for domain enums.
+/// Display text and MudBlazor colours for domain enums, in whichever language the visitor has
+/// selected (see <see cref="Current"/>).
 ///
 /// These mappings were previously re-declared inside each page's @code block. That was not merely repetition —
 /// the copies had diverged: <c>AnnouncementPriority.High</c> rendered as "Vysoká" on the admin dashboard but
 /// "Dôležité" on every other page, and <c>Low</c> appeared as "Nízka", "Info" and "Informačné" depending on
 /// where you looked. Centralising them makes the label for a given value the same everywhere.
+///
+/// Text now comes from <see cref="Translations"/> rather than being inlined here, so it is the
+/// single source of truth for both languages - see <see cref="Current"/> for how the ambient
+/// language gets set.
 ///
 /// Note that attendance status is deliberately *not* fully covered here: CoachTrainingDetail derives its label
 /// from a <c>TrainingAttendanceDto</c> using excuse state and how long ago the training started, which is a
@@ -17,15 +23,24 @@ namespace ZISK.Client.Display;
 /// </summary>
 public static class DomainLabels
 {
+    /// <summary>
+    /// The visitor's current language. A plain static field rather than something threaded
+    /// through every one of the ~40 call sites across the app - Blazor WASM runs single-threaded
+    /// per browser tab, so this is safe, and it's what lets every existing
+    /// <c>DomainLabels.XxxText(value)</c> call site stay untouched while still becoming
+    /// reactive. LanguageService updates this on init and on every language switch.
+    /// </summary>
+    public static Lang Current { get; set; } = Lang.Sk;
+
     // ---- Roles -------------------------------------------------------------------------------------------
 
     public static string Role(string role) => role switch
     {
-        "Admin" => "Admin",
-        "Coach" => "Tréner",
-        "Parent" => "Rodič",
-        "Athlete" => "Športovec",
-        "Child" => "Dieťa",
+        "Admin" => Translations.Get(Current, "role.admin"),
+        "Coach" => Translations.Get(Current, "role.coach"),
+        "Parent" => Translations.Get(Current, "role.parent"),
+        "Athlete" => Translations.Get(Current, "role.athlete"),
+        "Child" => Translations.Get(Current, "role.child"),
         _ => role
     };
 
@@ -53,10 +68,10 @@ public static class DomainLabels
 
     public static string AttendanceStatusText(AttendanceStatus status) => status switch
     {
-        AttendanceStatus.Present => "Prítomný",
-        AttendanceStatus.Absent => "Neprítomný",
-        AttendanceStatus.Excused => "Ospravedlnený",
-        _ => "Neznámy"
+        AttendanceStatus.Present => Translations.Get(Current, "domain.attendance.present"),
+        AttendanceStatus.Absent => Translations.Get(Current, "domain.attendance.absent"),
+        AttendanceStatus.Excused => Translations.Get(Current, "domain.attendance.excused"),
+        _ => Translations.Get(Current, "domain.attendance.unknown")
     };
 
     /// <summary>Success = present, Error = absent, Warning = excused — the convention used in every attendance view.</summary>
@@ -81,8 +96,8 @@ public static class DomainLabels
 
     public static string ExcuseStatusText(ExcuseStatus status) => status switch
     {
-        ExcuseStatus.Received => "Prijaté",
-        _ => "Neznámy"
+        ExcuseStatus.Received => Translations.Get(Current, "domain.excuse.received"),
+        _ => Translations.Get(Current, "domain.excuse.unknown")
     };
 
     public static Color ExcuseStatusColor(ExcuseStatus status) => status switch
@@ -99,9 +114,9 @@ public static class DomainLabels
     /// </summary>
     public static string PriorityText(AnnouncementPriority priority) => priority switch
     {
-        AnnouncementPriority.High => "Dôležité",
-        AnnouncementPriority.Medium => "Stredná",
-        _ => "Info"
+        AnnouncementPriority.High => Translations.Get(Current, "domain.priority.high"),
+        AnnouncementPriority.Medium => Translations.Get(Current, "domain.priority.medium"),
+        _ => Translations.Get(Current, "domain.priority.low")
     };
 
     public static Color PriorityColor(AnnouncementPriority priority) => priority switch
@@ -123,11 +138,11 @@ public static class DomainLabels
 
     public static string TrainingTypeText(TrainingType type) => type switch
     {
-        TrainingType.Conditioning => "Kondičný",
-        TrainingType.Technical => "Technický",
-        TrainingType.Match => "Herný",
-        TrainingType.Recovery => "Regeneračný",
-        _ => "Iný"
+        TrainingType.Conditioning => Translations.Get(Current, "domain.training.conditioning"),
+        TrainingType.Technical => Translations.Get(Current, "domain.training.technical"),
+        TrainingType.Match => Translations.Get(Current, "domain.training.match"),
+        TrainingType.Recovery => Translations.Get(Current, "domain.training.recovery"),
+        _ => Translations.Get(Current, "domain.training.other")
     };
 
     public static Color TrainingTypeColor(TrainingType type) => type switch
