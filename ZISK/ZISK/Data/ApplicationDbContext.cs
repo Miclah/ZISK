@@ -94,11 +94,19 @@ namespace ZISK.Data
                 .HasFilter("[IsActive] = 1");
 
             // TrainingSeries
+            //
+            // Restrict, not Cascade. Team already cascades to TrainingEvent, and TrainingSeries
+            // sets TrainingEvent.SeriesId to null - cascading here too would give SQL Server two
+            // delete paths into TrainingEvents and it rejects the schema outright ("may cause
+            // cycles or multiple cascade paths"). The incremental migration chain never surfaced
+            // this because the FK was created as Restrict and the later model edit to Cascade
+            // was never actually emitted; every real database has Restrict. Nothing depends on
+            // the cascade either: TeamService.DeleteTeamAsync removes the series itself.
             builder.Entity<TrainingSeries>()
                 .HasOne(ts => ts.Team)
                 .WithMany()
                 .HasForeignKey(ts => ts.TeamId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<TrainingSeries>()
                 .HasOne(ts => ts.Coach)

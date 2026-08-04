@@ -8,7 +8,7 @@ using ZISK.Data;
 
 #nullable disable
 
-namespace ZISK.Migrations
+namespace ZISK.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     partial class ApplicationDbContextModelSnapshot : ModelSnapshot
@@ -1122,7 +1122,7 @@ namespace ZISK.Migrations
                     b.HasOne("ZISK.Data.Entities.Team", "Team")
                         .WithMany()
                         .HasForeignKey("TeamId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Coach");

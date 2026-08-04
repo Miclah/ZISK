@@ -12,15 +12,15 @@ using ZISK.Data;
 namespace ZISK.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260228220221_AddUserProfileFields")]
-    partial class AddUserProfileFields
+    [Migration("20260804120729_InitialSchema")]
+    partial class InitialSchema
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.11")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -180,6 +180,9 @@ namespace ZISK.Data.Migrations
                     b.Property<DateOnly?>("DateOfBirth")
                         .HasColumnType("date");
 
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -218,7 +221,8 @@ namespace ZISK.Data.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PhoneNumber")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
@@ -247,46 +251,15 @@ namespace ZISK.Data.Migrations
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
+                    b.HasIndex("DemoSessionId", "PhoneNumber")
+                        .IsUnique()
+                        .HasFilter("[PhoneNumber] IS NOT NULL");
+
+                    b.HasIndex("DemoSessionId", "RodneCislo")
+                        .IsUnique()
+                        .HasFilter("[RodneCislo] IS NOT NULL");
+
                     b.ToTable("AspNetUsers", (string)null);
-                });
-
-            modelBuilder.Entity("ZISK.Data.ChildProfile", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateOnly>("DateOfBirth")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<Guid?>("TeamId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TeamId");
-
-                    b.ToTable("ChildProfiles");
                 });
 
             modelBuilder.Entity("ZISK.Data.Entities.AbsenceRequest", b =>
@@ -295,8 +268,9 @@ namespace ZISK.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("ChildId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("ChildId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -306,6 +280,9 @@ namespace ZISK.Data.Migrations
 
                     b.Property<DateTime?>("DateTo")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
@@ -343,6 +320,8 @@ namespace ZISK.Data.Migrations
 
                     b.HasIndex("ReviewedByUserId");
 
+                    b.HasIndex("Status");
+
                     b.HasIndex("TrainingEventId");
 
                     b.ToTable("AbsenceRequests");
@@ -361,6 +340,9 @@ namespace ZISK.Data.Migrations
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsPinned")
                         .HasColumnType("bit");
@@ -412,6 +394,9 @@ namespace ZISK.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("FileName")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -441,12 +426,16 @@ namespace ZISK.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("ChildId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("ChildId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("CoachComment")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("MarkedByUserId")
                         .HasColumnType("nvarchar(450)");
@@ -489,6 +478,9 @@ namespace ZISK.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("IsPrimary")
                         .HasColumnType("bit");
 
@@ -505,6 +497,40 @@ namespace ZISK.Data.Migrations
                     b.ToTable("CoachTeams");
                 });
 
+            modelBuilder.Entity("ZISK.Data.Entities.DemoSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedFromRole")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DemoSessions");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.DemoTemplateMeta", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("GeneratedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DemoTemplateMetas");
+                });
+
             modelBuilder.Entity("ZISK.Data.Entities.Document", b =>
                 {
                     b.Property<Guid>("Id")
@@ -513,6 +539,9 @@ namespace ZISK.Data.Migrations
 
                     b.Property<int>("Category")
                         .HasColumnType("int");
+
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("FilePath")
                         .IsRequired()
@@ -531,9 +560,109 @@ namespace ZISK.Data.Migrations
                     b.Property<DateTime>("UploadedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("UploadedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("UploadedByUserId");
+
                     b.ToTable("Documents");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.ParentInvitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ChildUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("InitiatorUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("TargetEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UsedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodeHash");
+
+                    b.HasIndex("InitiatorUserId");
+
+                    b.HasIndex("UsedByUserId");
+
+                    b.HasIndex("ChildUserId", "UsedAt");
+
+                    b.ToTable("ParentInvitations");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.Season", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DemoSessionId", "IsActive")
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
+
+                    b.ToTable("Seasons");
                 });
 
             modelBuilder.Entity("ZISK.Data.Entities.Team", b =>
@@ -544,6 +673,9 @@ namespace ZISK.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -563,10 +695,32 @@ namespace ZISK.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
-                        .IsUnique();
+                    b.HasIndex("DemoSessionId", "Name")
+                        .IsUnique()
+                        .HasFilter("[DemoSessionId] IS NOT NULL");
 
                     b.ToTable("Teams");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.TeamMember", b =>
+                {
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("TeamId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("TeamMembers");
                 });
 
             modelBuilder.Entity("ZISK.Data.Entities.TrainingEvent", b =>
@@ -575,6 +729,10 @@ namespace ZISK.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("CancelledReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("CoachNote")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
@@ -582,8 +740,14 @@ namespace ZISK.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("EndTime")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsCancelled")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsLocked")
                         .HasColumnType("bit");
@@ -591,6 +755,12 @@ namespace ZISK.Data.Migrations
                     b.Property<string>("Location")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("SeasonId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SeriesId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("datetime2");
@@ -608,9 +778,74 @@ namespace ZISK.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("SeriesId");
+
+                    b.HasIndex("SeasonId", "StartTime");
+
                     b.HasIndex("TeamId", "StartTime");
 
                     b.ToTable("TrainingEvents");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.TrainingSeries", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CoachId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CoachNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DaysOfWeek")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("SeasonId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CoachId");
+
+                    b.HasIndex("SeasonId");
+
+                    b.HasIndex("TeamId");
+
+                    b.ToTable("TrainingSeries");
                 });
 
             modelBuilder.Entity("ZISK.Data.ParentChild", b =>
@@ -618,7 +853,10 @@ namespace ZISK.Data.Migrations
                     b.Property<string>("ParentId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<Guid>("ChildId")
+                    b.Property<string>("ChildId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid?>("DemoSessionId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsPrimary")
@@ -682,20 +920,10 @@ namespace ZISK.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("ZISK.Data.ChildProfile", b =>
-                {
-                    b.HasOne("ZISK.Data.Entities.Team", "Team")
-                        .WithMany("Members")
-                        .HasForeignKey("TeamId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Team");
-                });
-
             modelBuilder.Entity("ZISK.Data.Entities.AbsenceRequest", b =>
                 {
-                    b.HasOne("ZISK.Data.ChildProfile", "Child")
-                        .WithMany("AbsenceRequests")
+                    b.HasOne("ZISK.Data.ApplicationUser", "Child")
+                        .WithMany()
                         .HasForeignKey("ChildId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -756,8 +984,8 @@ namespace ZISK.Data.Migrations
 
             modelBuilder.Entity("ZISK.Data.Entities.AttendanceRecord", b =>
                 {
-                    b.HasOne("ZISK.Data.ChildProfile", "Child")
-                        .WithMany("AttendanceRecords")
+                    b.HasOne("ZISK.Data.ApplicationUser", "Child")
+                        .WithMany()
                         .HasForeignKey("ChildId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -783,13 +1011,13 @@ namespace ZISK.Data.Migrations
             modelBuilder.Entity("ZISK.Data.Entities.CoachTeam", b =>
                 {
                     b.HasOne("ZISK.Data.ApplicationUser", "Coach")
-                        .WithMany()
+                        .WithMany("CoachTeams")
                         .HasForeignKey("CoachId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("ZISK.Data.Entities.Team", "Team")
-                        .WithMany()
+                        .WithMany("Coaches")
                         .HasForeignKey("TeamId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -799,20 +1027,117 @@ namespace ZISK.Data.Migrations
                     b.Navigation("Team");
                 });
 
+            modelBuilder.Entity("ZISK.Data.Entities.Document", b =>
+                {
+                    b.HasOne("ZISK.Data.ApplicationUser", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("UploadedByUser");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.ParentInvitation", b =>
+                {
+                    b.HasOne("ZISK.Data.ApplicationUser", "Child")
+                        .WithMany()
+                        .HasForeignKey("ChildUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ZISK.Data.ApplicationUser", "Initiator")
+                        .WithMany()
+                        .HasForeignKey("InitiatorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ZISK.Data.ApplicationUser", "UsedBy")
+                        .WithMany()
+                        .HasForeignKey("UsedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Child");
+
+                    b.Navigation("Initiator");
+
+                    b.Navigation("UsedBy");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.TeamMember", b =>
+                {
+                    b.HasOne("ZISK.Data.Entities.Team", "Team")
+                        .WithMany("Memberships")
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ZISK.Data.ApplicationUser", "User")
+                        .WithMany("TeamMemberships")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Team");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ZISK.Data.Entities.TrainingEvent", b =>
                 {
+                    b.HasOne("ZISK.Data.Entities.Season", "Season")
+                        .WithMany("Trainings")
+                        .HasForeignKey("SeasonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ZISK.Data.Entities.TrainingSeries", "Series")
+                        .WithMany("Instances")
+                        .HasForeignKey("SeriesId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("ZISK.Data.Entities.Team", "Team")
                         .WithMany("TrainingEvents")
                         .HasForeignKey("TeamId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("Season");
+
+                    b.Navigation("Series");
+
+                    b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.TrainingSeries", b =>
+                {
+                    b.HasOne("ZISK.Data.ApplicationUser", "Coach")
+                        .WithMany()
+                        .HasForeignKey("CoachId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ZISK.Data.Entities.Season", "Season")
+                        .WithMany("Series")
+                        .HasForeignKey("SeasonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ZISK.Data.Entities.Team", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Coach");
+
+                    b.Navigation("Season");
+
                     b.Navigation("Team");
                 });
 
             modelBuilder.Entity("ZISK.Data.ParentChild", b =>
                 {
-                    b.HasOne("ZISK.Data.ChildProfile", "Child")
+                    b.HasOne("ZISK.Data.ApplicationUser", "Child")
                         .WithMany("Parents")
                         .HasForeignKey("ChildId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -821,7 +1146,7 @@ namespace ZISK.Data.Migrations
                     b.HasOne("ZISK.Data.ApplicationUser", "Parent")
                         .WithMany("Children")
                         .HasForeignKey("ParentId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Child");
@@ -832,15 +1157,12 @@ namespace ZISK.Data.Migrations
             modelBuilder.Entity("ZISK.Data.ApplicationUser", b =>
                 {
                     b.Navigation("Children");
-                });
 
-            modelBuilder.Entity("ZISK.Data.ChildProfile", b =>
-                {
-                    b.Navigation("AbsenceRequests");
-
-                    b.Navigation("AttendanceRecords");
+                    b.Navigation("CoachTeams");
 
                     b.Navigation("Parents");
+
+                    b.Navigation("TeamMemberships");
                 });
 
             modelBuilder.Entity("ZISK.Data.Entities.Announcement", b =>
@@ -848,9 +1170,18 @@ namespace ZISK.Data.Migrations
                     b.Navigation("Attachments");
                 });
 
+            modelBuilder.Entity("ZISK.Data.Entities.Season", b =>
+                {
+                    b.Navigation("Series");
+
+                    b.Navigation("Trainings");
+                });
+
             modelBuilder.Entity("ZISK.Data.Entities.Team", b =>
                 {
-                    b.Navigation("Members");
+                    b.Navigation("Coaches");
+
+                    b.Navigation("Memberships");
 
                     b.Navigation("TrainingEvents");
                 });
@@ -860,6 +1191,11 @@ namespace ZISK.Data.Migrations
                     b.Navigation("AbsenceRequests");
 
                     b.Navigation("AttendanceRecords");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.TrainingSeries", b =>
+                {
+                    b.Navigation("Instances");
                 });
 #pragma warning restore 612, 618
         }

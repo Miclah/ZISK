@@ -12,7 +12,7 @@ namespace ZISK.Tests;
 public class SeedModeTests
 {
     private static (IServiceScope scope, DatabaseInitializer initializer, UserManager<ApplicationUser> um, ApplicationDbContext db)
-        Build(string dbName, Dictionary<string, string?> configValues)
+        Build(string dbName, Dictionary<string, string?> configValues, Action<PasswordOptions>? configurePassword = null)
     {
         var services = new ServiceCollection();
         services.AddDbContext<ApplicationDbContext>(opt => opt.UseInMemoryDatabase(dbName));
@@ -25,6 +25,7 @@ public class SeedModeTests
             opt.Password.RequireUppercase = false;
             opt.Password.RequireLowercase = false;
             opt.Password.RequireNonAlphanumeric = false;
+            configurePassword?.Invoke(opt.Password);
         })
         .AddRoles<IdentityRole>()
         .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -130,6 +131,38 @@ public class SeedModeTests
         Assert.Null(await um.FindByEmailAsync("admin@zisk.sk"));
         Assert.Null(await um.FindByEmailAsync("rodic@zisk.sk"));
         Assert.False(await db.Teams.AnyAsync());
+    }
+
+    /// <summary>
+    /// A demo password that cannot satisfy the password policy has to stop startup dead. It used
+    /// not to: UserManager rejected each affected account, EnsureUserAsync logged a warning and
+    /// carried on, and the deployed demo came up looking healthy while missing every child and
+    /// athlete (and with them the rosters, attendance and excuses hanging off them).
+    /// </summary>
+    [Fact]
+    public async Task DemoMode_PasswordViolatingPolicy_ThrowsSeedConfigurationException()
+    {
+        var (_, initializer, _, _) = Build(
+            nameof(DemoMode_PasswordViolatingPolicy_ThrowsSeedConfigurationException),
+            new()
+            {
+                ["ZISK_SEED_MODE"] = "demo",
+                ["Seed:Passwords:Admin"] = "DemoAdminPw1",
+                ["Seed:Passwords:Coach"] = "DemoCoachPw1",
+                ["Seed:Passwords:Parent"] = "DemoParentPw1",
+                ["Seed:Passwords:Child"] = "DemoChildPwNoDigit"
+            },
+            password =>
+            {
+                password.RequiredLength = 8;
+                password.RequireDigit = true;
+                password.RequireLowercase = true;
+                password.RequireUppercase = true;
+            });
+
+        var ex = await Assert.ThrowsAsync<SeedConfigurationException>(() => initializer.SeedAsync());
+        Assert.Contains("Seed:Passwords:Child", ex.Message);
+        Assert.DoesNotContain("Seed:Passwords:Admin", ex.Message);
     }
 
     [Fact]
