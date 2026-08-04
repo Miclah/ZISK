@@ -1,3 +1,4 @@
+@inherits LocalizedComponentBase
 @using System.ComponentModel.DataAnnotations
 @using ZISK.Shared.DTOs.Users
 @using MudBlazor
@@ -5,18 +6,18 @@
 <MudDialog>
     <DialogContent>
         <EditForm Model="@Model" OnValidSubmit="Submit">
-            <DataAnnotationsValidator />
+            <LocalizedDataAnnotationsValidator />
             <MudGrid>
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.FirstName"
-                                  Label="Meno"
+                                  Label="@T("admin.users.table.firstName")"
                                   Placeholder="Ján"
                                   For="@(() => Model.FirstName)"
                                   Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.LastName"
-                                  Label="Priezvisko"
+                                  Label="@T("admin.users.table.lastName")"
                                   Placeholder="Novák"
                                   For="@(() => Model.LastName)"
                                   Variant="Variant.Outlined" />
@@ -24,14 +25,14 @@
 
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.PhoneNumber"
-                                  Label="Telefón"
+                                  Label="@T("admin.users.table.phone")"
                                   Placeholder="+421 905 123 456"
                                   For="@(() => Model.PhoneNumber)"
                                   Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.Email"
-                                  Label="Email"
+                                  Label="@T("profile.nav.email")"
                                   Placeholder="jan.novak@email.com"
                                   For="@(() => Model.Email)"
                                   Variant="Variant.Outlined"
@@ -39,35 +40,35 @@
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
-                    <MudDatePicker Label="Dátum narodenia"
+                    <MudDatePicker Label="@T("dashboard.child.dateOfBirth")"
                                    @bind-Date="Model.DateOfBirth"
                                    Variant="Variant.Outlined"
                                    Clearable="true" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudSelect T="string"
-                               Label="Rola"
+                               Label="@T("dashboard.latestUsers.role")"
                                @bind-Value="Model.Role"
                                For="@(() => Model.Role)"
                                Variant="Variant.Outlined">
-                        <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
-                        <MudSelectItem Value="@("Coach")">Tréner</MudSelectItem>
-                        <MudSelectItem Value="@("Parent")">Rodič</MudSelectItem>
-                        <MudSelectItem Value="@("Athlete")">Športovec</MudSelectItem>
-                        <MudSelectItem Value="@("Child")">Dieťa</MudSelectItem>
+                        <MudSelectItem Value="@("Admin")">@T("role.admin")</MudSelectItem>
+                        <MudSelectItem Value="@("Coach")">@T("role.coach")</MudSelectItem>
+                        <MudSelectItem Value="@("Parent")">@T("role.parent")</MudSelectItem>
+                        <MudSelectItem Value="@("Athlete")">@T("role.athlete")</MudSelectItem>
+                        <MudSelectItem Value="@("Child")">@T("role.child")</MudSelectItem>
                     </MudSelect>
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.RodneCislo"
-                                  Label="Rodné číslo"
+                                  Label="@T("admin.users.birthNumber")"
                                   Placeholder="991231/1234"
                                   For="@(() => Model.RodneCislo)"
                                   Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.Bydlisko"
-                                  Label="Bydlisko"
+                                  Label="@T("admin.users.address")"
                                   Placeholder="Hlavná 1, 010 01 Žilina"
                                   For="@(() => Model.Bydlisko)"
                                   Variant="Variant.Outlined" />
@@ -84,7 +85,7 @@
 
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.Password"
-                                  Label="Heslo"
+                                  Label="@T("profile.nav.password")"
                                   For="@(() => Model.Password)"
                                   Variant="Variant.Outlined"
                                   InputType="@(_showPassword ? InputType.Text : InputType.Password)"
@@ -92,12 +93,12 @@
                                   AdornmentIcon="@(_showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
                                   OnAdornmentClick="@(() => _showPassword = !_showPassword)" />
                     <MudText Typo="Typo.caption" Color="Color.Secondary">
-                        Min. 8 znakov, veľké aj malé písmeno, číslica.
+                        @T("addUserDialog.passwordHelper")
                     </MudText>
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.ConfirmPassword"
-                                  Label="Potvrdenie hesla"
+                                  Label="@T("addUserDialog.confirmPassword")"
                                   For="@(() => Model.ConfirmPassword)"
                                   Variant="Variant.Outlined"
                                   InputType="@(_showConfirm ? InputType.Text : InputType.Password)"
@@ -118,7 +119,7 @@
                     <MudButton ButtonType="ButtonType.Submit"
                                Color="Color.Primary"
                                Variant="Variant.Filled"
-                               FullWidth="true">Vytvoriť účet</MudButton>
+                               FullWidth="true">@T("addUserDialog.createAccount")</MudButton>
                 </MudItem>
             </MudGrid>
         </EditForm>
@@ -160,10 +161,10 @@
 
     private string PasswordStrengthLabel => PasswordStrengthValue switch
     {
-        0 => "Zadajte heslo",
-        <= 50 => "Slabé heslo",
-        <= 75 => "Stredne silné heslo",
-        _ => "Silné heslo"
+        0 => T("addUserDialog.passwordStrength.empty"),
+        <= 50 => T("addUserDialog.passwordStrength.weak"),
+        <= 75 => T("addUserDialog.passwordStrength.medium"),
+        _ => T("addUserDialog.passwordStrength.strong")
     };
 
     private void Cancel()

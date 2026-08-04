@@ -1,4 +1,5 @@
 ﻿@page "/admin/sezony"
+@inherits LocalizedComponentBase
 @using ZISK.Client.Components
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Seasons
@@ -7,15 +8,15 @@
 @inject IDialogService DialogService
 @attribute [Authorize(Roles = "Admin")]
 
-<PageTitle>Správa sezón</PageTitle>
+<PageTitle>@T("admin.seasons.pageTitle")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
-<PageHeader Icon="@Icons.Material.Filled.CalendarMonth" Title="Správa sezón">
+<PageHeader Icon="@Icons.Material.Filled.CalendarMonth" Title="@T("admin.seasons.pageTitle")">
     <Actions>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
                    OnClick="OpenCreateDialog">
-            Nová sezóna
+            @T("admin.seasons.newSeason")
         </MudButton>
     </Actions>
 </PageHeader>
@@ -39,7 +40,7 @@ else
                     <MudCardContent Class="flex-grow-1">
                         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
                             <MudStack Spacing="1">
-                                <MudText Typo="Typo.body2" Color="Color.Default">Aktívna sezóna</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Default">@T("admin.seasons.activeSeason")</MudText>
                                 <MudText Typo="Typo.h5">@ActiveSeason.Name</MudText>
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                                     @ActiveSeason.StartDate.ToString("d.M.yyyy") – @ActiveSeason.EndDate.ToString("d.M.yyyy")
@@ -54,8 +55,8 @@ else
                 <MudCard Elevation="2" Class="d-flex flex-column" Style="height: 100%;">
                     <MudCardContent Class="flex-grow-1">
                         <MudStack Spacing="1">
-                            <MudText Typo="Typo.body2" Color="Color.Default">Trvanie</MudText>
-                            <MudText Typo="Typo.h5">@SeasonWeeks(ActiveSeason) týždňov</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Default">@T("admin.seasons.duration")</MudText>
+                            <MudText Typo="Typo.h5">@SeasonWeeks(ActiveSeason) @T("admin.seasons.weeksSuffix")</MudText>
                         </MudStack>
                     </MudCardContent>
                 </MudCard>
@@ -64,8 +65,8 @@ else
                 <MudCard Elevation="2" Class="d-flex flex-column" Style="height: 100%;">
                     <MudCardContent Class="flex-grow-1">
                         <MudStack Spacing="1">
-                            <MudText Typo="Typo.body2" Color="Color.Default">Zostáva</MudText>
-                            <MudText Typo="Typo.h5">@DaysRemaining(ActiveSeason) dní</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Default">@T("admin.seasons.remaining")</MudText>
+                            <MudText Typo="Typo.h5">@DaysRemaining(ActiveSeason) @T("admin.seasons.daysSuffix")</MudText>
                         </MudStack>
                     </MudCardContent>
                 </MudCard>
@@ -74,14 +75,14 @@ else
                 <MudCard Elevation="2" Class="d-flex flex-column" Style="height: 100%;">
                     <MudCardContent Class="flex-grow-1">
                         <MudStack Spacing="1">
-                            <MudText Typo="Typo.body2" Color="Color.Default">Postup sezóny</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Default">@T("admin.seasons.progress")</MudText>
                             <MudProgressLinear Color="Color.Primary"
                                                Value="@SeasonProgress(ActiveSeason)"
                                                Class="my-2"
                                                Rounded="true"
                                                Size="Size.Large" />
                             <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                @SeasonProgress(ActiveSeason).ToString("F0")% odohraných
+                                @SeasonProgress(ActiveSeason).ToString("F0")% @T("admin.seasons.playedSuffix")
                             </MudText>
                         </MudStack>
                     </MudCardContent>
@@ -95,11 +96,11 @@ else
         <MudPaper Class="pa-8" Elevation="0" Outlined="true">
             <MudStack AlignItems="AlignItems.Center" Spacing="2">
                 <MudIcon Icon="@Icons.Material.Filled.EventNote" Size="Size.Large" Color="Color.Default" />
-                <MudText Typo="Typo.body1" Color="Color.Secondary">Zatiaľ neexistujú žiadne sezóny.</MudText>
+                <MudText Typo="Typo.body1" Color="Color.Secondary">@T("admin.seasons.noSeasonsYet")</MudText>
                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Add"
                            OnClick="OpenCreateDialog">
-                    Vytvoriť prvú sezónu
+                    @T("admin.seasons.createFirst")
                 </MudButton>
             </MudStack>
         </MudPaper>
@@ -109,45 +110,45 @@ else
         <MudPaper Elevation="2" Class="pa-3">
             <MudTable Items="_seasons" Hover="true" Striped="true" Dense="true" Breakpoint="Breakpoint.Sm" Elevation="0">
                 <HeaderContent>
-                    <MudTh>Názov</MudTh>
-                    <MudTh>Od</MudTh>
-                    <MudTh>Do</MudTh>
-                    <MudTh>Dĺžka</MudTh>
-                    <MudTh>Stav</MudTh>
-                    <MudTh Style="text-align: right;">Akcie</MudTh>
+                    <MudTh>@T("admin.trainings.table.name")</MudTh>
+                    <MudTh>@T("admin.seasons.table.from")</MudTh>
+                    <MudTh>@T("admin.seasons.table.to")</MudTh>
+                    <MudTh>@T("admin.seasons.table.length")</MudTh>
+                    <MudTh>@T("dashboard.child.status")</MudTh>
+                    <MudTh Style="text-align: right;">@T("attendance.excuses.actions")</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Názov"><strong>@context.Name</strong></MudTd>
-                    <MudTd DataLabel="Od">@context.StartDate.ToString("d.M.yyyy")</MudTd>
-                    <MudTd DataLabel="Do">@context.EndDate.ToString("d.M.yyyy")</MudTd>
-                    <MudTd DataLabel="Dĺžka">@SeasonWeeks(context) tý.</MudTd>
-                    <MudTd DataLabel="Stav">
+                    <MudTd DataLabel="@T("admin.trainings.table.name")"><strong>@context.Name</strong></MudTd>
+                    <MudTd DataLabel="@T("admin.seasons.table.from")">@context.StartDate.ToString("d.M.yyyy")</MudTd>
+                    <MudTd DataLabel="@T("admin.seasons.table.to")">@context.EndDate.ToString("d.M.yyyy")</MudTd>
+                    <MudTd DataLabel="@T("admin.seasons.table.length")">@SeasonWeeks(context) @T("admin.seasons.weeksAbbrev")</MudTd>
+                    <MudTd DataLabel="@T("dashboard.child.status")">
                         @{
                             var status = GetStatus(context);
                         }
                         <MudChip T="string" Color="@status.Color" Size="Size.Small">@status.Label</MudChip>
                     </MudTd>
-                    <MudTd DataLabel="Akcie" Style="text-align: right;">
+                    <MudTd DataLabel="@T("attendance.excuses.actions")" Style="text-align: right;">
                         <MudStack Row="true" Spacing="0" Justify="Justify.FlexEnd">
                             @if (!context.IsActive)
                             {
-                                <MudTooltip Text="Aktivovať">
+                                <MudTooltip Text="@T("admin.seasons.activateTooltip")">
                                     <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Success"
                                                    Size="Size.Small"
                                                    OnClick="() => ActivateAsync(context.Id)" />
                                 </MudTooltip>
                             }
-                            <MudTooltip Text="Duplikovať">
+                            <MudTooltip Text="@T("admin.seasons.duplicateTooltip")">
                                 <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Color="Color.Secondary"
                                                Size="Size.Small"
                                                OnClick="() => OpenDuplicateDialog(context)" />
                             </MudTooltip>
-                            <MudTooltip Text="Upraviť">
+                            <MudTooltip Text="@T("admin.trainings.editTooltip")">
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary"
                                                Size="Size.Small"
                                                OnClick="() => OpenEditDialog(context)" />
                             </MudTooltip>
-                            <MudTooltip Text="Odstrániť">
+                            <MudTooltip Text="@T("admin.seasons.removeTooltip")">
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
                                                Size="Size.Small"
                                                OnClick="() => DeleteAsync(context.Id)" />
@@ -164,18 +165,18 @@ else
 @* Create / Edit dialog *@
 <MudDialog @bind-Visible="_dialogOpen" Options="new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true }">
     <TitleContent>
-        <MudText Typo="Typo.h6">@(_editSeason is null ? "Nová sezóna" : "Upraviť sezónu")</MudText>
+        <MudText Typo="Typo.h6">@(_editSeason is null ? T("admin.seasons.newSeason") : T("admin.seasons.editSeason"))</MudText>
     </TitleContent>
     <DialogContent>
         <MudStack Spacing="3">
-            <MudTextField @bind-Value="_form.Name" Label="Názov" Required="true" Variant="Variant.Outlined" />
-            <MudDatePicker @bind-Date="_startDateNullable" Label="Dátum od" Required="true" Variant="Variant.Outlined" />
-            <MudDatePicker @bind-Date="_endDateNullable" Label="Dátum do" Required="true" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_form.Name" Label="@T("admin.trainings.table.name")" Required="true" Variant="Variant.Outlined" />
+            <MudDatePicker @bind-Date="_startDateNullable" Label="@T("admin.seasons.dateFrom")" Required="true" Variant="Variant.Outlined" />
+            <MudDatePicker @bind-Date="_endDateNullable" Label="@T("admin.seasons.dateTo")" Required="true" Variant="Variant.Outlined" />
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Text" OnClick="@(() => _dialogOpen = false)">Zrušiť</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">Uložiť</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="@(() => _dialogOpen = false)">@T("admin.users.cancel")</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">@T("admin.users.save")</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -196,7 +197,7 @@ else
     {
         _isLoading = true;
         try { _seasons = await SeasonsApi.GetSeasonsAsync(); }
-        catch { Snackbar.Add("Nepodarilo sa načítať sezóny.", Severity.Error); }
+        catch { Snackbar.Add(T("admin.seasons.errorLoading"), Severity.Error); }
         finally { _isLoading = false; }
     }
 
@@ -222,7 +223,7 @@ else
     {
         // Vytvori novu sezonu predvyplnenu hodnotami zo zdrojovej, posunutu na koniec povodnej
         _editSeason = null;
-        _form = new SeasonFormModel { Name = $"{source.Name} (kópia)" };
+        _form = new SeasonFormModel { Name = $"{source.Name} {T("admin.seasons.copySuffix")}" };
         var span = source.EndDate.DayNumber - source.StartDate.DayNumber;
         var newStart = source.EndDate.AddDays(1);
         var newEnd = newStart.AddDays(span);
@@ -235,7 +236,7 @@ else
     {
         if (string.IsNullOrWhiteSpace(_form.Name) || _startDateNullable is null || _endDateNullable is null)
         {
-            Snackbar.Add("Vyplňte všetky povinné polia.", Severity.Warning);
+            Snackbar.Add(T("admin.seasons.fillRequiredFields"), Severity.Warning);
             return;
         }
 
@@ -247,12 +248,12 @@ else
             if (_editSeason is null)
             {
                 await SeasonsApi.CreateSeasonAsync(new CreateSeasonRequest(_form.Name, startDate, endDate));
-                Snackbar.Add("Sezóna vytvorená.", Severity.Success);
+                Snackbar.Add(T("admin.seasons.created"), Severity.Success);
             }
             else
             {
                 await SeasonsApi.UpdateSeasonAsync(_editSeason.Id, new UpdateSeasonRequest(_form.Name, startDate, endDate));
-                Snackbar.Add("Sezóna uložená.", Severity.Success);
+                Snackbar.Add(T("admin.seasons.saved"), Severity.Success);
             }
             _dialogOpen = false;
             await LoadAsync();
@@ -268,7 +269,7 @@ else
         try
         {
             await SeasonsApi.ActivateSeasonAsync(id);
-            Snackbar.Add("Sezóna aktivovaná.", Severity.Success);
+            Snackbar.Add(T("admin.seasons.activated"), Severity.Success);
             await LoadAsync();
         }
         catch (Exception ex)
@@ -280,15 +281,15 @@ else
     private async Task DeleteAsync(Guid id)
     {
         bool? confirmed = await DialogService.ShowMessageBoxAsync(
-            "Odstrániť sezónu",
-            "Naozaj chcete odstrániť túto sezónu?",
-            yesText: "Odstrániť", cancelText: "Zrušiť");
+            T("admin.seasons.removeSeasonTitle"),
+            T("admin.seasons.removeConfirmText"),
+            yesText: T("admin.seasons.removeTooltip"), cancelText: T("admin.users.cancel"));
         if (confirmed != true) return;
 
         try
         {
             await SeasonsApi.DeleteSeasonAsync(id);
-            Snackbar.Add("Sezóna odstránená.", Severity.Success);
+            Snackbar.Add(T("admin.seasons.removed"), Severity.Success);
             await LoadAsync();
         }
         catch (Exception ex)
@@ -319,13 +320,13 @@ else
         return Math.Clamp(elapsed * 100.0 / total, 0, 100);
     }
 
-    private static (Color Color, string Label) GetStatus(SeasonDto s)
+    private (Color Color, string Label) GetStatus(SeasonDto s)
     {
-        if (s.IsActive) return (Color.Success, "Aktívna");
+        if (s.IsActive) return (Color.Success, T("trainingSeries.active"));
         var today = DateOnly.FromDateTime(DateTime.Today);
-        if (today < s.StartDate) return (Color.Info, "Plánovaná");
-        if (today > s.EndDate) return (Color.Default, "Ukončená");
-        return (Color.Default, "Neaktívna");
+        if (today < s.StartDate) return (Color.Info, T("admin.seasons.status.planned"));
+        if (today > s.EndDate) return (Color.Default, T("admin.seasons.status.finished"));
+        return (Color.Default, T("trainingSeries.inactive"));
     }
 
     private class SeasonFormModel

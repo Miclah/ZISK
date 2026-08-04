@@ -1,4 +1,6 @@
 @page "/admin/ospravedlnenky"
+@inherits LocalizedComponentBase
+@using ZISK.Client.Display
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Excuses
 @using ZISK.Shared.Enums
@@ -6,20 +8,20 @@
 @inject ISnackbar Snackbar
 @attribute [Authorize(Roles = "Admin,Coach")]
 
-<PageTitle>Správa ospravedlneniek</PageTitle>
+<PageTitle>@T("admin.excuses.pageTitle")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2" Wrap="Wrap.Wrap">
     <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" Color="Color.Warning" />
-    <MudText Typo="Typo.h4">Správa ospravedlneniek</MudText>
-    <MudChip T="string" Color="Color.Info" Size="Size.Small">Celkom: @_excuses.Count</MudChip>
+    <MudText Typo="Typo.h4">@T("admin.excuses.pageTitle")</MudText>
+    <MudChip T="string" Color="Color.Info" Size="Size.Small">@T("admin.excuses.totalLabel") @_excuses.Count</MudChip>
     <MudSpacer />
     <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                StartIcon="@Icons.Material.Filled.Refresh"
                OnClick="LoadExcuses"
                Disabled="_isLoading">
-        Obnoviť
+        @T("admin.stats.refresh")
     </MudButton>
 </MudStack>
 
@@ -29,7 +31,7 @@
         <MudGrid Spacing="2">
             <MudItem xs="12" sm="4">
                 <MudTextField @bind-Value="_searchText"
-                              Placeholder="Hľadať podľa mena alebo dôvodu..."
+                              Placeholder="@T("admin.excuses.searchPlaceholder")"
                               Variant="Variant.Outlined"
                               Margin="Margin.Dense"
                               Adornment="Adornment.Start"
@@ -38,11 +40,11 @@
             </MudItem>
             <MudItem xs="12" sm="4">
                 <MudSelect T="string" @bind-Value="_selectedTeam"
-                           Label="Tím"
+                           Label="@T("dashboard.team")"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
                            Clearable="true">
-                    <MudSelectItem T="string" Value="@(null)">Všetky tímy</MudSelectItem>
+                    <MudSelectItem T="string" Value="@(null)">@T("admin.trainings.allTeams")</MudSelectItem>
                     @foreach (var team in _teamOptions)
                     {
                         <MudSelectItem T="string" Value="@team">@team</MudSelectItem>
@@ -51,7 +53,7 @@
             </MudItem>
             <MudItem xs="12" sm="4">
                 <MudDateRangePicker @bind-DateRange="_dateRange"
-                                    Label="Dátum tréningu"
+                                    Label="@T("admin.excuses.trainingDate")"
                                     Variant="Variant.Outlined"
                                     Margin="Margin.Dense"
                                     Clearable="true" />
@@ -78,7 +80,7 @@ else if (!_excuses.Any())
     <MudPaper Class="pa-8" Elevation="0" Outlined="true">
         <MudStack AlignItems="AlignItems.Center" Spacing="2">
             <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Large" Color="Color.Success" />
-            <MudText Typo="Typo.body1" Color="Color.Secondary">Žiadne ospravedlnenky.</MudText>
+            <MudText Typo="Typo.body1" Color="Color.Secondary">@T("admin.excuses.noExcuses")</MudText>
         </MudStack>
     </MudPaper>
 }
@@ -90,7 +92,7 @@ else
         <MudPaper Class="pa-6" Elevation="0" Outlined="true">
             <MudStack AlignItems="AlignItems.Center" Spacing="2">
                 <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Default" />
-                <MudText Typo="Typo.body1" Color="Color.Secondary">Žiadne ospravedlnenky nezodpovedajú filtru.</MudText>
+                <MudText Typo="Typo.body1" Color="Color.Secondary">@T("admin.excuses.noExcusesMatchFilter")</MudText>
             </MudStack>
         </MudPaper>
     }
@@ -107,19 +109,19 @@ else
                       Dense="false">
                 <HeaderContent>
                     <MudTh>
-                        <MudTableSortLabel SortBy="new Func<ExcuseListDto, object>(x => x.ChildName)">Dieťa</MudTableSortLabel>
+                        <MudTableSortLabel SortBy="new Func<ExcuseListDto, object>(x => x.ChildName)">@T("admin.excuses.table.child")</MudTableSortLabel>
                     </MudTh>
                     <MudTh>
-                        <MudTableSortLabel SortBy="new Func<ExcuseListDto, object>(x => x.TeamName)">Tím</MudTableSortLabel>
+                        <MudTableSortLabel SortBy="new Func<ExcuseListDto, object>(x => x.TeamName)">@T("dashboard.team")</MudTableSortLabel>
                     </MudTh>
                     <MudTh>
-                        <MudTableSortLabel SortBy="new Func<ExcuseListDto, object>(x => x.DateFrom ?? DateTime.MinValue)" InitialDirection="SortDirection.Descending">Dátum tréningu</MudTableSortLabel>
+                        <MudTableSortLabel SortBy="new Func<ExcuseListDto, object>(x => x.DateFrom ?? DateTime.MinValue)" InitialDirection="SortDirection.Descending">@T("admin.excuses.trainingDate")</MudTableSortLabel>
                     </MudTh>
                     <MudTh>
-                        <MudTableSortLabel SortBy="new Func<ExcuseListDto, object>(x => x.CreatedAt)">Podaná</MudTableSortLabel>
+                        <MudTableSortLabel SortBy="new Func<ExcuseListDto, object>(x => x.CreatedAt)">@T("admin.excuses.table.submitted")</MudTableSortLabel>
                     </MudTh>
-                    <MudTh>Dôvod</MudTh>
-                    <MudTh>Stav</MudTh>
+                    <MudTh>@T("attendance.excuses.reason")</MudTh>
+                    <MudTh>@T("dashboard.child.status")</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>
@@ -148,7 +150,7 @@ else
                     </MudTd>
                     <MudTd>
                         @{
-                            var reason = string.IsNullOrWhiteSpace(context.Reason) ? "(bez dôvodu)" : context.Reason!;
+                            var reason = string.IsNullOrWhiteSpace(context.Reason) ? T("admin.excuses.noReasonParenthetical") : context.Reason!;
                         }
                         <MudTooltip Text="@reason" Placement="Placement.Top">
                             <MudText Typo="Typo.body2"
@@ -158,16 +160,13 @@ else
                         </MudTooltip>
                     </MudTd>
                     <MudTd>
-                        @{
-                            var statusInfo = GetStatusInfo(context.Status);
-                        }
-                        <MudChip T="string" Size="Size.Small" Color="@statusInfo.Color">@statusInfo.Label</MudChip>
+                        <MudChip T="string" Size="Size.Small" Color="@DomainLabels.ExcuseStatusColor(context.Status)">@DomainLabels.ExcuseStatusText(context.Status)</MudChip>
                     </MudTd>
                 </RowTemplate>
                 <PagerContent>
                     <MudTablePager PageSizeOptions="new[] { 10, 25, 50, 100 }"
-                                   RowsPerPageString="Riadkov na stranu:"
-                                   InfoFormat="{first_item}–{last_item} z {all_items}" />
+                                   RowsPerPageString="@T("admin.trainings.rowsPerPage")"
+                                   InfoFormat="@T("admin.trainings.pagerInfoFormat")" />
                 </PagerContent>
             </MudTable>
         </MudHidden>
@@ -177,7 +176,6 @@ else
             <MudStack Spacing="2">
                 @foreach (var item in filtered)
                 {
-                    var statusInfo = GetStatusInfo(item.Status);
                     <MudPaper Class="pa-3" Elevation="1">
                         <MudStack Spacing="1">
                             <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
@@ -190,7 +188,7 @@ else
                                         <MudText Typo="Typo.caption" Color="Color.Secondary">@item.TeamName</MudText>
                                     </MudStack>
                                 </MudStack>
-                                <MudChip T="string" Size="Size.Small" Color="@statusInfo.Color">@statusInfo.Label</MudChip>
+                                <MudChip T="string" Size="Size.Small" Color="@DomainLabels.ExcuseStatusColor(item.Status)">@DomainLabels.ExcuseStatusText(item.Status)</MudChip>
                             </MudStack>
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                 <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" Color="Color.Default" />
@@ -199,7 +197,7 @@ else
                                 </MudText>
                                 <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" Color="Color.Default" Class="ml-2" />
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                    podaná @item.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")
+                                    @T("admin.excuses.submittedPrefix") @item.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")
                                 </MudText>
                             </MudStack>
                             @if (!string.IsNullOrWhiteSpace(item.Reason))
@@ -270,10 +268,4 @@ else
         if (parts.Length == 1) return parts[0][0].ToString().ToUpperInvariant();
         return $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant();
     }
-
-    private static (Color Color, string Label) GetStatusInfo(ExcuseStatus status) => status switch
-    {
-        ExcuseStatus.Received => (Color.Info, "Prijaté"),
-        _ => (Color.Default, status.ToString())
-    };
 }

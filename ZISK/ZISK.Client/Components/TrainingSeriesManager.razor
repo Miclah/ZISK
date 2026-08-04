@@ -1,3 +1,4 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Trainings
 @using ZISK.Shared.DTOs.Teams
@@ -12,29 +13,29 @@
 }
 
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="mb-3">
-    <MudText Typo="Typo.h6">Opakované tréningy</MudText>
+    <MudText Typo="Typo.h6">@T("trainingSeries.title")</MudText>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Rounded.Add" OnClick="OpenCreateDialog">
-        Pridať sériu
+        @T("trainingSeries.addSeries")
     </MudButton>
 </MudStack>
 
 @if (!_isLoading && !_series.Any())
 {
-    <MudAlert Severity="Severity.Info">Zatiaľ nie sú definované žiadne opakované tréningy.</MudAlert>
+    <MudAlert Severity="Severity.Info">@T("trainingSeries.noneYet")</MudAlert>
 }
 else if (!_isLoading)
 {
     <MudHidden Breakpoint="Breakpoint.SmAndDown">
         <MudTable Items="@_series" Hover="true" Dense="true" Elevation="0">
             <HeaderContent>
-                <MudTh>Názov</MudTh>
-                <MudTh>Tím</MudTh>
-                <MudTh>Dni</MudTh>
-                <MudTh>Čas</MudTh>
-                <MudTh>Miesto</MudTh>
-                <MudTh>Sezóna</MudTh>
-                <MudTh>Stav</MudTh>
-                <MudTh Style="text-align: right;">Akcie</MudTh>
+                <MudTh>@T("admin.trainings.table.name")</MudTh>
+                <MudTh>@T("dashboard.team")</MudTh>
+                <MudTh>@T("trainingSeries.table.days")</MudTh>
+                <MudTh>@T("trainingSeries.table.time")</MudTh>
+                <MudTh>@T("trainingSeries.table.location")</MudTh>
+                <MudTh>@T("admin.trainings.seasonLabel")</MudTh>
+                <MudTh>@T("dashboard.child.status")</MudTh>
+                <MudTh Style="text-align: right;">@T("attendance.excuses.actions")</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd>@context.Title</MudTd>
@@ -45,25 +46,25 @@ else if (!_isLoading)
                 <MudTd>@context.SeasonName</MudTd>
                 <MudTd>
                     <MudChip T="string" Size="Size.Small" Color="@(context.IsActive ? Color.Success : Color.Default)">
-                        @(context.IsActive ? "Aktívna" : "Neaktívna")
+                        @(context.IsActive ? T("trainingSeries.active") : T("trainingSeries.inactive"))
                     </MudChip>
                 </MudTd>
                 <MudTd Style="text-align: right;">
                     <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd">
                         <MudIconButton Icon="@Icons.Material.Rounded.Edit" Size="Size.Small" OnClick="() => OpenEditDialog(context)" />
                         <MudIconButton Icon="@Icons.Material.Rounded.EventRepeat" Size="Size.Small" Color="Color.Tertiary"
-                                       Title="Vygenerovať tréningy na najbližších 14 dní"
+                                       Title="@T("trainingSeries.generateTooltip")"
                                        OnClick="() => GenerateAsync(context)" />
                         @if (context.IsActive)
                         {
                             <MudIconButton Icon="@Icons.Material.Rounded.PauseCircle" Size="Size.Small" Color="Color.Warning"
-                                           Title="Deaktivovať sériu (existujúce tréningy zostanú)"
+                                           Title="@T("trainingSeries.deactivateTooltip")"
                                            OnClick="() => DeactivateAsync(context)" />
                         }
                         else
                         {
                             <MudIconButton Icon="@Icons.Material.Rounded.PlayCircle" Size="Size.Small" Color="Color.Success"
-                                           Title="Aktivovať sériu"
+                                           Title="@T("trainingSeries.activateTooltip")"
                                            OnClick="() => ActivateAsync(context)" />
                         }
                     </MudStack>
@@ -84,7 +85,7 @@ else if (!_isLoading)
                         </div>
                         <MudChip T="string" Size="Size.Small"
                                  Color="@(s.IsActive ? Color.Success : Color.Default)">
-                            @(s.IsActive ? "Aktívna" : "Neaktívna")
+                            @(s.IsActive ? T("trainingSeries.active") : T("trainingSeries.inactive"))
                         </MudChip>
                     </MudStack>
                     <MudStack Row="true" Spacing="2" Class="mb-1" AlignItems="AlignItems.Center">
@@ -104,18 +105,18 @@ else if (!_isLoading)
                     <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="1">
                         <MudIconButton Icon="@Icons.Material.Rounded.Edit" Size="Size.Small" OnClick="() => OpenEditDialog(s)" />
                         <MudIconButton Icon="@Icons.Material.Rounded.EventRepeat" Size="Size.Small" Color="Color.Tertiary"
-                                       Title="Vygenerovať tréningy na najbližších 14 dní"
+                                       Title="@T("trainingSeries.generateTooltip")"
                                        OnClick="() => GenerateAsync(s)" />
                         @if (s.IsActive)
                         {
                             <MudIconButton Icon="@Icons.Material.Rounded.PauseCircle" Size="Size.Small" Color="Color.Warning"
-                                           Title="Deaktivovať sériu (existujúce tréningy zostanú)"
+                                           Title="@T("trainingSeries.deactivateTooltip")"
                                            OnClick="() => DeactivateAsync(s)" />
                         }
                         else
                         {
                             <MudIconButton Icon="@Icons.Material.Rounded.PlayCircle" Size="Size.Small" Color="Color.Success"
-                                           Title="Aktivovať sériu"
+                                           Title="@T("trainingSeries.activateTooltip")"
                                            OnClick="() => ActivateAsync(s)" />
                         }
                     </MudStack>
@@ -143,7 +144,7 @@ else if (!_isLoading)
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní sérií: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("trainingSeries.errorLoading")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -158,7 +159,7 @@ else if (!_isLoading)
             ["IsAdmin"] = IsAdmin,
             ["TeamIdFilter"] = TeamIdFilter
         };
-        var dialog = await DialogService.ShowAsync<TrainingSeriesDialog>("Pridať sériu", parameters,
+        var dialog = await DialogService.ShowAsync<TrainingSeriesDialog>(T("trainingSeries.addSeries"), parameters,
             new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
         var result = await dialog.Result;
         if (!result!.Canceled)
@@ -173,7 +174,7 @@ else if (!_isLoading)
             ["TeamIdFilter"] = TeamIdFilter,
             ["ExistingSeries"] = series
         };
-        var dialog = await DialogService.ShowAsync<TrainingSeriesDialog>("Upraviť sériu", parameters,
+        var dialog = await DialogService.ShowAsync<TrainingSeriesDialog>(T("trainingSeries.editSeries"), parameters,
             new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
         var result = await dialog.Result;
         if (!result!.Canceled)
@@ -187,19 +188,19 @@ else if (!_isLoading)
             var today = DateOnly.FromDateTime(DateTime.Today);
             var count = await TrainingSeriesApi.GenerateInstancesAsync(series.Id,
                 new GenerateInstancesRequest(today, today.AddDays(14)));
-            Snackbar.Add($"Vygenerovaných {count} nových tréningov.", Severity.Success);
+            Snackbar.Add(string.Format(T("trainingSeries.generatedCount"), count), Severity.Success);
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri generovaní: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("trainingSeries.errorGenerating")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 
     private async Task DeactivateAsync(TrainingSeriesDto series)
     {
-        var confirm = await DialogService.ShowMessageBoxAsync("Deaktivovať sériu",
-            $"Naozaj deaktivovať sériu \"{series.Title}\"? Existujúce tréningy zostanú, nové sa nebudú generovať.",
-            yesText: "Deaktivovať", cancelText: "Zrušiť");
+        var confirm = await DialogService.ShowMessageBoxAsync(T("trainingSeries.deactivateTitle"),
+            string.Format(T("trainingSeries.deactivateConfirmText"), series.Title),
+            yesText: T("trainingSeries.deactivateButton"), cancelText: T("admin.users.cancel"));
         if (confirm != true) return;
 
         try
@@ -208,12 +209,12 @@ else if (!_isLoading)
                 series.Title, series.DaysOfWeek, series.StartTime, series.EndTime,
                 series.Location, series.Type, series.CoachNote, IsActive: false);
             await TrainingSeriesApi.UpdateSeriesAsync(series.Id, request);
-            Snackbar.Add("Séria deaktivovaná. Existujúce tréningy zostávajú.", Severity.Success);
+            Snackbar.Add(T("trainingSeries.deactivated"), Severity.Success);
             await LoadAsync();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 
@@ -225,22 +226,24 @@ else if (!_isLoading)
                 series.Title, series.DaysOfWeek, series.StartTime, series.EndTime,
                 series.Location, series.Type, series.CoachNote, IsActive: true);
             await TrainingSeriesApi.UpdateSeriesAsync(series.Id, request);
-            Snackbar.Add("Séria aktivovaná.", Severity.Success);
+            Snackbar.Add(T("trainingSeries.activated"), Severity.Success);
             await LoadAsync();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 
-    private static string FormatDays(int daysOfWeek)
+    private string FormatDays(int daysOfWeek)
     {
-        var names = new (int flag, string sk)[]
+        var names = new (int flag, string key)[]
         {
-            (1, "Po"), (2, "Ut"), (4, "St"), (8, "Št"), (16, "Pi"), (32, "So"), (64, "Ne")
+            (1, "trainingSeries.day.mon"), (2, "trainingSeries.day.tue"), (4, "trainingSeries.day.wed"),
+            (8, "trainingSeries.day.thu"), (16, "trainingSeries.day.fri"), (32, "trainingSeries.day.sat"),
+            (64, "trainingSeries.day.sun")
         };
-        var parts = names.Where(n => (daysOfWeek & n.flag) != 0).Select(n => n.sk);
+        var parts = names.Where(n => (daysOfWeek & n.flag) != 0).Select(n => T(n.key));
         return string.Join(", ", parts);
     }
 }

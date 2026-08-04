@@ -1,3 +1,4 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @*
     Dashboard banner: avatar initial, greeting, a subtitle line (date, optionally team), and caller-supplied
     quick actions. Shared by the family and coach dashboards, which had identical markup but different buttons.
@@ -10,7 +11,7 @@
                 @Initial
             </MudAvatar>
             <MudStack Spacing="0">
-                <h1 class="dashboard-hero__greeting">Vitajte, @FirstName</h1>
+                <h1 class="dashboard-hero__greeting">@T("dashboard.hero.welcomePrefix") @FirstName</h1>
                 <div class="dashboard-hero__subtitle">@Subtitle</div>
             </MudStack>
         </MudStack>

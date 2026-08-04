@@ -1,24 +1,25 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @using ZISK.Shared.DTOs.Stats
 @*
     Present / absent / excused split for the selected period, as three labelled progress bars.
 *@
 
 <MudPaper Class="pa-4" Elevation="2" Style="height: 100%;">
-    <MudText Typo="Typo.h6" Class="mb-4">Rozdelenie účasti</MudText>
+    <MudText Typo="Typo.h6" Class="mb-4">@T("admin.stats.distribution.title")</MudText>
 
     @if (Stats is null || (Stats.PresentPercent + Stats.AbsentPercent + Stats.ExcusedPercent) == 0)
     {
-        <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne dáta za zvolené obdobie.</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@T("admin.stats.distribution.noDataForPeriod")</MudText>
     }
     else
     {
         <MudStack Spacing="4">
             <DistributionBar Icon="@Icons.Material.Filled.CheckCircle" BarColor="Color.Success"
-                             Label="Účasť" Percent="@Stats.PresentPercent" />
+                             Label="@T("admin.stats.distribution.present")" Percent="@Stats.PresentPercent" />
             <DistributionBar Icon="@Icons.Material.Filled.Cancel" BarColor="Color.Error"
-                             Label="Neospravedlnené" Percent="@Stats.AbsentPercent" />
+                             Label="@T("admin.stats.distribution.absent")" Percent="@Stats.AbsentPercent" />
             <DistributionBar Icon="@Icons.Material.Filled.EventBusy" BarColor="Color.Warning"
-                             Label="Ospravedlnené" Percent="@Stats.ExcusedPercent" />
+                             Label="@T("admin.stats.distribution.excused")" Percent="@Stats.ExcusedPercent" />
         </MudStack>
     }
 </MudPaper>

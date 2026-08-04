@@ -1,20 +1,23 @@
 ﻿@page "/profil"
+@inherits LocalizedComponentBase
 @using System.Security.Claims
 @using System.Globalization
 @using ZISK.Client.Components
 @using ZISK.Client.Components.Profile
+@using ZISK.Client.Display
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Invitations
 @using ZISK.Shared.DTOs.Users
 @inject IInvitationsApi InvitationsApi
 @inject IMeApi MeApi
+@inject IDemoApi DemoApi
 @inject IChildrenApi ChildrenApi
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject NavigationManager NavigationManager
 @attribute [Authorize]
 
-<PageTitle>Môj profil - ZISK</PageTitle>
+<PageTitle>@T("profile.pageTitle")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4 mb-8 px-2 px-sm-4">
     @if (_loading)
@@ -23,7 +26,7 @@
     }
     else if (_profile is null)
     {
-        <MudAlert Severity="Severity.Error">Profil sa nepodarilo načítať.</MudAlert>
+        <MudAlert Severity="Severity.Error">@T("profile.loadFailed")</MudAlert>
     }
     else
     {
@@ -38,7 +41,7 @@
                 </MudStack>
                 @if (!string.IsNullOrEmpty(_profile.Role))
                 {
-                    <MudChip T="string" Color="Color.Secondary" Size="Size.Medium" Variant="Variant.Filled">@RoleLabel(_profile.Role)</MudChip>
+                    <MudChip T="string" Color="Color.Secondary" Size="Size.Medium" Variant="Variant.Filled">@DomainLabels.Role(_profile.Role)</MudChip>
                 }
             </MudStack>
         </MudPaper>
@@ -62,7 +65,7 @@
                         <ProfileOverviewSection Profile="_profile!"
                                                 IsParent="_isParent"
                                                 BirthDateText="@FormatDate(_profile!.DateOfBirth)"
-                                                RoleText="@RoleLabel(_profile!.Role)"
+                                                RoleText="@DomainLabels.Role(_profile!.Role)"
                                                 CreatedAtText="@FormatDateTime(_profile!.CreatedAt)"
                                                 @bind-RedeemCode="_redeemCode"
                                                 IsRedeeming="_isRedeeming"
@@ -79,6 +82,7 @@
                     {
                         <ProfileAccountSections Section="@_section"
                                                 Email="@_profile!.Email"
+                                                IsDemo="@_isDemo"
                                                 OnChangeEmail="OpenChangeEmailDialog"
                                                 OnChangePassword="OpenChangePasswordDialog"
                                                 OnDeleteAccount="OpenDeleteAccountDialog" />
@@ -102,6 +106,7 @@
     private MyProfileDto? _profile;
     private bool _loading = true;
     private bool _isParent;
+    private bool _isDemo;
 
     private string _contactPhone = string.Empty;
     private string _contactBydlisko = string.Empty;
@@ -127,13 +132,13 @@
     {
         get
         {
-            yield return new("overview", "Prehľad", Icons.Material.Rounded.Person);
-            yield return new("contact", "Kontakt", Icons.Material.Rounded.ContactPhone);
-            yield return new("email", "Email", Icons.Material.Rounded.Email);
-            yield return new("password", "Heslo", Icons.Material.Rounded.Lock);
-            yield return new("personal", "Osobné údaje", Icons.Material.Rounded.DataUsage);
+            yield return new("overview", T("profile.nav.overview"), Icons.Material.Rounded.Person);
+            yield return new("contact", T("profile.nav.contact"), Icons.Material.Rounded.ContactPhone);
+            yield return new("email", T("profile.nav.email"), Icons.Material.Rounded.Email);
+            yield return new("password", T("profile.nav.password"), Icons.Material.Rounded.Lock);
+            yield return new("personal", T("profile.nav.personal"), Icons.Material.Rounded.DataUsage);
             if (_isParent)
-                yield return new("children", "Moje deti", Icons.Material.Rounded.FamilyRestroom);
+                yield return new("children", T("profile.nav.children"), Icons.Material.Rounded.FamilyRestroom);
         }
     }
 
@@ -148,6 +153,16 @@
         var state = await AuthState;
         _isParent = state.User.IsInRole("Parent");
 
+        // Best-effort: if this check fails the buttons stay enabled and the server refuses the
+        // call anyway, which is the boundary that actually matters.
+        try
+        {
+            _isDemo = (await DemoApi.GetStatusAsync()).IsDemo;
+        }
+        catch
+        {
+        }
+
         try
         {
             _profile = await MeApi.GetMyProfileAsync();
@@ -156,7 +171,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní profilu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("profile.errorLoadingProfile")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -187,7 +202,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní detí: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("profile.errorLoadingChildren")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -215,11 +230,11 @@
             _profile = await MeApi.UpdateMyContactAsync(request);
             _contactPhone = _profile.PhoneNumber ?? string.Empty;
             _contactBydlisko = _profile.Bydlisko ?? string.Empty;
-            Snackbar.Add("Kontaktné údaje boli uložené.", Severity.Success);
+            Snackbar.Add(T("profile.contactSaved"), Severity.Success);
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -235,14 +250,14 @@
         try
         {
             await InvitationsApi.RedeemCodeAsync(new RedeemCodeRequest(_redeemCode));
-            Snackbar.Add("Úspešne prepojené s dieťaťom!", Severity.Success);
+            Snackbar.Add(T("profile.linkedWithChild"), Severity.Success);
             _redeemCode = string.Empty;
             _childrenLoaded = false;
             await LoadChildrenAsync();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -253,14 +268,14 @@
     private async Task OpenChangePasswordDialog()
     {
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-        await DialogService.ShowAsync<ChangePasswordDialog>("Zmena hesla", options);
+        await DialogService.ShowAsync<ChangePasswordDialog>(T("profile.changePasswordDialogTitle"), options);
     }
 
     private async Task OpenChangeEmailDialog()
     {
         var parameters = new DialogParameters { ["CurrentEmail"] = _profile?.Email };
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<ChangeEmailDialog>("Zmena emailu", parameters, options);
+        var dialog = await DialogService.ShowAsync<ChangeEmailDialog>(T("profile.changeEmailDialogTitle"), parameters, options);
         var result = await dialog.Result;
         if (result is { Canceled: false } && _profile is not null)
         {
@@ -275,7 +290,7 @@
     private async Task OpenDeleteAccountDialog()
     {
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-        await DialogService.ShowAsync<DeleteAccountDialog>("Odstránenie účtu", options);
+        await DialogService.ShowAsync<DeleteAccountDialog>(T("profile.deleteAccountDialogTitle"), options);
     }
 
     private static string FormatDate(DateOnly? date) =>
@@ -284,13 +299,4 @@
     private static string FormatDateTime(DateTime dt) =>
         dt.ToLocalTime().ToString("dd.MM.yyyy", CultureInfo.GetCultureInfo("sk-SK"));
 
-    private static string RoleLabel(string role) => role switch
-    {
-        "Admin" => "Administrátor",
-        "Coach" => "Tréner",
-        "Parent" => "Rodič",
-        "Athlete" => "Športovec",
-        "Child" => "Dieťa",
-        _ => role
-    };
 }

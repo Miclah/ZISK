@@ -1,4 +1,5 @@
 ﻿@page "/admin/timy"
+@inherits LocalizedComponentBase
 @using System.ComponentModel.DataAnnotations
 @using ZISK.Client.Components
 @using ZISK.Client.Components.Teams
@@ -13,15 +14,15 @@
 @inject NavigationManager NavigationManager
 @attribute [Authorize(Roles = "Admin")]
 
-<PageTitle>Správa tímov</PageTitle>
+<PageTitle>@T("admin.teams.pageTitle")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
-<PageHeader Icon="@Icons.Material.Filled.Groups" Title="Správa tímov">
+<PageHeader Icon="@Icons.Material.Filled.Groups" Title="@T("admin.teams.pageTitle")">
     <Actions>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
                    OnClick="OpenCreateDialog">
-            Vytvoriť nový tím
+            @T("admin.teams.createTeam")
         </MudButton>
     </Actions>
 </PageHeader>
@@ -56,7 +57,7 @@ else
         @if (_teams.Count == 0)
         {
             <MudItem xs="12">
-                <MudAlert Severity="Severity.Info">Žiadne tímy. Vytvorte prvý tím kliknutím na tlačidlo vyššie.</MudAlert>
+                <MudAlert Severity="Severity.Info">@T("admin.teams.noTeams")</MudAlert>
             </MudItem>
         }
     </MudGrid>
@@ -65,17 +66,17 @@ else
 
 <MudDialog @bind-Visible="_editDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
     <TitleContent>
-        <MudText Typo="Typo.h6">@(_isCreating ? "Vytvoriť nový tím" : "Upraviť tím")</MudText>
+        <MudText Typo="Typo.h6">@(_isCreating ? T("admin.teams.createTeam") : T("admin.teams.editTeam"))</MudText>
     </TitleContent>
     <DialogContent>
         <EditForm Model="@_teamModel" OnValidSubmit="SaveTeam">
-            <DataAnnotationsValidator />
+            <LocalizedDataAnnotationsValidator />
             <MudStack Spacing="3" Class="py-2">
                 <MudTextField @bind-Value="_teamModel.Name"
                               For="@(() => _teamModel.Name)"
-                              Label="Názov tímu"
+                              Label="@T("admin.teams.nameLabel")"
                               Variant="Variant.Outlined" />
-                <MudSelect T="string" @bind-Value="_teamModel.SelectedCoachId" Label="Priradený tréner" Variant="Variant.Outlined" Clearable="true">
+                <MudSelect T="string" @bind-Value="_teamModel.SelectedCoachId" Label="@T("admin.teams.assignedCoach")" Variant="Variant.Outlined" Clearable="true">
                     @foreach (var coach in _coaches)
                     {
                         <MudSelectItem Value="@coach.Id">@coach.FirstName @coach.LastName</MudSelectItem>
@@ -83,12 +84,12 @@ else
                 </MudSelect>
                 <MudTextField @bind-Value="_teamModel.ShortName"
                               For="@(() => _teamModel.ShortName)"
-                              Label="Skratka (voliteľné)"
+                              Label="@T("admin.teams.shortNameLabel")"
                               Variant="Variant.Outlined"
                               MaxLength="50" />
                 <MudTextField @bind-Value="_teamModel.Description"
                               For="@(() => _teamModel.Description)"
-                              Label="Popis"
+                              Label="@T("admin.teams.descriptionLabel")"
                               Variant="Variant.Outlined"
                               Lines="3" />
                 <LoadingButton ButtonType="ButtonType.Submit"
@@ -96,7 +97,7 @@ else
                               Variant="Variant.Filled"
                               Loading="_isSaving"
                               FullWidth="true">
-                    Uložiť
+                    @T("admin.users.save")
                 </LoadingButton>
             </MudStack>
         </EditForm>
@@ -105,7 +106,7 @@ else
 
 <MudDialog @bind-Visible="_rosterDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true })">
     <TitleContent>
-        <MudText Typo="Typo.h6">Spravovanie súpisky: @_rosterTeamName</MudText>
+        <MudText Typo="Typo.h6">@T("admin.teams.manageRosterTitle") @_rosterTeamName</MudText>
     </TitleContent>
     <DialogContent>
         <TeamRosterPanel IsLoading="_isLoadingRoster"
@@ -166,7 +167,7 @@ protected override async Task OnInitializedAsync()
         }
         catch (Exception ex)
         {
-            _error = "Nepodarilo sa načítať dáta: " + ApiErrorFormatter.ToUserMessage(ex);
+            _error = T("admin.teams.errorLoadingData") + " " + ApiErrorFormatter.ToUserMessage(ex);
         }
         finally
         {
@@ -181,7 +182,7 @@ protected override async Task OnInitializedAsync()
             .Select(u => $"{u.FirstName} {u.LastName}")
             .ToList();
 
-        return coaches.Any() ? string.Join(", ", coaches) : "Nepriradený";
+        return coaches.Any() ? string.Join(", ", coaches) : T("admin.users.unassigned");
     }
 
     private void OpenCreateDialog()
@@ -215,13 +216,13 @@ protected override async Task OnInitializedAsync()
             {
                 var createdTeam = await TeamsApi.CreateTeamAsync(new CreateTeamRequest(_teamModel.Name, _teamModel.ShortName, _teamModel.Description));
                 await SyncTeamCoachAssignment(createdTeam.Id);
-                Snackbar.Add("Tím bol vytvorený", Severity.Success);
+                Snackbar.Add(T("admin.teams.created"), Severity.Success);
             }
             else if (_selectedTeam != null)
             {
                 await TeamsApi.UpdateTeamAsync(_selectedTeam.Id, new UpdateTeamRequest(_teamModel.Name, _teamModel.ShortName, _teamModel.Description, true));
                 await SyncTeamCoachAssignment(_selectedTeam.Id);
-                Snackbar.Add("Tím bol upravený", Severity.Success);
+                Snackbar.Add(T("admin.teams.updated"), Severity.Success);
             }
 
             _editDialogVisible = false;
@@ -229,7 +230,7 @@ protected override async Task OnInitializedAsync()
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri ukladaní tímu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("admin.teams.errorSaving")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -270,9 +271,9 @@ protected override async Task OnInitializedAsync()
     private async Task DeleteTeam(TeamDto team)
     {
         bool? result = await DialogService.ShowMessageBoxAsync(
-            "Potvrdenie zmazania",
-            $"Naozaj chcete zmazať tím '{team.Name}'? Táto akcia je nevratná a odstráni prepojenia na tím zo všetkých profilov.",
-            yesText: "Zmazať", cancelText: "Zrušiť",
+            T("admin.teams.confirmDeleteTitle"),
+            string.Format(T("admin.teams.confirmDeleteText"), team.Name),
+            yesText: T("admin.teams.deleteButton"), cancelText: T("admin.users.cancel"),
             options: new DialogOptions { MaxWidth = MaxWidth.Small }
         );
 
@@ -281,12 +282,12 @@ protected override async Task OnInitializedAsync()
             try
             {
                 await TeamsApi.DeleteTeamAsync(team.Id);
-                Snackbar.Add($"Tím '{team.Name}' bol zmazaný", Severity.Success);
+                Snackbar.Add(string.Format(T("admin.teams.deleted"), team.Name), Severity.Success);
                 await LoadData();
             }
             catch (Exception ex)
             {
-                Snackbar.Add($"Chyba pri mazaní tímu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+                Snackbar.Add($"{T("admin.teams.errorDeleting")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
             }
         }
     }
@@ -321,7 +322,7 @@ protected override async Task OnInitializedAsync()
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Nepodarilo sa načítať súpisku: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("admin.teams.errorLoadingRoster")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -346,14 +347,14 @@ protected override async Task OnInitializedAsync()
         try
         {
             await TeamsApi.AddMemberAsync(_rosterTeamId, child.Id);
-            Snackbar.Add($"{child.FirstName} {child.LastName} bol pridaný do tímu", Severity.Success);
+            Snackbar.Add(string.Format(T("admin.teams.childAddedToTeam"), $"{child.FirstName} {child.LastName}"), Severity.Success);
             await LoadRosterData();
 
             await LoadData();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 
@@ -362,14 +363,14 @@ protected override async Task OnInitializedAsync()
         try
         {
             await TeamsApi.RemoveMemberAsync(_rosterTeamId, member.Id);
-            Snackbar.Add($"{member.FirstName} {member.LastName} bol odstránený z tímu", Severity.Success);
+            Snackbar.Add(string.Format(T("admin.teams.childRemovedFromTeam"), $"{member.FirstName} {member.LastName}"), Severity.Success);
             await LoadRosterData();
 
             await LoadData();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 }

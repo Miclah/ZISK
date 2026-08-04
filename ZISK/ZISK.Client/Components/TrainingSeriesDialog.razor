@@ -1,4 +1,6 @@
+@inherits LocalizedComponentBase
 @using System.ComponentModel.DataAnnotations
+@using ZISK.Client.Display
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Trainings
 @using ZISK.Shared.DTOs.Teams
@@ -18,15 +20,15 @@
         else
         {
             <EditForm Model="@_model" OnValidSubmit="SubmitAsync">
-                <DataAnnotationsValidator />
+                <LocalizedDataAnnotationsValidator />
                 <MudStack Spacing="3">
                     <MudTextField @bind-Value="_model.Title"
                                   For="@(() => _model.Title)"
-                                  Label="Názov" Variant="Variant.Outlined" />
+                                  Label="@T("admin.trainings.table.name")" Variant="Variant.Outlined" />
 
                     <MudSelect T="Guid?" @bind-Value="_model.TeamId"
                                For="@(() => _model.TeamId)"
-                               Label="Tím" Variant="Variant.Outlined">
+                               Label="@T("dashboard.team")" Variant="Variant.Outlined">
                         @foreach (var team in _teams)
                         {
                             <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
@@ -35,14 +37,14 @@
 
                     <MudSelect T="Guid?" @bind-Value="_model.SeasonId"
                                For="@(() => _model.SeasonId)"
-                               Label="Sezóna" Variant="Variant.Outlined">
+                               Label="@T("admin.trainings.seasonLabel")" Variant="Variant.Outlined">
                         @foreach (var season in _seasons)
                         {
                             <MudSelectItem Value="@((Guid?)season.Id)">@season.Name (@season.StartDate – @season.EndDate)</MudSelectItem>
                         }
                     </MudSelect>
 
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Dni v týždni (aspoň jeden)</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@T("trainingSeriesDialog.daysOfWeek")</MudText>
                     <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1">
                         @foreach (var day in _dayOptions)
                         {
@@ -51,35 +53,35 @@
                     </MudStack>
                     @if (_daysError)
                     {
-                        <MudText Typo="Typo.caption" Color="Color.Error">Musíte vybrať aspoň jeden deň.</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Error">@T("trainingSeriesDialog.daysRequired")</MudText>
                     }
 
                     <MudTimePicker @bind-Time="_model.StartTime"
                                    For="@(() => _model.StartTime)"
-                                   Label="Začiatok" Variant="Variant.Outlined" AmPm="false" />
+                                   Label="@T("trainingSeriesDialog.start")" Variant="Variant.Outlined" AmPm="false" />
 
                     <MudTimePicker @bind-Time="_model.EndTime"
                                    For="@(() => _model.EndTime)"
-                                   Label="Koniec" Variant="Variant.Outlined" AmPm="false" />
+                                   Label="@T("trainingSeriesDialog.end")" Variant="Variant.Outlined" AmPm="false" />
 
                     <MudTextField @bind-Value="_model.Location"
                                   For="@(() => _model.Location)"
-                                  Label="Miesto" Variant="Variant.Outlined" />
+                                  Label="@T("trainingSeries.table.location")" Variant="Variant.Outlined" />
 
-                    <MudSelect T="TrainingType" @bind-Value="_model.Type" Label="Typ tréningu" Variant="Variant.Outlined">
-                        <MudSelectItem Value="TrainingType.Conditioning">Kondičný</MudSelectItem>
-                        <MudSelectItem Value="TrainingType.Technical">Technický</MudSelectItem>
-                        <MudSelectItem Value="TrainingType.Match">Herný</MudSelectItem>
-                        <MudSelectItem Value="TrainingType.Recovery">Regeneračný</MudSelectItem>
-                        <MudSelectItem Value="TrainingType.Other">Iný</MudSelectItem>
+                    <MudSelect T="TrainingType" @bind-Value="_model.Type" Label="@T("trainingFormDialog.trainingType")" Variant="Variant.Outlined">
+                        <MudSelectItem Value="TrainingType.Conditioning">@DomainLabels.TrainingTypeText(TrainingType.Conditioning)</MudSelectItem>
+                        <MudSelectItem Value="TrainingType.Technical">@DomainLabels.TrainingTypeText(TrainingType.Technical)</MudSelectItem>
+                        <MudSelectItem Value="TrainingType.Match">@DomainLabels.TrainingTypeText(TrainingType.Match)</MudSelectItem>
+                        <MudSelectItem Value="TrainingType.Recovery">@DomainLabels.TrainingTypeText(TrainingType.Recovery)</MudSelectItem>
+                        <MudSelectItem Value="TrainingType.Other">@DomainLabels.TrainingTypeText(TrainingType.Other)</MudSelectItem>
                     </MudSelect>
 
                     <MudTextField @bind-Value="_model.CoachNote"
                                   For="@(() => _model.CoachNote)"
-                                  Label="Poznámka trénera" Variant="Variant.Outlined" Lines="3" />
+                                  Label="@T("attendance.history.coachNote")" Variant="Variant.Outlined" Lines="3" />
 
                     <LoadingButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" FullWidth="true" Loading="@_saving">
-                        @(ExistingSeries is null ? "Vytvoriť sériu" : "Uložiť zmeny")
+                        @(ExistingSeries is null ? T("trainingSeriesDialog.createSeries") : T("profile.saveChanges"))
                     </LoadingButton>
                 </MudStack>
             </EditForm>
@@ -109,19 +111,20 @@
 
     // Flag values must be powers of 2 to match the [Flags] Weekdays enum stored in the database as a bitmask.
     // The order (Mon=1 … Sun=64) matches the Weekdays enum definition exactly.
-    private readonly DayOption[] _dayOptions =
-    [
-        new() { Flag = 1, Label = "Po" },
-        new() { Flag = 2, Label = "Ut" },
-        new() { Flag = 4, Label = "St" },
-        new() { Flag = 8, Label = "Št" },
-        new() { Flag = 16, Label = "Pi" },
-        new() { Flag = 32, Label = "So" },
-        new() { Flag = 64, Label = "Ne" }
-    ];
+    private DayOption[] _dayOptions = [];
 
     protected override async Task OnInitializedAsync()
     {
+        _dayOptions =
+        [
+            new() { Flag = 1, Label = T("trainingSeries.day.mon") },
+            new() { Flag = 2, Label = T("trainingSeries.day.tue") },
+            new() { Flag = 4, Label = T("trainingSeries.day.wed") },
+            new() { Flag = 8, Label = T("trainingSeries.day.thu") },
+            new() { Flag = 16, Label = T("trainingSeries.day.fri") },
+            new() { Flag = 32, Label = T("trainingSeries.day.sat") },
+            new() { Flag = 64, Label = T("trainingSeries.day.sun") }
+        ];
         try
         {
             _teams = await TeamsApi.GetTeamsAsync(true);
@@ -189,7 +192,7 @@
                 await TrainingSeriesApi.GenerateInstancesAsync(created.Id,
                     new GenerateInstancesRequest(today, today.AddDays(14)));
 
-                Snackbar.Add("Séria vytvorená a tréningy vygenerované.", Severity.Success);
+                Snackbar.Add(T("trainingSeriesDialog.createdAndGenerated"), Severity.Success);
             }
             else
             {
@@ -204,14 +207,14 @@
                     IsActive: true);
 
                 await TrainingSeriesApi.UpdateSeriesAsync(ExistingSeries.Id, request);
-                Snackbar.Add("Séria aktualizovaná.", Severity.Success);
+                Snackbar.Add(T("trainingSeriesDialog.updated"), Severity.Success);
             }
 
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {

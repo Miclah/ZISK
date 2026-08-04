@@ -1,4 +1,5 @@
 @page "/domov"
+@inherits LocalizedComponentBase
 @using System.Security.Claims
 @using System.Globalization
 @using ZISK.Client.Components
@@ -18,7 +19,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @attribute [Authorize(Roles = "Parent,Athlete,Child")]
 
-<PageTitle>Nástenka</PageTitle>
+<PageTitle>@T("dashboard.family.pageTitle")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-2">
 @if (_isLoading)
@@ -43,19 +44,19 @@ else
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Secondary"
                            StartIcon="@Icons.Material.Rounded.PersonAdd" OnClick="OpenAddChildDialog">
-                    Pridať dieťa
+                    @T("dashboard.family.addChild")
                 </MudButton>
                 <MudButton Variant="Variant.Outlined" Color="Color.Inherit"
                            Style="border-color: rgba(255,255,255,0.4); color: #fff;"
                            StartIcon="@Icons.Material.Rounded.Numbers" OnClick="OpenJoinByCodeDialog">
-                    Pridať dieťa cez kód
+                    @T("dashboard.family.addChildByCode")
                 </MudButton>
             }
             <MudButton Variant="Variant.Outlined" Color="Color.Inherit"
                        Style="border-color: rgba(255,255,255,0.4); color: #fff;"
                        StartIcon="@Icons.Material.Rounded.Description"
                        OnClick="OpenAddExcuseDialog">
-                Nová ospravedlnenka
+                @T("dashboard.family.newExcuse")
             </MudButton>
         </Actions>
     </DashboardHero>
@@ -63,27 +64,27 @@ else
     <MudGrid Class="mb-4" Spacing="3">
         <MudItem xs="6" sm="3">
             <CompactStatCard Icon="@Icons.Material.Filled.FitnessCenter" IconColor="Color.Primary"
-                             Value="@_kpiTrainingsThisWeek.ToString()" Label="Tréningy tento týždeň" />
+                             Value="@_kpiTrainingsThisWeek.ToString()" Label="@T("dashboard.family.kpi.trainingsThisWeek")" />
         </MudItem>
         <MudItem xs="6" sm="3">
             <CompactStatCard Icon="@Icons.Material.Filled.EventBusy" IconColor="Color.Warning"
-                             Value="@_kpiPendingExcuses.ToString()" Label="Aktívne ospravedlnenky" />
+                             Value="@_kpiPendingExcuses.ToString()" Label="@T("dashboard.family.kpi.activeExcuses")" />
         </MudItem>
         <MudItem xs="6" sm="3">
             <CompactStatCard Icon="@Icons.Material.Filled.Campaign" IconColor="Color.Info"
-                             Value="@_kpiRecentAnnouncements.ToString()" Label="Nové oznamy (7 dní)" />
+                             Value="@_kpiRecentAnnouncements.ToString()" Label="@T("dashboard.family.kpi.newAnnouncements")" />
         </MudItem>
         <MudItem xs="6" sm="3">
             <CompactStatCard Icon="@(_isParent ? Icons.Material.Filled.FamilyRestroom : Icons.Material.Filled.Person)"
                              IconColor="Color.Secondary"
                              Value="@(_isParent ? _childCards.Count.ToString() : "1")"
-                             Label="@(_isParent ? "Detí v rodine" : "Profil")" />
+                             Label="@(_isParent ? T("dashboard.family.kpi.childrenInFamily") : T("dashboard.family.kpi.profile"))" />
         </MudItem>
     </MudGrid>
 
     @if (_isParent)
     {
-        <MudText Typo="Typo.h6" Class="mb-3">Moja rodina</MudText>
+        <MudText Typo="Typo.h6" Class="mb-3">@T("dashboard.family.myFamily")</MudText>
     }
 
     <MudGrid Spacing="3">
@@ -94,20 +95,20 @@ else
                 {
                     <MudPaper Class="card-standard empty-state" Elevation="0">
                         <MudIcon Icon="@Icons.Material.Rounded.ChildCare" Class="empty-state__icon" />
-                        <div class="empty-state__title">Zatiaľ žiadne dieťa</div>
+                        <div class="empty-state__title">@T("dashboard.family.noChildrenTitle")</div>
                         <MudText Typo="Typo.body2" Color="Color.Secondary">
-                            Pridajte prvé dieťa alebo prijmite pozvánku od iného rodiča.
+                            @T("dashboard.family.noChildrenText")
                         </MudText>
                         <MudStack Row="true" Spacing="2" Justify="Justify.Center" Class="mt-2">
                             <MudButton Variant="Variant.Filled" Color="Color.Primary"
                                        StartIcon="@Icons.Material.Rounded.PersonAdd"
                                        OnClick="OpenAddChildDialog">
-                                Pridať dieťa
+                                @T("dashboard.family.addChild")
                             </MudButton>
                             <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                                        StartIcon="@Icons.Material.Rounded.Numbers"
                                        OnClick="OpenJoinByCodeDialog">
-                                Pridať dieťa cez kód
+                                @T("dashboard.family.addChildByCode")
                             </MudButton>
                         </MudStack>
                     </MudPaper>
@@ -132,11 +133,11 @@ else
             }
             else
             {
-                <MudText Typo="Typo.h6" Class="mb-3">Najbližší tréning</MudText>
+                <MudText Typo="Typo.h6" Class="mb-3">@T("dashboard.family.nextTraining")</MudText>
                 <MudPaper Class="card-standard pa-4" Elevation="0">
                     @if (_athleteNextTraining is null)
                     {
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadny nadchádzajúci tréning.</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@T("dashboard.family.noUpcomingTraining")</MudText>
                     }
                     else
                     {
@@ -146,12 +147,12 @@ else
                                 @_athleteNextTraining.StartTime.ToString("dd.MM.yyyy HH:mm") – @_athleteNextTraining.EndTime.ToString("HH:mm")
                             </MudText>
                             <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                Miesto: @(_athleteNextTraining.Location ?? "Neuvedené")
+                                @T("dashboard.family.locationPrefix") @(_athleteNextTraining.Location ?? T("dashboard.locationNotSpecified"))
                             </MudText>
                             <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" FullWidth="false"
                                        StartIcon="@Icons.Material.Rounded.CalendarMonth"
                                        OnClick='() => NavigationManager.NavigateTo("/kalendar")'>
-                                Zobraziť kalendár
+                                @T("dashboard.family.showCalendar")
                             </MudButton>
                         </MudStack>
                     }
@@ -233,7 +234,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní dát: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("dashboard.family.errorLoading")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -370,7 +371,7 @@ else
     private async Task OpenAddChildDialog()
     {
         var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<AddChildDialog>("Pridať dieťa", options);
+        var dialog = await DialogService.ShowAsync<AddChildDialog>(T("dashboard.family.addChild"), options);
         var result = await dialog.Result;
 
         if (result is not null && !result.Canceled)
@@ -380,7 +381,7 @@ else
     private async Task OpenJoinByCodeDialog()
     {
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<JoinChildByCodeDialog>("Pridať dieťa cez kód", options);
+        var dialog = await DialogService.ShowAsync<JoinChildByCodeDialog>(T("dashboard.family.addChildByCode"), options);
         var result = await dialog.Result;
 
         if (result is { Canceled: false })
@@ -390,7 +391,7 @@ else
     private async Task OpenAddExcuseDialog()
     {
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<AddExcuseDialog>("Nová ospravedlnenka", options);
+        var dialog = await DialogService.ShowAsync<AddExcuseDialog>(T("dashboard.family.newExcuse"), options);
         var result = await dialog.Result;
 
         if (result is { Canceled: false })

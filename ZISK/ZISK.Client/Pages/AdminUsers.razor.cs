@@ -124,7 +124,7 @@ public partial class AdminUsers
         }
         catch (Exception ex)
         {
-            _error = $"Nepodarilo sa načítať používateľov: {ApiErrorFormatter.ToUserMessage(ex)}";
+            _error = $"{T("admin.users.errorLoadingUsers")} {ApiErrorFormatter.ToUserMessage(ex)}";
         }
         finally
         {
@@ -143,7 +143,7 @@ public partial class AdminUsers
         };
 
         var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<AddUserDialog>("Pridať používateľa", parameters, options);
+        var dialog = await DialogService.ShowAsync<AddUserDialog>(T("dashboard.admin.addUser"), parameters, options);
         var result = await dialog.Result;
 
         if (result is null || result.Canceled || result.Data is not AddUserDialog.AddUserDialogModel model)
@@ -156,12 +156,12 @@ public partial class AdminUsers
             var request = model.ToRequest(createEmail);
 
             await UsersApi.CreateUserAsync(request);
-            Snackbar.Add("Používateľ bol vytvorený.", Severity.Success);
+            Snackbar.Add(T("admin.users.userCreated"), Severity.Success);
             await LoadData();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri ukladaní: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("admin.users.errorSaving")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -194,7 +194,7 @@ public partial class AdminUsers
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Nepodarilo sa načítať detail používateľa: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Warning);
+            Snackbar.Add($"{T("admin.users.errorLoadingDetail")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Warning);
         }
 
         _editDialogVisible = true;
@@ -209,20 +209,20 @@ public partial class AdminUsers
     {
         if (_editModel.Role == "Child" && _selectedParentIds.Count == 0)
         {
-            Snackbar.Add("Pre dieťa je potrebné vybrať aspoň jedného rodiča.", Severity.Warning);
+            Snackbar.Add(T("admin.users.parentRequired"), Severity.Warning);
             return;
         }
 
         // Business rule: a child can have at most 2 parents. Enforced here on the client; server also validates via EnsureChildParentLinksAsync.
         if (_editModel.Role == "Child" && _selectedParentIds.Count > 2)
         {
-            Snackbar.Add("Dieťa môže mať maximálne 2 rodičov.", Severity.Warning);
+            Snackbar.Add(T("admin.users.maxTwoParents"), Severity.Warning);
             return;
         }
 
         if (_editModel.Role == "Child" && !_editModel.DateOfBirth.HasValue)
         {
-            Snackbar.Add("Pre dieťa je dátum narodenia povinný.", Severity.Warning);
+            Snackbar.Add(T("admin.users.dobRequired"), Severity.Warning);
             return;
         }
 
@@ -248,7 +248,7 @@ public partial class AdminUsers
                     _selectedParentIds.ToList());
 
                 await UsersApi.UpdateUserAsync(_selectedUser.Id, updateRequest);
-                Snackbar.Add("Používateľ bol upravený.", Severity.Success);
+                Snackbar.Add(T("admin.users.userUpdated"), Severity.Success);
             }
 
             _editDialogVisible = false;
@@ -256,7 +256,7 @@ public partial class AdminUsers
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri ukladaní: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("admin.users.errorSaving")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -267,10 +267,10 @@ public partial class AdminUsers
     private async Task ConfirmDeleteUser(UserListDto user)
     {
         bool? result = await DialogService.ShowMessageBoxAsync(
-            "Upozornenie: trvalé zmazanie",
-            $"Naozaj chcete natrvalo vymazať používateľa '{user.FirstName} {user.LastName}'? Táto akcia je nevratná.",
-            yesText: "Áno, vymazať",
-            cancelText: "Zrušiť",
+            T("admin.users.deleteWarningTitle"),
+            string.Format(T("admin.users.deleteConfirmText"), $"{user.FirstName} {user.LastName}"),
+            yesText: T("admin.users.yesDelete"),
+            cancelText: T("admin.users.cancel"),
             options: new DialogOptions { MaxWidth = MaxWidth.Small });
 
         if (result != true)
@@ -279,12 +279,12 @@ public partial class AdminUsers
         try
         {
             await UsersApi.DeleteUserAsync(user.Id);
-            Snackbar.Add("Používateľ bol odstránený.", Severity.Success);
+            Snackbar.Add(T("admin.users.userDeleted"), Severity.Success);
             await LoadData();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri mazaní: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("admin.users.errorDeleting")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 
@@ -329,10 +329,10 @@ public partial class AdminUsers
     private async Task ConfirmUpgradeToAthlete(UserListDto user)
     {
         bool? result = await DialogService.ShowMessageBoxAsync(
-            "Povýšiť na športovca",
-            $"Naozaj chcete povýšiť '{user.FirstName} {user.LastName}' z roly Dieťa na Športovca?",
-            yesText: "Áno, povýšiť",
-            cancelText: "Zrušiť",
+            T("admin.users.upgradeToAthlete"),
+            string.Format(T("admin.users.upgradeConfirmText"), $"{user.FirstName} {user.LastName}"),
+            yesText: T("admin.users.yesUpgrade"),
+            cancelText: T("admin.users.cancel"),
             options: new DialogOptions { MaxWidth = MaxWidth.Small });
 
         if (result != true)
@@ -341,12 +341,12 @@ public partial class AdminUsers
         try
         {
             await UsersApi.UpgradeToAthleteAsync(user.Id);
-            Snackbar.Add("Používateľ bol povýšený na Športovca.", Severity.Success);
+            Snackbar.Add(T("admin.users.userUpgraded"), Severity.Success);
             await LoadData();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 

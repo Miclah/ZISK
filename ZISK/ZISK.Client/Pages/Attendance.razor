@@ -1,4 +1,5 @@
 @page "/dochadzka"
+@inherits LocalizedComponentBase
 @using ZISK.Client.Components
 @using ZISK.Client.Components.Attendance
 @using ZISK.Client.Services
@@ -15,10 +16,10 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @attribute [Authorize(Roles = "Parent,Athlete")]
 
-<PageTitle>Dochádzka</PageTitle>
+<PageTitle>@T("attendance.pageTitle")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-2">
-    <PageHeader Icon="@Icons.Material.Rounded.EventNote" Title="Dochádzka" Class="mb-3">
+    <PageHeader Icon="@Icons.Material.Rounded.EventNote" Title="@T("attendance.pageTitle")" Class="mb-3">
         <Actions>
             @if (_canCreateExcuse)
             {
@@ -26,7 +27,7 @@
                     <MudButton Variant="Variant.Filled" Color="Color.Primary"
                                StartIcon="@Icons.Material.Rounded.Add"
                                OnClick="OpenCreateExcuseDialog">
-                        Nová ospravedlnenka
+                        @T("dashboard.family.newExcuse")
                     </MudButton>
                 </MudHidden>
             }
@@ -36,7 +37,7 @@
     @if (_childFilterOptions.Count > 1)
     {
         <MudPaper Elevation="0" Class="pa-2 mb-3">
-            <MudToggleGroup T="string" Value="_selectedChildId" ValueChanged="OnSelectedChildChanged"
+            <MudToggleGroup T="string" Value="@_selectedChildId" ValueChanged="OnSelectedChildChanged"
                             Color="Color.Primary"
                             SelectionMode="SelectionMode.SingleSelection" CheckMark="true">
                 @foreach (var opt in _childFilterOptions)
@@ -49,13 +50,13 @@
 
     <MudTabs @bind-ActivePanelIndex="_activeTab" Rounded="true" Elevation="0" PanelClass="pt-4"
              ApplyEffectsToContainer="true" Class="card-standard">
-        <MudTabPanel Text="Prehľad" Icon="@Icons.Material.Rounded.Dashboard">
+        <MudTabPanel Text="@T("attendance.tabs.overview")" Icon="@Icons.Material.Rounded.Dashboard">
             <AttendanceOverviewTab IsLoading="_isLoading"
                                    Upcoming="_filteredUpcoming"
                                    Attendance="_filteredAttendance" />
         </MudTabPanel>
 
-        <MudTabPanel Text="História" Icon="@Icons.Material.Rounded.History">
+        <MudTabPanel Text="@T("attendance.tabs.history")" Icon="@Icons.Material.Rounded.History">
             <AttendanceHistoryTab IsLoading="_isLoading"
                                   CanCreateExcuse="_canCreateExcuse"
                                   Records="_filteredAttendance"
@@ -65,10 +66,10 @@
                                   OnCreateExcuse="OpenCreateExcuseDialog" />
         </MudTabPanel>
 
-        <MudTabPanel Text="Ospravedlnenky" Icon="@Icons.Material.Rounded.Description">
+        <MudTabPanel Text="@T("attendance.tabs.excuses")" Icon="@Icons.Material.Rounded.Description">
             <AttendanceExcusesTab IsLoading="_isLoadingExcuses"
                                   CanManage="_canCreateExcuse"
-                                  Error="_excusesError"
+                                  Error="@_excusesError"
                                   Excuses="_filteredExcuses"
                                   OnCreate="OpenCreateExcuseDialog"
                                   OnEdit="OpenEditExcuseDialog"
@@ -176,7 +177,7 @@
             return;
         }
 
-        var options = new List<FilterOption> { new(AllChildrenKey, "Všetky deti") };
+        var options = new List<FilterOption> { new(AllChildrenKey, T("attendance.allChildren")) };
         options.AddRange(realChildren
             .OrderBy(c => c.LastName).ThenBy(c => c.FirstName)
             .Select(c => new FilterOption(c.Id, c.FirstName)));
@@ -198,8 +199,8 @@
             var results = await Task.WhenAll(tasks);
             _upcoming = results
                 .SelectMany(r => r.Trainings.Select(t => new AttendanceOverviewTab.UpcomingItem(t,
-                    r.Person.IsOwnProfile ? "Seba" : $"{r.Person.FirstName} {r.Person.LastName}",
-                    r.Person.TeamName ?? "Bez tímu",
+                    r.Person.IsOwnProfile ? T("attendance.self") : $"{r.Person.FirstName} {r.Person.LastName}",
+                    r.Person.TeamName ?? T("dashboard.child.noTeam"),
                     r.Person.Id)))
                 .OrderBy(x => x.Training.StartTime)
                 .ToList();
@@ -208,7 +209,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní rozvrhu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorLoadingSchedule")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 
@@ -222,7 +223,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -252,7 +253,7 @@
     private async Task OpenCreateExcuseDialog()
     {
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<AddExcuseDialog>("Nová ospravedlnenka", options);
+        var dialog = await DialogService.ShowAsync<AddExcuseDialog>(T("dashboard.family.newExcuse"), options);
         var result = await dialog.Result;
 
         if (result is { Canceled: false })
@@ -271,13 +272,13 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní ospravedlnenky: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorLoadingExcuse")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
             return;
         }
 
         var parameters = new DialogParameters { [nameof(EditExcuseDialog.Excuse)] = detail };
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<EditExcuseDialog>("Upraviť ospravedlnenku", parameters, options);
+        var dialog = await DialogService.ShowAsync<EditExcuseDialog>(T("attendance.editExcuse"), parameters, options);
         var result = await dialog.Result;
 
         if (result is { Canceled: false })
@@ -291,12 +292,12 @@
         try
         {
             await ExcusesApi.DeleteExcuseAsync(id);
-            Snackbar.Add("Ospravedlnenka vymazaná", Severity.Success);
+            Snackbar.Add(T("attendance.excuseDeleted"), Severity.Success);
             await LoadExcuses();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 

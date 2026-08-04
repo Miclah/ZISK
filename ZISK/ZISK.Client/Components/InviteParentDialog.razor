@@ -1,3 +1,4 @@
+@inherits LocalizedComponentBase
 @using System.ComponentModel.DataAnnotations
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Invitations
@@ -7,7 +8,7 @@
 
 <MudDialog>
     <TitleContent>
-        <MudText Typo="Typo.h6">Pozvať ďalšieho rodiča</MudText>
+        <MudText Typo="Typo.h6">@T("childDetail.inviteAnotherParent")</MudText>
     </TitleContent>
     <DialogContent>
         @* pre ucely testovania zakomentovane *@
@@ -16,7 +17,7 @@
             <MudTabPanel Text="E-mailom" Icon="@Icons.Material.Filled.Email">
                 <MudStack Spacing="3" Class="pt-3">
                     <EditForm Model="@_emailModel" OnValidSubmit="SendEmail">
-                        <DataAnnotationsValidator />
+                        <LocalizedDataAnnotationsValidator />
                         <MudTextField @bind-Value="_emailModel.TargetEmail"
                                       For="@(() => _emailModel.TargetEmail)"
                                       Label="E-mail rodiča"
@@ -36,27 +37,27 @@
             </MudTabPanel>
         *@
         <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true">
-            <MudTabPanel Text="Kódom" Icon="@Icons.Material.Filled.Numbers">
+            <MudTabPanel Text="@T("inviteParentDialog.byCodeTab")" Icon="@Icons.Material.Filled.Numbers">
                 <MudStack Spacing="3" Class="pt-3">
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        Vygenerujte jednorazový kód a zdieľajte ho priamo druhému rodičovi. Kód je platný 24 hodín.
+                        @T("inviteParentDialog.generateCodeHint")
                     </MudText>
                     <LoadingButton Color="Color.Secondary" Variant="Variant.Filled" OnClick="GenerateCode"
-                                   Loading="@_isGeneratingCode" LoadingText="Generujem...">
-                        Vygenerovať kód
+                                   Loading="@_isGeneratingCode" LoadingText="@T("inviteParentDialog.generating")">
+                        @T("inviteParentDialog.generateCode")
                     </LoadingButton>
                     @if (_generatedCode is not null)
                     {
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                             <MudTextField Value="@_generatedCode.Code"
-                                          Label="Kód"
+                                          Label="@T("inviteParentDialog.codeLabel")"
                                           Variant="Variant.Outlined"
                                           ReadOnly="true"
                                           Style="font-family: monospace; font-size: 1.2rem; letter-spacing: 4px; max-width: 180px;" />
-                            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" OnClick="CopyCode" Title="Skopírovať" />
+                            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" OnClick="CopyCode" Title="@T("inviteParentDialog.copyTooltip")" />
                         </MudStack>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            Platný do: @_generatedCode.ExpiresAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                            @T("inviteParentDialog.validUntilPrefix") @_generatedCode.ExpiresAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
                         </MudText>
                     }
                 </MudStack>
@@ -64,7 +65,7 @@
         </MudTabs>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Close">Zatvoriť</MudButton>
+        <MudButton OnClick="Close">@T("inviteParentDialog.closeButton")</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -111,7 +112,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -124,7 +125,7 @@
         if (_generatedCode is not null)
         {
             await JS.InvokeVoidAsync("navigator.clipboard.writeText", _generatedCode.Code);
-            Snackbar.Add("Kód skopírovaný", Severity.Info);
+            Snackbar.Add(T("inviteParentDialog.codeCopied"), Severity.Info);
         }
     }
 

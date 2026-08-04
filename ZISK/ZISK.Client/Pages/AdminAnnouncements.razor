@@ -1,4 +1,5 @@
 @page "/admin/systemove-oznamy"
+@inherits LocalizedComponentBase
 @using System.ComponentModel.DataAnnotations
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Announcements
@@ -11,17 +12,17 @@
 @inject NavigationManager NavigationManager
 @attribute [Authorize(Roles = "Admin")]
 
-<PageTitle>Systémové oznamy</PageTitle>
+<PageTitle>@T("admin.announcements.pageTitle")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
         <MudIcon Icon="@Icons.Material.Filled.Campaign" Size="Size.Large" Color="Color.Primary" />
-        <MudText Typo="Typo.h4">Systémové oznamy</MudText>
+        <MudText Typo="Typo.h4">@T("admin.announcements.pageTitle")</MudText>
     </MudStack>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
-        Vytvoriť oznam
+        @T("admin.announcements.create")
     </MudButton>
 </MudStack>
 
@@ -36,18 +37,18 @@
 }
 else if (!_announcements.Any())
 {
-    <MudAlert Severity="Severity.Info">Zatiaľ neexistujú žiadne systémové oznamy.</MudAlert>
+    <MudAlert Severity="Severity.Info">@T("admin.announcements.noneYet")</MudAlert>
 }
 else
 {
     <MudHidden Breakpoint="Breakpoint.MdAndDown">
         <MudTable Items="_announcements" Hover="true" Dense="true" Elevation="2">
             <HeaderContent>
-                <MudTh>Názov</MudTh>
-                <MudTh>Dátum</MudTh>
-                <MudTh>Autor</MudTh>
-                <MudTh>Cieľ</MudTh>
-                <MudTh Style="text-align:right">Akcie</MudTh>
+                <MudTh>@T("admin.trainings.table.name")</MudTh>
+                <MudTh>@T("attendance.history.date")</MudTh>
+                <MudTh>@T("admin.announcements.table.author")</MudTh>
+                <MudTh>@T("admin.announcements.table.target")</MudTh>
+                <MudTh Style="text-align:right">@T("attendance.excuses.actions")</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd>
@@ -58,7 +59,7 @@ else
                 </MudTd>
                 <MudTd>@context.PublishDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
                 <MudTd>@context.AuthorName</MudTd>
-                <MudTd>@(string.IsNullOrWhiteSpace(context.TargetTeamName) ? "Celý klub" : context.TargetTeamName)</MudTd>
+                <MudTd>@(string.IsNullOrWhiteSpace(context.TargetTeamName) ? T("admin.announcements.wholeClub") : context.TargetTeamName)</MudTd>
                 <MudTd Style="text-align:right">
                     <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                    Color="Color.Error"
@@ -91,7 +92,7 @@ else
                             </MudText>
                             <MudText Typo="Typo.caption" Color="Color.Tertiary">•</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                @(string.IsNullOrWhiteSpace(announcement.TargetTeamName) ? "Celý klub" : announcement.TargetTeamName)
+                                @(string.IsNullOrWhiteSpace(announcement.TargetTeamName) ? T("admin.announcements.wholeClub") : announcement.TargetTeamName)
                             </MudText>
                         </MudStack>
                     </MudStack>
@@ -104,27 +105,27 @@ else
 
 <MudDialog @bind-Visible="_createDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
     <TitleContent>
-        <MudText Typo="Typo.h6">Nový systémový oznam</MudText>
+        <MudText Typo="Typo.h6">@T("admin.announcements.newSystemAnnouncement")</MudText>
     </TitleContent>
     <DialogContent>
         <EditForm Model="@_announcementModel" OnValidSubmit="CreateAnnouncement">
-            <DataAnnotationsValidator />
+            <LocalizedDataAnnotationsValidator />
             <MudStack Spacing="3" Class="py-2">
                 <MudTextField @bind-Value="_announcementModel.Title"
                               For="@(() => _announcementModel.Title)"
-                              Label="Názov" Variant="Variant.Outlined" />
+                              Label="@T("admin.trainings.table.name")" Variant="Variant.Outlined" />
                 <MudTextField @bind-Value="_announcementModel.Content"
                               For="@(() => _announcementModel.Content)"
-                              Label="Obsah" Variant="Variant.Outlined" Lines="5" />
-                <MudSelect T="string" @bind-Value="_announcementModel.TargetMode" Label="Cieľ oznamu" Variant="Variant.Outlined">
-                    <MudSelectItem Value="@("All")">Celý klub</MudSelectItem>
-                    <MudSelectItem Value="@("Team")">Konkrétny tím</MudSelectItem>
+                              Label="@T("admin.announcements.contentLabel")" Variant="Variant.Outlined" Lines="5" />
+                <MudSelect T="string" @bind-Value="_announcementModel.TargetMode" Label="@T("admin.announcements.targetLabel")" Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("All")">@T("admin.announcements.wholeClub")</MudSelectItem>
+                    <MudSelectItem Value="@("Team")">@T("admin.announcements.specificTeam")</MudSelectItem>
                 </MudSelect>
                 @if (_announcementModel.TargetMode == "Team")
                 {
                     <MudSelect T="Guid?" @bind-Value="_announcementModel.TargetTeamId"
                                For="@(() => _announcementModel.TargetTeamId)"
-                               Label="Vyberte tím" Variant="Variant.Outlined">
+                               Label="@T("admin.announcements.selectTeam")" Variant="Variant.Outlined">
                         @foreach (var team in _teams)
                         {
                             <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
@@ -136,7 +137,7 @@ else
                               Variant="Variant.Filled"
                               Loading="_isSaving"
                               FullWidth="true">
-                    Uložiť
+                    @T("admin.users.save")
                 </LoadingButton>
             </MudStack>
         </EditForm>
@@ -179,7 +180,7 @@ protected override async Task OnInitializedAsync()
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Nepodarilo sa načítať oznamy: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("admin.announcements.errorLoading")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -213,13 +214,13 @@ protected override async Task OnInitializedAsync()
                 null);
 
             await AnnouncementsApi.CreateAnnouncementAsync(request);
-            Snackbar.Add("Oznam bol vytvorený.", Severity.Success);
+            Snackbar.Add(T("admin.announcements.created"), Severity.Success);
             _createDialogVisible = false;
             await LoadData();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri ukladaní oznamu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("admin.announcements.errorSaving")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -230,10 +231,10 @@ protected override async Task OnInitializedAsync()
     private async Task ConfirmDelete(AnnouncementListDto announcement)
     {
         bool? result = await DialogService.ShowMessageBoxAsync(
-            "Potvrdenie zmazania",
-            $"Naozaj chcete zmazať oznam '{announcement.Title}'?",
-            yesText: "Zmazať",
-            cancelText: "Zrušiť",
+            T("admin.teams.confirmDeleteTitle"),
+            string.Format(T("admin.announcements.deleteConfirmText"), announcement.Title),
+            yesText: T("admin.teams.deleteButton"),
+            cancelText: T("admin.users.cancel"),
             options: new DialogOptions { MaxWidth = MaxWidth.Small });
 
         if (result != true)
@@ -242,12 +243,12 @@ protected override async Task OnInitializedAsync()
         try
         {
             await AnnouncementsApi.DeleteAnnouncementAsync(announcement.Id);
-            Snackbar.Add("Oznam bol zmazaný.", Severity.Success);
+            Snackbar.Add(T("admin.announcements.deleted"), Severity.Success);
             await LoadData();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri mazaní oznamu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("admin.announcements.errorDeleting")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 

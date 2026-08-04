@@ -1,4 +1,5 @@
 @page "/admin"
+@inherits LocalizedComponentBase
 @using ZISK.Client.Components
 @using ZISK.Client.Components.Dashboard
 @using ZISK.Client.Services
@@ -15,15 +16,15 @@
 @inject NavigationManager NavigationManager
 @attribute [Authorize(Roles = "Admin")]
 
-<PageTitle>Nástenka administrátora</PageTitle>
+<PageTitle>@T("dashboard.admin.pageTitle")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
-<PageHeader Icon="@Icons.Material.Filled.Dashboard" Title="Nástenka">
+<PageHeader Icon="@Icons.Material.Filled.Dashboard" Title="@T("dashboard.admin.title")">
     <Actions>
         <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadDashboardData">
-            Obnoviť dáta
+            @T("dashboard.admin.refreshData")
         </MudButton>
     </Actions>
 </PageHeader>
@@ -44,28 +45,28 @@ else if (_dashboardStats != null)
 {
     <MudGrid Class="mb-4">
         <MudItem xs="12" sm="6" md="3">
-            <StatCard Label="Celkový počet členov"
+            <StatCard Label="@T("dashboard.admin.totalMembers")"
                       Value="@_dashboardStats.TotalMembers.ToString()"
                       Icon="@Icons.Material.Filled.PeopleAlt"
                       IconColor="Color.Primary"
                       OnClick='() => NavigateTo("/admin/pouzivatelia")' />
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <StatCard Label="Počet aktívnych tímov"
+            <StatCard Label="@T("dashboard.admin.activeTeams")"
                       Value="@_dashboardStats.ActiveTeams.ToString()"
                       Icon="@Icons.Material.Filled.Groups"
                       IconColor="Color.Success"
                       OnClick='() => NavigateTo("/admin/timy")' />
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <StatCard Label="Počet trénerov"
+            <StatCard Label="@T("dashboard.admin.coachCount")"
                       Value="@_coachCount.ToString()"
                       Icon="@Icons.Material.Filled.Sports"
                       IconColor="Color.Info"
                       OnClick='() => NavigateTo("/admin/pouzivatelia")' />
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <StatCard Label="Používateľské účty"
+            <StatCard Label="@T("dashboard.admin.userAccounts")"
                       Value="@_dashboardStats.TotalUsers.ToString()"
                       Icon="@Icons.Material.Filled.Person"
                       IconColor="Color.Secondary"
@@ -78,25 +79,25 @@ else if (_dashboardStats != null)
             <MudPaper Class="pa-5" Elevation="2" Style="height: 100%;">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
                     <MudIcon Icon="@Icons.Material.Filled.InsertChart" Color="Color.Primary" />
-                    <MudText Typo="Typo.h6">Tento týždeň</MudText>
+                    <MudText Typo="Typo.h6">@T("dashboard.admin.thisWeek")</MudText>
                 </MudStack>
 
                 <MudStack Spacing="0">
                     <MetricRow Icon="@Icons.Material.Filled.FitnessCenter"
-                               Label="Tréningov"
-                               Caption="za aktuálny týždeň"
+                               Label="@T("dashboard.admin.trainingsMetric")"
+                               Caption="@T("dashboard.admin.currentWeekCaption")"
                                Value="@_weeklyTrainings.ToString()"
                                IconColor="Color.Primary" />
                     <MudDivider />
                     <MetricRow Icon="@Icons.Material.Filled.HowToReg"
-                               Label="Priemerná účasť"
+                               Label="@T("dashboard.admin.averageAttendance")"
                                Value="@($"{_weeklyAttendance}%")"
                                IconColor="Color.Success"
                                Progress="_weeklyAttendance" />
                     <MudDivider />
                     <MetricRow Icon="@Icons.Material.Filled.Description"
-                               Label="Ospravedlnenky"
-                               Caption="za aktuálny týždeň"
+                               Label="@T("dashboard.admin.excusesMetric")"
+                               Caption="@T("dashboard.admin.currentWeekCaption")"
                                Value="@_weeklyExcuses.ToString()"
                                IconColor="Color.Warning" />
                 </MudStack>
@@ -116,19 +117,19 @@ else if (_dashboardStats != null)
 
         <MudItem xs="12" md="5">
             <MudPaper Class="pa-5" Elevation="2" Style="height: 100%;">
-                <MudText Typo="Typo.h6" Class="mb-2">Rýchle akcie</MudText>
+                <MudText Typo="Typo.h6" Class="mb-2">@T("dashboard.admin.quickActions")</MudText>
                 <MudList T="string" Dense="true" Clickable="true">
                     <MudListItem T="string" Icon="@Icons.Material.Filled.PersonAdd" OnClick='() => NavigateTo("/admin/pouzivatelia?action=create")'>
-                        Pridať používateľa
+                        @T("dashboard.admin.addUser")
                     </MudListItem>
                     <MudListItem T="string" Icon="@Icons.Material.Filled.GroupAdd" OnClick='() => NavigateTo("/admin/timy?action=create")'>
-                        Vytvoriť nový tím
+                        @T("dashboard.admin.createTeam")
                     </MudListItem>
                     <MudListItem T="string" Icon="@Icons.Material.Filled.Campaign" OnClick='() => NavigateTo("/admin/systemove-oznamy?action=create")'>
-                        Zverejniť globálny oznam
+                        @T("dashboard.admin.publishAnnouncement")
                     </MudListItem>
                     <MudListItem T="string" Icon="@Icons.Material.Filled.FitnessCenter" OnClick='() => NavigateTo("/admin/treningy?action=create")'>
-                        Vytvoriť tréning
+                        @T("dashboard.admin.createTraining")
                     </MudListItem>
                 </MudList>
             </MudPaper>
@@ -214,7 +215,7 @@ else if (_dashboardStats != null)
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní štatistík: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("dashboard.admin.errorLoadingStats")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {

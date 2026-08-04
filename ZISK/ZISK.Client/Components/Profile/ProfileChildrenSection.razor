@@ -1,10 +1,11 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @using ZISK.Client.Components
 @using ZISK.Client.Services
 @*
     "Moje deti" (parents only): pick a child and view their read-only details.
 *@
 
-<ProfileSectionHeading Icon="@Icons.Material.Rounded.FamilyRestroom" Title="Moje deti" />
+<ProfileSectionHeading Icon="@Icons.Material.Rounded.FamilyRestroom" Title="@T("profile.nav.children")" />
 
 @if (IsLoading)
 {
@@ -13,7 +14,7 @@
 else if (Children.Count == 0)
 {
     <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
-        Zatiaľ nemáte priradené žiadne dieťa. Pridať môžete cez sekciu „Prehľad" pomocou kódu pozvánky.
+        @T("profile.noChildrenAssigned")
     </MudAlert>
 }
 else
@@ -21,7 +22,7 @@ else
     @if (Children.Count > 1)
     {
         <MudSelect T="string" Value="SelectedChildId" ValueChanged="OnChildSelected"
-                   Label="Vyberte dieťa" Variant="Variant.Outlined"
+                   Label="@T("profile.selectChild")" Variant="Variant.Outlined"
                    Class="mb-4" Style="max-width:360px;">
             @foreach (var child in Children)
             {
@@ -34,16 +35,16 @@ else
     {
         <MudGrid Spacing="3">
             <MudItem xs="12" sm="6">
-                <ReadOnlyField Label="Meno" Value="@SelectedChild.FirstName" />
+                <ReadOnlyField Label="@T("admin.users.table.firstName")" Value="@SelectedChild.FirstName" />
             </MudItem>
             <MudItem xs="12" sm="6">
-                <ReadOnlyField Label="Priezvisko" Value="@SelectedChild.LastName" />
+                <ReadOnlyField Label="@T("admin.users.table.lastName")" Value="@SelectedChild.LastName" />
             </MudItem>
             <MudItem xs="12" sm="6">
-                <ReadOnlyField Label="Dátum narodenia" Value="@SelectedChildBirthDateText" />
+                <ReadOnlyField Label="@T("dashboard.child.dateOfBirth")" Value="@SelectedChildBirthDateText" />
             </MudItem>
             <MudItem xs="12" sm="6">
-                <ReadOnlyField Label="Tím" Value="@(SelectedChild.TeamName ?? "—")" />
+                <ReadOnlyField Label="@T("dashboard.team")" Value="@(SelectedChild.TeamName ?? "—")" />
             </MudItem>
         </MudGrid>
     }

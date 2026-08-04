@@ -1,4 +1,5 @@
 ﻿@page "/dieta"
+@inherits LocalizedComponentBase
 @using ZISK.Client.Layout
 @using ZISK.Client.Display
 @using ZISK.Client.Services
@@ -16,7 +17,7 @@
 @attribute [Authorize(Roles = "Child,Athlete")]
 @using ZISK.Client.Components
 
-<PageTitle>Môj prehľad</PageTitle>
+<PageTitle>@T("dashboard.child.pageTitle")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-2">
     @if (_isLoading)
@@ -43,8 +44,8 @@
                         @((_profile?.FirstName ?? "?").Substring(0, 1).ToUpper())
                     </MudAvatar>
                     <MudStack Spacing="0">
-                        <h1 class="dashboard-hero__greeting">Ahoj, @(_profile?.FirstName ?? "")</h1>
-                        <div class="dashboard-hero__subtitle">@(_profile?.TeamName ?? "Bez tímu")</div>
+                        <h1 class="dashboard-hero__greeting">@T("dashboard.child.greeting") @(_profile?.FirstName ?? "")</h1>
+                        <div class="dashboard-hero__subtitle">@(_profile?.TeamName ?? T("dashboard.child.noTeam"))</div>
                     </MudStack>
                 </MudStack>
                 @* Athlete can submit excuses themselves; Child cannot — a Parent does it on their behalf. *@
@@ -54,7 +55,7 @@
                                Style="border-color: rgba(255,255,255,0.4); color: #fff;"
                                StartIcon="@Icons.Material.Rounded.Description"
                                OnClick="OpenAddExcuseDialog">
-                        Nová ospravedlnenka
+                        @T("dashboard.family.newExcuse")
                     </MudButton>
                 }
             </MudStack>
@@ -64,25 +65,25 @@
             <MudItem xs="12" md="4">
                 <MudCard Elevation="2" Class="h-100">
                     <MudCardContent>
-                        <MudText Typo="Typo.h6" Class="mb-3">Môj profil</MudText>
+                        <MudText Typo="Typo.h6" Class="mb-3">@T("dashboard.child.myProfile")</MudText>
                         @if (_profile is null)
                         {
-                            <MudText Typo="Typo.body2">Profil nie je dostupný.</MudText>
+                            <MudText Typo="Typo.body2">@T("dashboard.child.profileUnavailable")</MudText>
                         }
                         else
                         {
                             <MudStack Spacing="2">
                                 <div>
-                                    <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">Meno</MudText>
+                                    <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">@T("dashboard.child.name")</MudText>
                                     <MudText Typo="Typo.body1" Style="font-weight:600;">@_profile.FirstName @_profile.LastName</MudText>
                                 </div>
                                 <div>
-                                    <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">Dátum narodenia</MudText>
+                                    <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">@T("dashboard.child.dateOfBirth")</MudText>
                                     <MudText Typo="Typo.body1">@(_profile.DateOfBirth?.ToString("dd.MM.yyyy") ?? "-")</MudText>
                                 </div>
                                 <div>
-                                    <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">Tím</MudText>
-                                    <MudText Typo="Typo.body1">@(_profile.TeamName ?? "Bez tímu")</MudText>
+                                    <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">@T("dashboard.team")</MudText>
+                                    <MudText Typo="Typo.body1">@(_profile.TeamName ?? T("dashboard.child.noTeam"))</MudText>
                                 </div>
                             </MudStack>
                         }
@@ -93,10 +94,10 @@
             <MudItem xs="12" md="4">
                 <MudCard Elevation="2" Class="h-100">
                     <MudCardContent>
-                        <MudText Typo="Typo.h6" Class="mb-3">Najbližšie tréningy</MudText>
+                        <MudText Typo="Typo.h6" Class="mb-3">@T("dashboard.panel.upcomingTrainings")</MudText>
                         @if (!_upcomingTrainings.Any())
                         {
-                            <MudText Typo="Typo.body2">Žiadny najbližší tréning.</MudText>
+                            <MudText Typo="Typo.body2">@T("dashboard.child.noUpcomingTraining")</MudText>
                         }
                         else
                         {
@@ -110,19 +111,19 @@
                                     </MudStack>
                                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                         <MudIcon Icon="@Icons.Material.Rounded.Place" Size="Size.Small" Style="@($"color:{_cPrimary};")" />
-                                        <MudText Typo="Typo.body2">@(first.Location ?? "Neuvedené")</MudText>
+                                        <MudText Typo="Typo.body2">@(first.Location ?? T("dashboard.locationNotSpecified"))</MudText>
                                     </MudStack>
                                 </div>
                                 @if (_upcomingTrainings.Count > 1)
                                 {
                                     <MudDivider />
-                                    <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">Ďalšie tréningy</MudText>
+                                    <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">@T("dashboard.child.otherTrainings")</MudText>
                                     @foreach (var t in _upcomingTrainings.Skip(1).Take(3))
                                     {
                                         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Spacing="2">
                                             <MudStack Spacing="0" Style="min-width:0;">
                                                 <MudText Typo="Typo.body2" Style="font-weight:500;">@t.Title</MudText>
-                                                <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">@(t.Location ?? "Neuvedené")</MudText>
+                                                <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">@(t.Location ?? T("dashboard.locationNotSpecified"))</MudText>
                                             </MudStack>
                                             <MudText Typo="Typo.caption" Style="font-weight:500;">@t.StartTime.ToString("dd.MM. HH:mm")</MudText>
                                         </MudStack>
@@ -137,7 +138,7 @@
             <MudItem xs="12" md="4">
                 <MudCard Elevation="2" Class="h-100">
                     <MudCardContent>
-                        <MudText Typo="Typo.h6" Class="mb-3">Moja dochádzka</MudText>
+                        <MudText Typo="Typo.h6" Class="mb-3">@T("dashboard.child.myAttendance")</MudText>
                         @if (_stats is not null && _stats.Total > 0)
                         {
                             <MudStack Spacing="3">
@@ -145,27 +146,27 @@
                                     <MudItem xs="4">
                                         <MudPaper Elevation="0" Class="pa-2 text-center" Style="@($"background:{_cSuccess}14; border-radius:8px;")">
                                             <MudText Typo="Typo.h6" Style="@($"color:{_cSuccess}; font-weight:700;")">@_stats.Present</MudText>
-                                            <MudText Typo="Typo.caption">Prítomný</MudText>
+                                            <MudText Typo="Typo.caption">@DomainLabels.AttendanceStatusText(AttendanceStatus.Present)</MudText>
                                         </MudPaper>
                                     </MudItem>
                                     <MudItem xs="4">
                                         <MudPaper Elevation="0" Class="pa-2 text-center" Style="@($"background:{_cError}14; border-radius:8px;")">
                                             <MudText Typo="Typo.h6" Style="@($"color:{_cError}; font-weight:700;")">@_stats.Absent</MudText>
-                                            <MudText Typo="Typo.caption">Neprítomný</MudText>
+                                            <MudText Typo="Typo.caption">@DomainLabels.AttendanceStatusText(AttendanceStatus.Absent)</MudText>
                                         </MudPaper>
                                     </MudItem>
                                     <MudItem xs="4">
                                         <MudPaper Elevation="0" Class="pa-2 text-center" Style="@($"background:{_cWarning}14; border-radius:8px;")">
                                             <MudText Typo="Typo.h6" Style="@($"color:{_cWarning}; font-weight:700;")">@_stats.Excused</MudText>
-                                            <MudText Typo="Typo.caption">Ospravedlnený</MudText>
+                                            <MudText Typo="Typo.caption">@DomainLabels.AttendanceStatusText(AttendanceStatus.Excused)</MudText>
                                         </MudPaper>
                                     </MudItem>
                                 </MudGrid>
                                 <MudDivider />
                                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                                     <MudStack Spacing="0">
-                                        <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">Účasť</MudText>
-                                        <MudText Typo="Typo.body1" Style="font-weight:600;">@_stats.Present z @_stats.Total tréningov</MudText>
+                                        <MudText Typo="Typo.caption" Style="@($"color:{_cTextSecondary};")">@T("dashboard.child.attendance")</MudText>
+                                        <MudText Typo="Typo.body1" Style="font-weight:600;">@string.Format(T("dashboard.child.presentOfTotal"), _stats.Present, _stats.Total)</MudText>
                                     </MudStack>
                                     <MudText Typo="Typo.h5" Style="@($"color:{_cPrimary}; font-weight:700;")">@_attendancePercent%</MudText>
                                 </MudStack>
@@ -174,7 +175,7 @@
                         }
                         else
                         {
-                            <MudText Typo="Typo.body2">Zatiaľ žiadne dáta.</MudText>
+                            <MudText Typo="Typo.body2">@T("dashboard.child.noDataYet")</MudText>
                         }
                     </MudCardContent>
                 </MudCard>
@@ -185,23 +186,23 @@
             <MudItem xs="12" lg="8">
                 <MudCard Elevation="2" Class="h-100">
                     <MudCardContent>
-                        <MudText Typo="Typo.h6" Class="mb-3">Posledné záznamy dochádzky</MudText>
+                        <MudText Typo="Typo.h6" Class="mb-3">@T("dashboard.child.recentAttendanceRecords")</MudText>
                         @if (!_recentAttendance.Any())
                         {
-                            <MudText Typo="Typo.body2">Zatiaľ žiadne záznamy.</MudText>
+                            <MudText Typo="Typo.body2">@T("dashboard.child.noRecordsYet")</MudText>
                         }
                         else
                         {
                             <MudTable Items="@_recentAttendance" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
                                 <HeaderContent>
-                                    <MudTh>Dátum</MudTh>
-                                    <MudTh>Tréning</MudTh>
-                                    <MudTh>Stav</MudTh>
+                                    <MudTh>@T("dashboard.child.date")</MudTh>
+                                    <MudTh>@T("dashboard.child.training")</MudTh>
+                                    <MudTh>@T("dashboard.child.status")</MudTh>
                                 </HeaderContent>
                                 <RowTemplate>
-                                    <MudTd DataLabel="Dátum">@context.Date.ToString("dd.MM.yyyy")</MudTd>
-                                    <MudTd DataLabel="Tréning">@context.TrainingName</MudTd>
-                                    <MudTd DataLabel="Stav">
+                                    <MudTd DataLabel="@T("dashboard.child.date")">@context.Date.ToString("dd.MM.yyyy")</MudTd>
+                                    <MudTd DataLabel="@T("dashboard.child.training")">@context.TrainingName</MudTd>
+                                    <MudTd DataLabel="@T("dashboard.child.status")">
                                         <MudChip T="string" Size="Size.Small" Class="@DomainLabels.AttendanceStatusChipClass(context.Status)">
                                             @DomainLabels.AttendanceStatusText(context.Status)
                                         </MudChip>
@@ -216,10 +217,10 @@
             <MudItem xs="12" lg="4">
                 <MudCard Elevation="2" Class="h-100">
                     <MudCardContent>
-                        <MudText Typo="Typo.h6" Class="mb-3">Najnovšie oznamy</MudText>
+                        <MudText Typo="Typo.h6" Class="mb-3">@T("dashboard.panel.recentAnnouncements")</MudText>
                         @if (!_announcements.Any())
                         {
-                            <MudText Typo="Typo.body2">Zatiaľ žiadne oznamy tímu.</MudText>
+                            <MudText Typo="Typo.body2">@T("dashboard.child.noTeamAnnouncements")</MudText>
                         }
                         else
                         {
@@ -289,7 +290,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní prehľadu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("dashboard.child.errorLoading")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -300,7 +301,7 @@
     private async Task OpenAddExcuseDialog()
     {
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<AddExcuseDialog>("Nová ospravedlnenka", options);
+        var dialog = await DialogService.ShowAsync<AddExcuseDialog>(T("dashboard.family.newExcuse"), options);
         var result = await dialog.Result;
 
         if (result is { Canceled: false })

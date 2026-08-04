@@ -1,3 +1,4 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @using ZISK.Client.Display
 @using ZISK.Shared.DTOs.Excuses
 @*
@@ -7,21 +8,21 @@
 <MudCard Elevation="1" Class="mb-4">
     <MudCardHeader>
         <CardHeaderContent>
-            <MudText Typo="Typo.subtitle1">Ospravedlnenky</MudText>
+            <MudText Typo="Typo.subtitle1">@T("attendance.tabs.excuses")</MudText>
         </CardHeaderContent>
     </MudCardHeader>
     <MudCardContent>
         @if (Excuses.Count == 0)
         {
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne ospravedlnenky.</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@T("admin.excuses.noExcuses")</MudText>
         }
         else
         {
             <MudTable Items="@Excuses" Dense="true" Hover="true">
                 <HeaderContent>
-                    <MudTh>Dátum</MudTh>
-                    <MudTh>Dôvod</MudTh>
-                    <MudTh>Stav</MudTh>
+                    <MudTh>@T("attendance.history.date")</MudTh>
+                    <MudTh>@T("attendance.excuses.reason")</MudTh>
+                    <MudTh>@T("dashboard.child.status")</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>@FormatDateRange(context.DateFrom, context.DateTo)</MudTd>

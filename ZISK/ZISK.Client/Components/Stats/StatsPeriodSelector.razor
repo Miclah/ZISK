@@ -1,3 +1,4 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @*
     Period toggle for the stats page (7 / 30 / 90 days, 1 year).
 *@
@@ -5,7 +6,7 @@
 <MudPaper Class="pa-3 mb-4" Elevation="0" Outlined="true">
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
         <MudIcon Icon="@Icons.Material.Filled.DateRange" Color="Color.Secondary" />
-        <MudText Typo="Typo.body2">Obdobie:</MudText>
+        <MudText Typo="Typo.body2">@T("admin.stats.period.label")</MudText>
         <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small" Color="Color.Primary">
             @foreach (var days in Periods)
             {
@@ -25,12 +26,12 @@
     [Parameter] public int SelectedDays { get; set; }
     [Parameter] public EventCallback<int> SelectedDaysChanged { get; set; }
 
-    private static string Label(int days) => days switch
+    private string Label(int days) => days switch
     {
-        7 => "7 dní",
-        30 => "30 dní",
-        90 => "90 dní",
-        365 => "1 rok",
-        _ => $"{days} dní"
+        7 => T("admin.stats.period.7"),
+        30 => T("admin.stats.period.30"),
+        90 => T("admin.stats.period.90"),
+        365 => T("admin.stats.period.365"),
+        _ => string.Format(T("admin.stats.period.nDays"), days)
     };
 }

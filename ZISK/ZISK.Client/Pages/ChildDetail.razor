@@ -1,4 +1,5 @@
 ﻿@page "/dieta/{ChildId}"
+@inherits LocalizedComponentBase
 @using ZISK.Client.Components.Children
 @using ZISK.Client.Services
 @using ZISK.Client.Components
@@ -14,7 +15,7 @@
 @inject NavigationManager NavigationManager
 @attribute [Authorize(Roles = "Parent,Admin,Coach")]
 
-<PageTitle>Detail dieťaťa</PageTitle>
+<PageTitle>@T("childDetail.pageTitle")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
     @if (_isLoading)
@@ -31,7 +32,7 @@
     }
     else if (_detail is null)
     {
-        <MudAlert Severity="Severity.Error">Dieťa nebolo nájdené.</MudAlert>
+        <MudAlert Severity="Severity.Error">@T("childDetail.notFound")</MudAlert>
     }
     else
     {
@@ -40,11 +41,11 @@
                 <MudText Typo="Typo.h5">@_detail.FirstName @_detail.LastName</MudText>
                 @if (!string.IsNullOrWhiteSpace(_detail.TeamName))
                 {
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Tím: @_detail.TeamName</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@T("childDetail.teamPrefix") @_detail.TeamName</MudText>
                 }
             </MudStack>
             <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.ArrowBack"
-                       OnClick='() => NavigationManager.NavigateTo("/domov")'>Späť</MudButton>
+                       OnClick='() => NavigationManager.NavigateTo("/domov")'>@T("childDetail.back")</MudButton>
         </MudStack>
 
         <ChildInfoCard Detail="_detail" Age="_age" OnEdit="OpenEditDialog" />
@@ -109,7 +110,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("childDetail.errorLoading")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -156,7 +157,7 @@
             [nameof(EditChildDialog.ChildId)] = ChildId
         };
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<EditChildDialog>("Upraviť dieťa", parameters, options);
+        var dialog = await DialogService.ShowAsync<EditChildDialog>(T("childDetail.editChild"), parameters, options);
         var result = await dialog.Result;
 
         if (result is not null && !result.Canceled)
@@ -170,16 +171,16 @@
             [nameof(InviteParentDialog.ChildId)] = ChildId
         };
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
-        await DialogService.ShowAsync<InviteParentDialog>("Pozvať rodiča", parameters, options);
+        await DialogService.ShowAsync<InviteParentDialog>(T("childDetail.inviteParent"), parameters, options);
     }
 
     private async Task ConfirmRemoveParent(ParentDto parent)
     {
         bool? confirmed = await DialogService.ShowMessageBoxAsync(
-            "Odstrániť väzbu",
-            $"Naozaj chcete odstrániť rodiča '{parent.FirstName} {parent.LastName}' od tohto dieťaťa?",
-            yesText: "Áno, odstrániť",
-            cancelText: "Zrušiť",
+            T("childDetail.removeLinkTitle"),
+            string.Format(T("childDetail.removeLinkConfirmText"), $"{parent.FirstName} {parent.LastName}"),
+            yesText: T("childDetail.yesRemove"),
+            cancelText: T("admin.users.cancel"),
             options: new DialogOptions { MaxWidth = MaxWidth.Small });
 
         if (confirmed != true)
@@ -188,12 +189,12 @@
         try
         {
             await ChildrenApi.RemoveParentAsync(ChildId, parent.UserId);
-            Snackbar.Add("Väzba bola odstránená.", Severity.Success);
+            Snackbar.Add(T("childDetail.linkRemoved"), Severity.Success);
             await LoadAll();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 

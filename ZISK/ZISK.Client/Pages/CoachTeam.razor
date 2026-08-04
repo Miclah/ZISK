@@ -1,5 +1,7 @@
 @page "/coach/tim"
+@inherits LocalizedComponentBase
 @using ZISK.Client.Layout
+@using ZISK.Shared.Localization
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Teams
 @using ZISK.Shared.DTOs.Excuses
@@ -8,7 +10,7 @@
 @inject ISnackbar Snackbar
 @attribute [Authorize(Roles = "Coach")]
 
-<PageTitle>Môj tím</PageTitle>
+<PageTitle>@T("coachTeam.pageTitle")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
@@ -16,8 +18,8 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="min-width:0; flex:1 1 240px;">
         <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Large" Color="Color.Primary" />
         <MudStack Spacing="0" Style="min-width:0;">
-            <MudText Typo="Typo.h4" Style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@(_teamName ?? "Môj tím")</MudText>
-            <MudText Typo="Typo.caption" Style="@_styleMuted">Súpiska a ospravedlnenky</MudText>
+            <MudText Typo="Typo.h4" Style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@(_teamName ?? T("coachTeam.pageTitle"))</MudText>
+            <MudText Typo="Typo.caption" Style="@_styleMuted">@T("coachTeam.subtitle")</MudText>
         </MudStack>
     </MudStack>
     @if (!_isLoading)
@@ -42,7 +44,7 @@
 </MudStack>
 
 <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
-    <MudTabPanel Text="Súpiska" Icon="@Icons.Material.Filled.PeopleAlt">
+    <MudTabPanel Text="@T("coachTeam.tabs.roster")" Icon="@Icons.Material.Filled.PeopleAlt">
         @if (_isLoading)
         {
             <MudGrid>
@@ -56,7 +58,7 @@
         }
         else if (!_members.Any())
         {
-            <MudAlert Severity="Severity.Info">Tím je zatiaľ bez členov.</MudAlert>
+            <MudAlert Severity="Severity.Info">@T("coachTeam.noMembers")</MudAlert>
         }
         else
         {
@@ -75,7 +77,7 @@
                                     <MudText Typo="Typo.subtitle1" Style="font-weight:600; overflow:hidden; text-overflow:ellipsis;">@member.FirstName @member.LastName</MudText>
                                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                         <MudIcon Icon="@Icons.Material.Filled.Cake" Size="Size.Small" Style="@_styleMuted" />
-                                        <MudText Typo="Typo.caption" Style="@_styleMuted">@(member.DateOfBirth?.ToString("dd.MM.yyyy") ?? "neuvedený")</MudText>
+                                        <MudText Typo="Typo.caption" Style="@_styleMuted">@(member.DateOfBirth?.ToString("dd.MM.yyyy") ?? T("coachTeam.notSpecified"))</MudText>
                                     </MudStack>
                                 </MudStack>
                                 <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Style="@_styleMuted" />
@@ -87,7 +89,7 @@
         }
     </MudTabPanel>
 
-    <MudTabPanel Text="Ospravedlnenky" Icon="@Icons.Material.Filled.EventBusy">
+    <MudTabPanel Text="@T("attendance.tabs.excuses")" Icon="@Icons.Material.Filled.EventBusy">
         @if (_isLoading)
         {
             <MudStack Spacing="2">
@@ -99,7 +101,7 @@
         }
         else if (!_excuses.Any())
         {
-            <MudAlert Severity="Severity.Info">Zatiaľ žiadne ospravedlnenky.</MudAlert>
+            <MudAlert Severity="Severity.Info">@T("coachTeam.noExcusesYet")</MudAlert>
         }
         else
         {
@@ -134,7 +136,7 @@
     <TitleContent>
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
             <MudIcon Icon="@Icons.Material.Filled.Person" Color="Color.Primary" />
-            <MudText Typo="Typo.h6">Profil hráča</MudText>
+            <MudText Typo="Typo.h6">@T("coachTeam.playerProfile")</MudText>
         </MudStack>
     </TitleContent>
     <DialogContent>
@@ -158,12 +160,12 @@
             <MudStack Spacing="2">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                     <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" Style="@_styleMuted" />
-                    <MudText Typo="Typo.body2" Style="@_styleMuted" Class="mr-1">Email:</MudText>
-                    <MudText Typo="Typo.body2">@(_selectedMember.Email ?? "neuvedený")</MudText>
+                    <MudText Typo="Typo.body2" Style="@_styleMuted" Class="mr-1">@T("coachTeam.emailLabel")</MudText>
+                    <MudText Typo="Typo.body2">@(_selectedMember.Email ?? T("coachTeam.notSpecified"))</MudText>
                 </MudStack>
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                     <MudIcon Icon="@Icons.Material.Filled.Cake" Size="Size.Small" Style="@_styleMuted" />
-                    <MudText Typo="Typo.body2" Style="@_styleMuted" Class="mr-1">Dátum narodenia:</MudText>
+                    <MudText Typo="Typo.body2" Style="@_styleMuted" Class="mr-1">@T("coachTeam.dateOfBirthLabel")</MudText>
                     <MudText Typo="Typo.body2">@(_selectedMember.DateOfBirth?.ToString("dd.MM.yyyy") ?? "-")</MudText>
                 </MudStack>
             </MudStack>
@@ -172,7 +174,7 @@
 
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
                 <MudIcon Icon="@Icons.Material.Filled.SupervisorAccount" Size="Size.Small" Color="Color.Primary" />
-                <MudText Typo="Typo.subtitle2" Style="font-weight:600;">Kontakty rodičov</MudText>
+                <MudText Typo="Typo.subtitle2" Style="font-weight:600;">@T("coachTeam.parentContacts")</MudText>
             </MudStack>
             @if (_selectedMember.ParentContacts.Any())
             {
@@ -185,12 +187,12 @@
             }
             else
             {
-                <MudText Typo="Typo.body2" Style="@_styleMuted">Kontaktné údaje rodiča nie sú dostupné.</MudText>
+                <MudText Typo="Typo.body2" Style="@_styleMuted">@T("coachTeam.noParentContacts")</MudText>
             }
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="() => _memberDialogVisible = false">Zavrieť</MudButton>
+        <MudButton OnClick="() => _memberDialogVisible = false">@T("coachTeam.close")</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -198,7 +200,7 @@
     <TitleContent>
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
             <MudIcon Icon="@Icons.Material.Filled.EventBusy" Color="Color.Primary" />
-            <MudText Typo="Typo.h6">Detail ospravedlnenky</MudText>
+            <MudText Typo="Typo.h6">@T("coachTeam.excuseDetail")</MudText>
         </MudStack>
     </TitleContent>
     <DialogContent>
@@ -223,22 +225,31 @@
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                     <MudIcon Icon="@Icons.Material.Filled.DateRange" Size="Size.Small" Style="@_styleMuted" />
                     <MudText Typo="Typo.body2" Style="@_styleMuted">
-                        Od: <strong style="@_styleStrong">@_selectedExcuse.DateFrom?.ToString("dd.MM.yyyy")</strong>
+                        @T("coachTeam.fromLabel") <strong style="@_styleStrong">@_selectedExcuse.DateFrom?.ToString("dd.MM.yyyy")</strong>
                         &nbsp;•&nbsp;
-                        Do: <strong style="@_styleStrong">@_selectedExcuse.DateTo?.ToString("dd.MM.yyyy")</strong>
+                        @T("coachTeam.toLabel") <strong style="@_styleStrong">@_selectedExcuse.DateTo?.ToString("dd.MM.yyyy")</strong>
                     </MudText>
                 </MudStack>
             </MudStack>
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="() => _excuseDialogVisible = false">Zavrieť</MudButton>
+        <MudButton OnClick="() => _excuseDialogVisible = false">@T("coachTeam.close")</MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
-    private static string SlovakClen(int n) => n == 1 ? "člen" : n is 2 or 3 or 4 ? "členovia" : "členov";
-    private static string SlovakOspravedlnenka(int n) => n == 1 ? "ospravedlnenka" : n is 2 or 3 or 4 ? "ospravedlnenky" : "ospravedlneniek";
+    private string SlovakClen(int n)
+    {
+        if (LanguageService.Current == Lang.En) return T(n == 1 ? "coachTeam.members.one" : "coachTeam.members.many");
+        return T(n == 1 ? "coachTeam.members.one" : n is 2 or 3 or 4 ? "coachTeam.members.few" : "coachTeam.members.many");
+    }
+
+    private string SlovakOspravedlnenka(int n)
+    {
+        if (LanguageService.Current == Lang.En) return T(n == 1 ? "coachTeam.excuses.one" : "coachTeam.excuses.many");
+        return T(n == 1 ? "coachTeam.excuses.one" : n is 2 or 3 or 4 ? "coachTeam.excuses.few" : "coachTeam.excuses.many");
+    }
 
     private static readonly string _cPrimary = (string)AppTheme.SportClubTheme.PaletteLight.Primary;
     private static readonly string _cSecondary = (string)AppTheme.SportClubTheme.PaletteLight.Secondary;
@@ -283,7 +294,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní tímu: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("coachTeam.errorLoadingTeam")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {

@@ -1,35 +1,36 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @using ZISK.Shared.DTOs.Stats
 @*
     Per-team roll-up: member and training counts, average attendance, active flag.
 *@
 
 <MudPaper Class="pa-4" Elevation="2" Style="height: 100%;">
-    <MudText Typo="Typo.h6" Class="mb-3">Členovia podľa tímu</MudText>
+    <MudText Typo="Typo.h6" Class="mb-3">@T("admin.stats.table.title")</MudText>
     <MudTable Items="@Teams" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0">
         <HeaderContent>
-            <MudTh>Tím</MudTh>
-            <MudTh>Členovia</MudTh>
-            <MudTh>Tréningy</MudTh>
-            <MudTh>Priem. účasť</MudTh>
-            <MudTh>Stav</MudTh>
+            <MudTh>@T("dashboard.team")</MudTh>
+            <MudTh>@T("admin.stats.table.members")</MudTh>
+            <MudTh>@T("admin.stats.table.trainings")</MudTh>
+            <MudTh>@T("admin.stats.table.avgAttendance")</MudTh>
+            <MudTh>@T("dashboard.child.status")</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Tím">@context.TeamName</MudTd>
-            <MudTd DataLabel="Členovia">@context.MemberCount</MudTd>
-            <MudTd DataLabel="Tréningy">@context.TrainingCount</MudTd>
-            <MudTd DataLabel="Priem. účasť">
+            <MudTd DataLabel="@T("dashboard.team")">@context.TeamName</MudTd>
+            <MudTd DataLabel="@T("admin.stats.table.members")">@context.MemberCount</MudTd>
+            <MudTd DataLabel="@T("admin.stats.table.trainings")">@context.TrainingCount</MudTd>
+            <MudTd DataLabel="@T("admin.stats.table.avgAttendance")">
                 <MudChip T="string" Size="Size.Small" Color="@AttendanceColor(context.AverageAttendance)">
                     @context.AverageAttendance%
                 </MudChip>
             </MudTd>
-            <MudTd DataLabel="Stav">
+            <MudTd DataLabel="@T("dashboard.child.status")">
                 <MudChip T="string" Size="Size.Small" Color="@(context.IsActive ? Color.Success : Color.Default)">
-                    @(context.IsActive ? "Aktívny" : "Neaktívny")
+                    @(context.IsActive ? T("admin.stats.table.active") : T("admin.stats.table.inactive"))
                 </MudChip>
             </MudTd>
         </RowTemplate>
         <NoRecordsContent>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne tímy.</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@T("admin.stats.table.noTeams")</MudText>
         </NoRecordsContent>
     </MudTable>
 </MudPaper>

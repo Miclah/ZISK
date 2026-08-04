@@ -1,3 +1,4 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @using ZISK.Client.Layout
 @using ZISK.Shared.DTOs.Stats
 @*
@@ -13,7 +14,7 @@
 
     @if (Teams.Count == 0)
     {
-        <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne dáta.</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@T("admin.stats.noData")</MudText>
     }
     else
     {

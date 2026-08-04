@@ -1,4 +1,5 @@
-﻿@using ZISK.Shared.DTOs.Children
+﻿@inherits ZISK.Client.Components.LocalizedComponentBase
+@using ZISK.Shared.DTOs.Children
 @*
     "Rodičia": the parents linked to this child. A link can be removed by the parent who owns it or by an
     admin; inviting a further parent is gated separately.
@@ -8,13 +9,13 @@
     <MudCardHeader>
         <CardHeaderContent>
             <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
-                <MudText Typo="Typo.subtitle1">Rodičia</MudText>
+                <MudText Typo="Typo.subtitle1">@T("childDetail.parentsTitle")</MudText>
                 @if (CanInvite)
                 {
                     <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
                                StartIcon="@Icons.Material.Filled.PersonAdd"
                                OnClick="OnInvite">
-                        Pozvať ďalšieho rodiča
+                        @T("childDetail.inviteAnotherParent")
                     </MudButton>
                 }
             </MudStack>
@@ -23,7 +24,7 @@
     <MudCardContent>
         @if (Parents.Count == 0)
         {
-            <MudText Typo="Typo.body2" Color="Color.Default">Žiadni rodičia nie sú priradení.</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Default">@T("childDetail.noParentsAssigned")</MudText>
         }
         else
         {
@@ -37,7 +38,7 @@
                                     <MudText Typo="Typo.body1">@parent.FirstName @parent.LastName</MudText>
                                     @if (parent.IsPrimary)
                                     {
-                                        <MudChip T="string" Size="Size.Small" Color="Color.Primary">Primárny</MudChip>
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Primary">@T("childDetail.primary")</MudChip>
                                     }
                                 </MudStack>
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">@parent.Email</MudText>
@@ -48,7 +49,7 @@
                                                Color="Color.Error"
                                                Size="Size.Small"
                                                OnClick="@(() => OnRemove.InvokeAsync(parent))"
-                                               Title="Odstrániť väzbu" />
+                                               Title="@T("childDetail.removeLinkTitle")" />
                             }
                         </MudStack>
                     </MudPaper>

@@ -1,3 +1,4 @@
+@inherits LocalizedComponentBase
 @using System.ComponentModel.DataAnnotations
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Excuses
@@ -7,31 +8,31 @@
 <MudDialog>
     <DialogContent>
         <EditForm Model="@_model" OnValidSubmit="Submit">
-            <DataAnnotationsValidator />
+            <LocalizedDataAnnotationsValidator />
             <MudStack Spacing="3">
                 <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    <strong>Dieťa:</strong> @Excuse.ChildName
+                    <strong>@T("editExcuseDialog.childLabel")</strong> @Excuse.ChildName
                 </MudText>
 
                 <MudDatePicker @bind-Date="_model.DateFrom"
                                For="@(() => _model.DateFrom)"
-                               Label="Od dátumu"
+                               Label="@T("attendance.history.dateFrom")"
                                Variant="Variant.Outlined" />
 
                 <MudDatePicker @bind-Date="_model.DateTo"
-                               Label="Do dátumu (voliteľné)"
+                               Label="@T("editExcuseDialog.dateToOptional")"
                                Variant="Variant.Outlined" />
 
                 <MudTextField @bind-Value="_model.Reason"
                               For="@(() => _model.Reason)"
-                              Label="Dôvod"
+                              Label="@T("attendance.excuses.reason")"
                               Variant="Variant.Outlined"
                               Counter="200"
                               MaxLength="200" />
 
                 <MudTextField @bind-Value="_model.Note"
                               For="@(() => _model.Note)"
-                              Label="Poznámka"
+                              Label="@T("editExcuseDialog.noteLabel")"
                               Variant="Variant.Outlined"
                               Lines="3" />
 
@@ -40,7 +41,7 @@
                               Variant="Variant.Filled"
                               Loading="_isSubmitting"
                               FullWidth="true">
-                    Uložiť
+                    @T("admin.users.save")
                 </LoadingButton>
             </MudStack>
         </EditForm>
@@ -79,12 +80,12 @@
                 string.IsNullOrWhiteSpace(_model.Note) ? null : _model.Note.Trim());
 
             await ExcusesApi.UpdateExcuseAsync(Excuse.Id, request);
-            Snackbar.Add("Ospravedlnenka upravená", Severity.Success);
+            Snackbar.Add(T("editExcuseDialog.updated"), Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {

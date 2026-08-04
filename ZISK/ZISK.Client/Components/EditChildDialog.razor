@@ -1,3 +1,4 @@
+@inherits LocalizedComponentBase
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Children
 @using ZISK.Shared.DTOs.Teams
@@ -15,14 +16,14 @@
         else
         {
             <MudStack Spacing="3">
-                <MudTextField @bind-Value="_firstName" Label="Meno" Required="true" Variant="Variant.Outlined" MaxLength="100" />
-                <MudTextField @bind-Value="_lastName" Label="Priezvisko" Required="true" Variant="Variant.Outlined" MaxLength="100" />
-                <MudTextField @bind-Value="_bydlisko" Label="Bydlisko" Variant="Variant.Outlined" MaxLength="300" />
-                <MudDatePicker @bind-Date="_dateOfBirth" Label="Dátum narodenia" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_firstName" Label="@T("admin.users.table.firstName")" Required="true" Variant="Variant.Outlined" MaxLength="100" />
+                <MudTextField @bind-Value="_lastName" Label="@T("admin.users.table.lastName")" Required="true" Variant="Variant.Outlined" MaxLength="100" />
+                <MudTextField @bind-Value="_bydlisko" Label="@T("admin.users.address")" Variant="Variant.Outlined" MaxLength="300" />
+                <MudDatePicker @bind-Date="_dateOfBirth" Label="@T("dashboard.child.dateOfBirth")" Variant="Variant.Outlined" />
                 @if (_canEditTeam)
                 {
-                    <MudSelect T="Guid?" @bind-Value="_teamId" Label="Tím" Variant="Variant.Outlined">
-                        <MudSelectItem T="Guid?" Value="@((Guid?)null)">Bez tímu</MudSelectItem>
+                    <MudSelect T="Guid?" @bind-Value="_teamId" Label="@T("dashboard.team")" Variant="Variant.Outlined">
+                        <MudSelectItem T="Guid?" Value="@((Guid?)null)">@T("dashboard.child.noTeam")</MudSelectItem>
                         @foreach (var team in _teams)
                         {
                             <MudSelectItem T="Guid?" Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
@@ -31,16 +32,16 @@
                 }
                 else
                 {
-                    <MudTextField T="string" Value="@(_teamName ?? "Bez tímu")" Label="Tím" Variant="Variant.Outlined"
+                    <MudTextField T="string" Value="@(_teamName ?? T("dashboard.child.noTeam"))" Label="@T("dashboard.team")" Variant="Variant.Outlined"
                                   ReadOnly="true" Disabled="true"
-                                  HelperText="Zmenu tímu môže vykonať len tréner alebo administrátor." />
+                                  HelperText="@T("editChildDialog.teamChangeHelper")" />
                 }
             </MudStack>
         }
     </DialogContent>
     <DialogActions>
         <LoadingButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Loading="@_isSaving">
-            Uložiť
+            @T("admin.users.save")
         </LoadingButton>
     </DialogActions>
 </MudDialog>
@@ -83,7 +84,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
             Dialog.Cancel();
         }
         finally
@@ -98,17 +99,17 @@
     {
         if (string.IsNullOrWhiteSpace(_firstName) || _firstName.Length < 2)
         {
-            Snackbar.Add("Meno musí mať aspoň 2 znaky.", Severity.Warning);
+            Snackbar.Add(T("editChildDialog.firstNameMin"), Severity.Warning);
             return;
         }
         if (string.IsNullOrWhiteSpace(_lastName) || _lastName.Length < 2)
         {
-            Snackbar.Add("Priezvisko musí mať aspoň 2 znaky.", Severity.Warning);
+            Snackbar.Add(T("editChildDialog.lastNameMin"), Severity.Warning);
             return;
         }
         if (!_dateOfBirth.HasValue)
         {
-            Snackbar.Add("Dátum narodenia je povinný.", Severity.Warning);
+            Snackbar.Add(T("addChildDialog.dobRequired"), Severity.Warning);
             return;
         }
 
@@ -123,12 +124,12 @@
                 _teamId);
 
             await ChildrenApi.UpdateAsync(ChildId, request);
-            Snackbar.Add("Zmeny boli uložené.", Severity.Success);
+            Snackbar.Add(T("editChildDialog.saved"), Severity.Success);
             Dialog.Close(DialogResult.Ok(true));
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
