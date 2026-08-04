@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@using ZISK.Client.Display
 @using ZISK.Client.Layout
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Teams
@@ -11,6 +12,9 @@
 @inject ISnackbar Snackbar
 @inject HttpActivityTracker ActivityTracker
 @inject OnlineStatusService OnlineStatus
+@inject IDemoApi DemoApi
+@inject IDialogService DialogService
+@inject ILanguageService LanguageService
 @implements IDisposable
 @implements IAsyncDisposable
 
@@ -31,9 +35,11 @@
     {
         <MudAlert Severity="Severity.Warning" Dense="true" NoIcon="false"
                   Style="position:fixed;top:64px;left:0;right:0;z-index:1999;border-radius:0;text-align:center;">
-            Aplikácia vyžaduje pripojenie na internet. Skontrolujte prosím svoje sieťové nastavenia.
+            @T("layout.offlineWarning")
         </MudAlert>
     }
+    @* The demo notice lives in the content flow further down, not up here as a fixed overlay -
+       see the comment at that MudAlert for why. *@
 
     <MudAppBar Elevation="0" Fixed="true" Style="background: var(--zisk-gradient-primary); border-bottom: 1px solid var(--zisk-border-on-dark);">
         <MudIconButton Icon="@Icons.Material.Rounded.Menu"
@@ -46,6 +52,12 @@
             <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="appbar-version-chip">
                 v1.0
             </MudChip>
+            @if (_isDemo)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="Color.Warning">
+                    DEMO
+                </MudChip>
+            }
             @if (_isCoach && !string.IsNullOrWhiteSpace(_coachTeamName))
             {
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="appbar-team-chip">
@@ -55,6 +67,17 @@
         </MudStack>
 
         <MudSpacer />
+
+        @if (_isDemo)
+        {
+            <MudTooltip Text="@T("layout.resetTooltip")">
+                <MudIconButton Icon="@Icons.Material.Rounded.RestartAlt"
+                               Color="Color.Inherit"
+                               OnClick="OpenResetDialog" />
+            </MudTooltip>
+        }
+
+        <LanguageSwitcher />
 
         <AuthorizeView>
             <Authorized Context="authContext">
@@ -93,14 +116,30 @@
 
     <MudMainContent Class="pb-6" Style="@MainContentStyle">
         <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" DisableGutters="true">
+            @* In the flow rather than position:fixed on purpose. As a fixed overlay it sat on top
+               of the first ~50px of every page (the dashboard hero was rendered behind it), because
+               nothing reserved height for it. Here it pushes content down instead.
+               Dismissible because it only needs to be read once - the permanent "this is a demo"
+               marker is the DEMO chip in the app bar, which never goes away. Dismissal is
+               component state, so it survives in-app navigation (the layout is not re-created) and
+               comes back on a hard reload, which is what a first-time visitor should see. *@
+            @if (_isDemo && !_demoNoticeDismissed && OnlineStatus.IsOnline)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" ShowCloseIcon="true"
+                          CloseIconClicked="@(() => _demoNoticeDismissed = true)"
+                          Class="mb-3">
+                    @T("layout.demoBanner")
+                </MudAlert>
+            }
+
             @if (_pendingInvitations.Any())
             {
                 <MudStack Spacing="1" Class="mb-3">
                     @foreach (var inv in _pendingInvitations)
                     {
                         <MudAlert Severity="Severity.Info" ShowCloseIcon="true" CloseIconClicked="@(() => DismissInvitation(inv))">
-                            Máte čakajúcu pozvánku na priradenie k dieťaťu <strong>@inv.ChildName</strong> od <strong>@inv.InitiatorName</strong>.
-                            Pre potvrdenie kliknite na odkaz, ktorý vám prišiel e-mailom.
+                            @T("layout.pendingInvitationPrefix") <strong>@inv.ChildName</strong> @T("layout.pendingInvitationFrom") <strong>@inv.InitiatorName</strong>.
+                            @T("layout.pendingInvitationSuffix")
                         </MudAlert>
                     }
                 </MudStack>
@@ -114,7 +153,7 @@
                 <ErrorContent>
                     <MudPaper Class="pa-4" Elevation="2">
                         <MudAlert Severity="Severity.Error" Dense="true">
-                            Stránka sa nepodarilo načítať. Skúste obnoviť stránku alebo sa znovu prihlásiť.
+                            @T("layout.pageLoadError")
                         </MudAlert>
                     </MudPaper>
                 </ErrorContent>
@@ -138,18 +177,25 @@
     private bool _drawerOpen = true;
     private bool _isCoach;
     private bool _isParentAthlete;
+    private bool _isDemo;
+    private bool _demoNoticeDismissed;
     private string? _coachTeamName;
     private List<PendingInvitationDto> _pendingInvitations = new();
     private string _routeKey = string.Empty;
 
     private string MainContentStyle => "background: var(--zisk-bg); min-height: 100vh;";
 
+    private string T(string key) => LanguageService[key];
+
     protected override void OnInitialized()
     {
         _routeKey = NavigationManager.Uri;
         ActivityTracker.StateChanged += OnActivityChanged;
         NavigationManager.LocationChanged += OnLocationChanged;
+        LanguageService.Changed += OnLanguageChanged;
     }
+
+    private void OnLanguageChanged() => InvokeAsync(StateHasChanged);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -185,6 +231,22 @@
             _pendingInvitations = await InvitationsApi.GetPendingAsync();
         }
         catch { }
+
+        try
+        {
+            var status = await DemoApi.GetStatusAsync();
+            _isDemo = status.IsDemo;
+        }
+        catch
+        {
+            _isDemo = false;
+        }
+    }
+
+    private async Task OpenResetDialog()
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        await DialogService.ShowAsync<DemoResetDialog>(T("layout.resetTooltip"), options);
     }
 
     private void OnOnlineStatusChanged() => InvokeAsync(StateHasChanged);
@@ -214,6 +276,7 @@
         ActivityTracker.StateChanged -= OnActivityChanged;
         OnlineStatus.StatusChanged -= OnOnlineStatusChanged;
         NavigationManager.LocationChanged -= OnLocationChanged;
+        LanguageService.Changed -= OnLanguageChanged;
     }
 
     public async ValueTask DisposeAsync()
@@ -221,14 +284,8 @@
         await OnlineStatus.DisposeAsync();
     }
 
-    private static string GetRoleName(string? role) => role switch
-    {
-        "Admin"    => "Admin",
-        "Coach"    => "Tréner",
-        "Parent"   => "Rodič",
-        "Athlete"  => "Športovec",
-        "Child"    => "Dieťa",
-        _          => role ?? ""
-    };
+    // DomainLabels.Role covers the same mapping and is already reactive to language switches
+    // (see DomainLabels.Current) - no need for a separate local copy that could drift.
+    private static string GetRoleName(string? role) => DomainLabels.Role(role ?? "");
 
 }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ZISK.Services;
 using ZISK.Shared.DTOs.Announcements;
+using ZISK.Shared.Localization;
 using TargetAudience = ZISK.Shared.Enums.TargetAudience;
 
 namespace ZISK.Controllers;
@@ -13,11 +14,15 @@ public class AnnouncementsController : ControllerBase
 {
     private readonly IAnnouncementService _announcementService;
     private readonly IWebHostEnvironment _environment;
+    private readonly IConfiguration _configuration;
+    private readonly ICurrentLanguage _currentLanguage;
 
-    public AnnouncementsController(IAnnouncementService announcementService, IWebHostEnvironment environment)
+    public AnnouncementsController(IAnnouncementService announcementService, IWebHostEnvironment environment, IConfiguration configuration, ICurrentLanguage currentLanguage)
     {
         _announcementService = announcementService;
         _environment = environment;
+        _configuration = configuration;
+        _currentLanguage = currentLanguage;
     }
 
     [HttpGet]
@@ -91,6 +96,12 @@ public class AnnouncementsController : ControllerBase
     [Authorize(Roles = "Admin,Coach")]
     public async Task<ActionResult<AttachmentDto>> UploadAttachment(Guid id, IFormFile file)
     {
+        // Belt-and-suspenders: AnnouncementsCreate.razor already hides the file picker in demo
+        // mode, but this endpoint is directly callable, and cloned sessions sharing a physical
+        // file path is a real (if narrow) hazard - see DemoSessionService's cloning notes.
+        if (SeedModeResolver.Resolve(_configuration) == SeedMode.Demo)
+            return Forbid();
+
         try
         {
             var result = await _announcementService.UploadAttachmentAsync(id, file);
@@ -108,7 +119,7 @@ public class AnnouncementsController : ControllerBase
             var (relativePath, contentType, fileName) = await _announcementService.GetAttachmentFileAsync(announcementId, attachmentId);
             var fullPath = Path.Combine(_environment.WebRootPath ?? "wwwroot", relativePath.TrimStart('/'));
             if (!System.IO.File.Exists(fullPath))
-                return NotFound("Súbor neexistuje");
+                return NotFound(Translations.Get(_currentLanguage.Current, "errors.file.notFound"));
             return PhysicalFile(fullPath, contentType, fileName);
         }
         catch (KeyNotFoundException) { return NotFound(); }

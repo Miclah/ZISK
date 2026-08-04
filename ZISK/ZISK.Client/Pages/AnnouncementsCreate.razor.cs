@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
+using ZISK.Client.Components;
 using ZISK.Client.Services;
 using ZISK.Shared.DTOs.Announcements;
 using ZISK.Shared.DTOs.Teams;
@@ -13,11 +14,13 @@ public partial class AnnouncementsCreate
 {
     [Inject] private IAnnouncementsApi AnnouncementsApi { get; set; } = default!;
     [Inject] private ITeamsApi TeamsApi { get; set; } = default!;
+    [Inject] private IDemoApi DemoApi { get; set; } = default!;
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;
 
     private bool _isSubmitting = false;
+    private bool _isDemo;
     private List<TeamDto> _teams = new();
     private List<IBrowserFile> _selectedFiles = new();
 
@@ -31,7 +34,17 @@ public partial class AnnouncementsCreate
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní tímov: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("announcementForm.errorLoadingTeams")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+        }
+
+        try
+        {
+            var status = await DemoApi.GetStatusAsync();
+            _isDemo = status.IsDemo;
+        }
+        catch
+        {
+            _isDemo = false;
         }
     }
 
@@ -44,7 +57,7 @@ public partial class AnnouncementsCreate
         {
             if (file.Size > 10 * 1024 * 1024)
             {
-                Snackbar.Add($"Súbor {file.Name} je príliš veľký (max 10MB)", Severity.Warning);
+                Snackbar.Add(string.Format(T("announcementForm.fileTooLarge"), file.Name), Severity.Warning);
                 continue;
             }
             if (!_selectedFiles.Any(f => f.Name == file.Name))
@@ -108,20 +121,20 @@ public partial class AnnouncementsCreate
 
                     var response = await Http.PostAsync($"/api/announcements/{announcement.Id}/attachments", content);
                     if (!response.IsSuccessStatusCode)
-                        Snackbar.Add($"Nepodarilo sa nahrať súbor {file.Name}", Severity.Warning);
+                        Snackbar.Add(string.Format(T("announcementForm.uploadFailed"), file.Name), Severity.Warning);
                 }
                 catch (Exception ex)
                 {
-                    Snackbar.Add($"Chyba pri nahrávaní {file.Name}: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Warning);
+                    Snackbar.Add($"{string.Format(T("announcementForm.uploadError"), file.Name)} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Warning);
                 }
             }
 
-            Snackbar.Add("Oznam bol zverejnený", Severity.Success);
+            Snackbar.Add(T("announcementForm.published"), Severity.Success);
             NavigationManager.NavigateTo("/oznamy");
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ZISK.Services;
 using ZISK.Shared.DTOs.Documents;
+using ZISK.Shared.Localization;
 using DocumentCategory = ZISK.Shared.Enums.DocumentCategory;
 
 namespace ZISK.Controllers;
@@ -13,11 +14,15 @@ public class DocumentsController : ControllerBase
 {
     private readonly IDocumentService _documentService;
     private readonly IWebHostEnvironment _environment;
+    private readonly IConfiguration _configuration;
+    private readonly ICurrentLanguage _currentLanguage;
 
-    public DocumentsController(IDocumentService documentService, IWebHostEnvironment environment)
+    public DocumentsController(IDocumentService documentService, IWebHostEnvironment environment, IConfiguration configuration, ICurrentLanguage currentLanguage)
     {
         _documentService = documentService;
         _environment = environment;
+        _configuration = configuration;
+        _currentLanguage = currentLanguage;
     }
 
     [HttpGet]
@@ -50,6 +55,11 @@ public class DocumentsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UploadFile(Guid id, IFormFile file)
     {
+        // No client page reaches this today, but it's directly callable via the API - see
+        // AnnouncementsController.UploadAttachment for the same reasoning.
+        if (SeedModeResolver.Resolve(_configuration) == SeedMode.Demo)
+            return Forbid();
+
         try
         {
             var filePath = await _documentService.UploadFileAsync(id, file);
@@ -91,7 +101,7 @@ public class DocumentsController : ControllerBase
             var (relativePath, contentType, fileName) = await _documentService.GetDocumentFileAsync(id);
             var fullPath = Path.Combine(_environment.WebRootPath ?? "wwwroot", relativePath.TrimStart('/'));
             if (!System.IO.File.Exists(fullPath))
-                return NotFound("Súbor neexistuje");
+                return NotFound(Translations.Get(_currentLanguage.Current, "errors.file.notFound"));
             return PhysicalFile(fullPath, contentType, fileName);
         }
         catch (KeyNotFoundException) { return NotFound(); }
