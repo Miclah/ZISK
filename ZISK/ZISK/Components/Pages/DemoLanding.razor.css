@@ -1,0 +1,185 @@
+/* Deliberately plain: this is the first screen a reviewer sees, so it reads as a product
+   sign-in rather than a landing page. Flat surfaces, hairline borders, one accent, no
+   gradients/shadows/animation, no icons. */
+
+.demo-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--zisk-slate-50);
+    padding: 3rem 1.5rem;
+    font-family: 'Inter', 'Segoe UI', 'Roboto', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+.demo-panel {
+    width: 100%;
+    max-width: 36rem;
+}
+
+/* ---- header ---- */
+
+.demo-brand {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-bottom: 1.5rem;
+}
+
+.demo-lang {
+    display: flex;
+    gap: 0.875rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+.demo-lang a {
+    color: var(--zisk-text-tertiary);
+    text-decoration: none;
+    letter-spacing: 0.04em;
+}
+
+.demo-lang a:hover {
+    color: var(--zisk-text-primary);
+}
+
+.demo-lang a.is-active {
+    color: var(--zisk-text-primary);
+}
+
+.demo-head h1 {
+    font-size: 1.875rem;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+    color: var(--zisk-text-primary);
+    margin: 0 0 0.625rem;
+}
+
+.demo-head p {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--zisk-text-secondary);
+    margin: 0 0 2rem;
+    max-width: 34rem;
+}
+
+.demo-alert {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--zisk-error);
+    background: var(--zisk-error-tint);
+    border: 1px solid var(--zisk-error);
+    border-radius: var(--zisk-radius-md);
+    padding: 0.625rem 0.75rem;
+    margin: 0 0 1.25rem;
+}
+
+/* ---- role list ----
+   One bordered group with hairline dividers, so the four options read as a single control
+   instead of four competing cards. */
+
+.demo-roles {
+    display: flex;
+    flex-direction: column;
+    background: var(--zisk-surface);
+    border: 1px solid var(--zisk-border-default);
+    border-radius: var(--zisk-radius-lg);
+    overflow: hidden;
+}
+
+.demo-role {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    padding: 1.125rem 1.25rem;
+    background: none;
+    border: 0;
+    border-top: 1px solid var(--zisk-border-default);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+}
+
+.demo-role:first-child {
+    border-top: 0;
+}
+
+.demo-role:hover {
+    background: var(--zisk-slate-50);
+}
+
+.demo-role:focus-visible {
+    outline: 2px solid var(--zisk-primary);
+    outline-offset: -2px;
+}
+
+.demo-role-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1875rem;
+    min-width: 0;
+}
+
+.demo-role-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--zisk-text-primary);
+}
+
+.demo-role-desc {
+    font-size: 0.84375rem;
+    line-height: 1.5;
+    color: var(--zisk-text-tertiary);
+}
+
+/* CSS chevron - keeps the page icon-font- and emoji-free. */
+.demo-role-go {
+    flex: none;
+    margin-left: auto;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-right: 1.5px solid var(--zisk-text-tertiary);
+    border-bottom: 1.5px solid var(--zisk-text-tertiary);
+    transform: rotate(-45deg);
+    transition: border-color 0.12s ease, transform 0.12s ease;
+}
+
+.demo-role:hover .demo-role-go {
+    border-color: var(--zisk-text-primary);
+    transform: rotate(-45deg) translate(1px, 1px);
+}
+
+/* ---- footer ---- */
+
+.demo-note {
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: var(--zisk-text-tertiary);
+    text-align: center;
+    margin: 1.5rem 0 0;
+}
+
+/* Phones: the column already fills the width, so only the outer padding and the oversized
+   desktop headline need to come down - type stays at readable sizes. */
+@media (max-width: 34rem) {
+    .demo-page {
+        align-items: flex-start;
+        padding: 2rem 1.125rem 2.5rem;
+    }
+
+    .demo-head h1 {
+        font-size: 1.5rem;
+    }
+
+    .demo-head p {
+        margin-bottom: 1.5rem;
+    }
+
+    .demo-role {
+        padding: 1rem;
+    }
+}

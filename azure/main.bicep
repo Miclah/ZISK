@@ -33,6 +33,10 @@ param seedParentPassword string
 @description('Seed:Passwords:Child')
 param seedChildPassword string
 
+@secure()
+@description('Demo:OwnerKey - shared secret for the one-time /__owner?key=... link that lets you (not recruiters) reach /login and the rest of the Identity scaffold. Visit that URL once per browser after deploying.')
+param demoOwnerKey string
+
 var sqlServerName = '${appName}-sql'
 var sqlDatabaseName = 'ZISK'
 var appServicePlanName = '${appName}-plan'
@@ -111,6 +115,7 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'Seed__Passwords__Coach', value: seedCoachPassword }
         { name: 'Seed__Passwords__Parent', value: seedParentPassword }
         { name: 'Seed__Passwords__Child', value: seedChildPassword }
+        { name: 'Demo__OwnerKey', value: demoOwnerKey }
       ]
       connectionStrings: [
         {

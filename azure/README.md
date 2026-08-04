@@ -36,7 +36,8 @@ az deployment group validate \
                seedAdminPassword='<demo-admin-password>' \
                seedCoachPassword='<demo-coach-password>' \
                seedParentPassword='<demo-parent-password>' \
-               seedChildPassword='<demo-child-password>'
+               seedChildPassword='<demo-child-password>' \
+               demoOwnerKey='<long-random-string>'
 
 # If validation passes, drop --parameters values in a real .bicepparam file
 # or a secured pipeline instead of typing secrets on the command line, then:
@@ -50,7 +51,11 @@ The demo seed passwords are **not** the same as the local dev passwords in the
 root README — pick different ones for the public deployment.
 
 Note the `webAppUrl` output — that's the live demo link for the root README
-and GitHub repo "About" section.
+and GitHub repo "About" section. Share `webAppUrl` (or `webAppUrl/demo`) with
+recruiters — **not** `/login`. After deploying, visit
+`<webAppUrl>/__owner?key=<demoOwnerKey>` once per browser to unlock `/login`
+for yourself; every other visitor only ever sees `/demo` and its "Try as
+[Role]" buttons (see `DemoAccessGuardMiddleware`).
 
 ## 3. Wire up GitHub Actions OIDC (no client secret stored anywhere)
 

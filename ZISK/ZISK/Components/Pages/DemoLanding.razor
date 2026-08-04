@@ -1,0 +1,219 @@
+@page "/demo"
+@attribute [ExcludeFromInteractiveRouting]
+@attribute [AllowAnonymous]
+@layout ZISK.Components.Layout.LoginLayout
+@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
+@using ZISK.Data
+@using ZISK.Services
+@using ZISK.Services.Demo
+@using ZISK.Shared.Localization
+
+@inject IConfiguration Configuration
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IDemoSessionService DemoSessions
+@inject NavigationManager NavigationManager
+@inject ILogger<DemoLanding> Logger
+
+<PageTitle>@T("demo.title")</PageTitle>
+
+<div class="demo-page">
+    <main class="demo-panel">
+        <header class="demo-head">
+            @* No separate wordmark here: the h1 below already opens with the product name, and
+               showing both read as a duplicate. *@
+            <div class="demo-brand">
+                @* data-enhance-nav="false" is required: blazor.webassembly.js is loaded for every
+                   page in App.razor, so its enhanced navigation intercepts these links even though
+                   this page is static SSR ([ExcludeFromInteractiveRouting]). The intercepted click
+                   never reaches the server, so ?lang= is never read and the switch appears dead.
+                   Opting out forces a real navigation. *@
+                <nav class="demo-lang" aria-label="Language">
+                    <a href="/demo?lang=sk" data-enhance-nav="false"
+                       class="@(_lang == Lang.Sk ? "is-active" : "")"
+                       aria-current="@(_lang == Lang.Sk ? "true" : null)">SK</a>
+                    <a href="/demo?lang=en" data-enhance-nav="false"
+                       class="@(_lang == Lang.En ? "is-active" : "")"
+                       aria-current="@(_lang == Lang.En ? "true" : null)">EN</a>
+                </nav>
+            </div>
+
+            <h1>@T("demo.title")</h1>
+            <p>@T("demo.intro")</p>
+        </header>
+
+        @if (_errorMessage is not null)
+        {
+            <p class="demo-alert" role="alert">@_errorMessage</p>
+        }
+
+        @* No <AntiforgeryToken /> here on purpose. EditForm already renders one during static
+           SSR; adding a second emits two identical __RequestVerificationToken inputs, the browser
+           posts the field twice, and ASP.NET Core reads that multi-value field as a single
+           malformed token - the request then fails with "A valid antiforgery token was not
+           provided with the request." *@
+        <EditForm Model="_input" FormName="demo-try" OnSubmit="HandleSubmitAsync" class="demo-roles">
+            <button type="submit" name="Role" value="Admin" class="demo-role">
+                <span class="demo-role-text">
+                    <span class="demo-role-name">@T("demo.role.admin.title")</span>
+                    <span class="demo-role-desc">@T("demo.role.admin.desc")</span>
+                </span>
+                <span class="demo-role-go" aria-hidden="true"></span>
+            </button>
+
+            <button type="submit" name="Role" value="Coach" class="demo-role">
+                <span class="demo-role-text">
+                    <span class="demo-role-name">@T("demo.role.coach.title")</span>
+                    <span class="demo-role-desc">@T("demo.role.coach.desc")</span>
+                </span>
+                <span class="demo-role-go" aria-hidden="true"></span>
+            </button>
+
+            <button type="submit" name="Role" value="Parent" class="demo-role">
+                <span class="demo-role-text">
+                    <span class="demo-role-name">@T("demo.role.parent.title")</span>
+                    <span class="demo-role-desc">@T("demo.role.parent.desc")</span>
+                </span>
+                <span class="demo-role-go" aria-hidden="true"></span>
+            </button>
+
+            <button type="submit" name="Role" value="Child" class="demo-role">
+                <span class="demo-role-text">
+                    <span class="demo-role-name">@T("demo.role.child.title")</span>
+                    <span class="demo-role-desc">@T("demo.role.child.desc")</span>
+                </span>
+                <span class="demo-role-go" aria-hidden="true"></span>
+            </button>
+        </EditForm>
+
+        <p class="demo-note">@T("demo.footerNote")</p>
+    </main>
+</div>
+
+@code {
+    private readonly object _input = new();
+    private string? _errorMessage;
+    private Lang _lang = Lang.Sk;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(Name = "Role")]
+    private string? SelectedRole { get; set; }
+
+    [SupplyParameterFromQuery(Name = "lang")]
+    private string? LangQuery { get; set; }
+
+    private bool IsDemoMode => SeedModeResolver.Resolve(Configuration) == SeedMode.Demo;
+
+    private string T(string key) => Translations.Get(_lang, key);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!IsDemoMode)
+        {
+            NavigationManager.NavigateTo("/", forceLoad: true);
+            return;
+        }
+
+        ResolveLanguage();
+
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            // Without no-store, hitting Back after picking a role re-shows this form straight
+            // from the browser's cache (or bfcache). That copy's antiforgery token was minted
+            // for an anonymous visitor, but the request now carries the demo Identity cookie -
+            // tokens are bound to the identity, so UseAntiforgery rejects it with a bare 400
+            // before this component ever runs, and the visitor sees a raw error page. Forcing a
+            // real request means Back lands on the redirect below instead.
+            HttpContext.Response.Headers.CacheControl = "no-store, no-cache";
+            HttpContext.Response.Headers.Pragma = "no-cache";
+
+            if (HttpContext.User.Identity?.IsAuthenticated == true)
+            {
+                NavigationManager.NavigateTo("/", forceLoad: true);
+            }
+        }
+
+        // POST handling happens via the EditForm's OnSubmit binding below, not here - same
+        // division of responsibility as Login.razor's OnInitializedAsync/LoginUser split.
+    }
+
+    /// <summary>
+    /// This is a Static SSR page (no WASM, no JS interop), so it can't use the client-side
+    /// ILanguageService - it reads/writes the same zisk_lang cookie directly instead, which
+    /// keeps a visitor's language choice consistent whether they're on this page or in the
+    /// interactive app (see LanguageService.cs on the client side for the other end of this).
+    /// </summary>
+    private void ResolveLanguage()
+    {
+        if (LangQuery is "en" or "sk")
+        {
+            _lang = LangQuery == "en" ? Lang.En : Lang.Sk;
+            HttpContext.Response.Cookies.Append("zisk_lang", LangQuery, new CookieOptions
+            {
+                Secure = HttpContext.Request.IsHttps,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddDays(30)
+            });
+            return;
+        }
+
+        if (HttpContext.Request.Cookies.TryGetValue("zisk_lang", out var cookieLang) && cookieLang == "en")
+            _lang = Lang.En;
+    }
+
+    private async Task HandleSubmitAsync()
+    {
+        var role = SelectedRole;
+        if (string.IsNullOrEmpty(role))
+            return;
+
+        ApplicationUser? user;
+        Guid sessionId;
+        try
+        {
+            var cookieSessionId = ReadSessionCookie();
+            sessionId = await DemoSessions.EnsureSessionAsync(cookieSessionId, role);
+            WriteSessionCookie(sessionId);
+
+            user = await DemoSessions.GetUserForRoleAsync(sessionId, role);
+        }
+        catch (Exception ex)
+        {
+            // NavigateTo below throws NavigationException by design (it's how server-rendered
+            // Blazor unwinds to perform the redirect) - that must propagate, not be swallowed
+            // here as if it were a real failure. Keeping the try/catch scoped to just the
+            // session/DB work (and calling NavigateTo outside it entirely) avoids the trap.
+            Logger.LogError(ex, "Failed to start demo session for role {Role}", role);
+            _errorMessage = T("demo.error.prepareFailed");
+            return;
+        }
+
+        if (user is null)
+        {
+            Logger.LogWarning("Demo session {SessionId} has no cloned user for role {Role}", sessionId, role);
+            _errorMessage = T("demo.error.roleNotFound");
+            return;
+        }
+
+        await SignInManager.SignInWithClaimsAsync(user, isPersistent: true,
+            additionalClaims: [new Claim(DemoSessionContext.ClaimType, sessionId.ToString())]);
+
+        NavigationManager.NavigateTo("/", forceLoad: true);
+    }
+
+    private Guid? ReadSessionCookie() =>
+        HttpContext.Request.Cookies.TryGetValue(DemoSessionContext.CookieName, out var raw) && Guid.TryParse(raw, out var id)
+            ? id
+            : null;
+
+    private void WriteSessionCookie(Guid sessionId) =>
+        HttpContext.Response.Cookies.Append(DemoSessionContext.CookieName, sessionId.ToString(), new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = HttpContext.Request.IsHttps,
+            SameSite = SameSiteMode.Lax,
+            Expires = DateTimeOffset.UtcNow.AddDays(30)
+        });
+}
