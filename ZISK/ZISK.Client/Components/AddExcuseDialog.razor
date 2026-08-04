@@ -1,3 +1,4 @@
+@inherits LocalizedComponentBase
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Excuses
 @using ZISK.Shared.DTOs.Trainings
@@ -17,32 +18,32 @@
         else if (_isChild)
         {
             <MudAlert Severity="Severity.Info" Class="mb-3">
-                Ako rola <strong>Dieťa</strong> máte len náhľad ospravedlneniek. Vytvorenie ospravedlnenky vykoná rodič alebo športovec.
+                @T("addExcuseDialog.childRoleInfoPrefix") <strong>@T("role.child")</strong> @T("addExcuseDialog.childRoleInfoSuffix")
             </MudAlert>
         }
         else if (!_children.Any())
         {
             <MudAlert Severity="Severity.Info" Class="mb-3">
                 @(_isAthlete
-                    ? "Momentálne nemáte prepojený športovec profil. Kontaktujte administrátora alebo trénera, aby vás prepojil na tím."
-                    : "Nemáte priradené žiadne dieťa. Kontaktujte administrátora alebo trénera.")
+                    ? T("addExcuseDialog.noAthleteProfile")
+                    : T("addExcuseDialog.noChildAssigned"))
             </MudAlert>
         }
         else
         {
             <EditForm @ref="_editForm" Model="@_model" OnValidSubmit="Submit">
-                <DataAnnotationsValidator />
+                <LocalizedDataAnnotationsValidator />
                 <MudStack Spacing="3">
                     <MudSelect T="string?"
                                @bind-Value="_model.SelectedPersonId"
                                @bind-Value:after="OnSelectedPersonChanged"
                                For="@(() => _model.SelectedPersonId)"
-                               Label="Koho ospravedlňujem?"
+                               Label="@T("addExcuseDialog.whoLabel")"
                                Variant="Variant.Outlined">
                         @foreach (var child in _children.OrderBy(c => c.LastName).ThenBy(c => c.FirstName))
                         {
                             <MudSelectItem Value="@((string?)child.Id)">
-                                @(child.IsOwnProfile ? $"Seba ({child.FirstName} {child.LastName})" : $"{child.FirstName} {child.LastName}")
+                                @(child.IsOwnProfile ? string.Format(T("addExcuseDialog.selfLabelFormat"), $"{child.FirstName} {child.LastName}") : $"{child.FirstName} {child.LastName}")
                             </MudSelectItem>
                         }
                     </MudSelect>
@@ -50,7 +51,7 @@
                     <MudSelect T="Guid?"
                                @bind-Value="_model.SelectedTrainingId"
                                For="@(() => _model.SelectedTrainingId)"
-                               Label="Na ktorý tréning?"
+                               Label="@T("addExcuseDialog.whichTrainingLabel")"
                                Variant="Variant.Outlined"
                                Disabled="@(_model.SelectedPersonId is null || !_availableTrainings.Any())">
                         @foreach (var training in _availableTrainings)
@@ -63,12 +64,12 @@
 
                     @if (_model.SelectedPersonId is not null && !_availableTrainings.Any())
                     {
-                        <MudAlert Severity="Severity.Info" Dense="true">Pre vybranú osobu nie sú dostupné žiadne nadchádzajúce tréningy.</MudAlert>
+                        <MudAlert Severity="Severity.Info" Dense="true">@T("addExcuseDialog.noUpcomingTrainings")</MudAlert>
                     }
 
                     <MudTextField @bind-Value="_model.Reason"
                                   For="@(() => _model.Reason)"
-                                  Label="Dôvod"
+                                  Label="@T("attendance.excuses.reason")"
                                   Variant="Variant.Outlined"
                                   Lines="3"
                                   Counter="200"
@@ -81,8 +82,8 @@
     <DialogActions>
         <LoadingButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitForm"
                        Loading="_isSubmitting" Disabled="@(_isChild || !_children.Any())"
-                       LoadingText="Odosielam...">
-            Odoslať
+                       LoadingText="@T("addExcuseDialog.sending")">
+            @T("addExcuseDialog.send")
         </LoadingButton>
     </DialogActions>
 </MudDialog>
@@ -127,7 +128,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -155,7 +156,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní tréningov: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("calendar.errorLoadingTrainings")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 
@@ -191,12 +192,12 @@
             );
 
             await ExcusesApi.CreateExcuseAsync(request);
-            Snackbar.Add("Ospravedlnenka odoslaná", Severity.Success);
+            Snackbar.Add(T("addExcuseDialog.submitted"), Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {

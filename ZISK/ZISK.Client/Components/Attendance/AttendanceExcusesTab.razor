@@ -1,3 +1,4 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @using ZISK.Client.Display
 @using ZISK.Shared.DTOs.Excuses
 @*
@@ -22,13 +23,13 @@ else if (Excuses.Count == 0)
 {
     <MudPaper Class="card-standard empty-state" Elevation="0">
         <MudIcon Icon="@Icons.Material.Rounded.EventAvailable" Class="empty-state__icon" />
-        <div class="empty-state__title">Zatiaľ nemáte žiadne ospravedlnenky</div>
+        <div class="empty-state__title">@T("attendance.excuses.noExcusesTitle")</div>
         @if (CanManage)
         {
             <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-2"
                        StartIcon="@Icons.Material.Rounded.Add"
                        OnClick="OnCreate">
-                Vytvoriť prvú ospravedlnenku
+                @T("attendance.excuses.createFirst")
             </MudButton>
         }
     </MudPaper>
@@ -39,11 +40,11 @@ else
         <MudPaper Class="card-standard pa-2" Elevation="0">
             <MudTable Items="@Excuses" Hover="true" Elevation="0" Breakpoint="Breakpoint.None">
                 <HeaderContent>
-                    <MudTh>Koho</MudTh>
-                    <MudTh>Dátum</MudTh>
-                    <MudTh>Dôvod</MudTh>
-                    <MudTh>Stav</MudTh>
-                    <MudTh Style="text-align:right;">Akcie</MudTh>
+                    <MudTh>@T("attendance.excuses.whom")</MudTh>
+                    <MudTh>@T("attendance.history.date")</MudTh>
+                    <MudTh>@T("attendance.excuses.reason")</MudTh>
+                    <MudTh>@T("dashboard.child.status")</MudTh>
+                    <MudTh Style="text-align:right;">@T("attendance.excuses.actions")</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>@context.ChildName</MudTd>
@@ -84,7 +85,7 @@ else
                             @FormatDateRange(excuse.DateFrom, excuse.DateTo)
                         </MudText>
                         <MudText Typo="Typo.body2">
-                            @(string.IsNullOrWhiteSpace(excuse.Reason) ? "Bez dôvodu" : excuse.Reason)
+                            @(string.IsNullOrWhiteSpace(excuse.Reason) ? T("attendance.excuses.noReason") : excuse.Reason)
                         </MudText>
                         @if (CanManage)
                         {

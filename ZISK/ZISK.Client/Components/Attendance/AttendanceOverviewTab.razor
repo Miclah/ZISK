@@ -1,3 +1,5 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
+@using ZISK.Client.Display
 @using ZISK.Shared.DTOs.Attendance
 @using ZISK.Shared.DTOs.Trainings
 @using ZISK.Shared.Enums
@@ -21,24 +23,24 @@ else
     <MudGrid Spacing="3" Class="mb-4">
         <MudItem xs="12" sm="4">
             <AttendanceCountCard Icon="@Icons.Material.Rounded.CheckCircle" IconColor="Color.Success"
-                                 Count="@PresentCount" Label="Prítomný" />
+                                 Count="@PresentCount" Label="@DomainLabels.AttendanceStatusText(AttendanceStatus.Present)" />
         </MudItem>
         <MudItem xs="12" sm="4">
             <AttendanceCountCard Icon="@Icons.Material.Rounded.Cancel" IconColor="Color.Error"
-                                 Count="@AbsentCount" Label="Neospravedlnený" />
+                                 Count="@AbsentCount" Label="@T("attendance.overview.absentLabel")" />
         </MudItem>
         <MudItem xs="12" sm="4">
             <AttendanceCountCard Icon="@Icons.Material.Rounded.PauseCircle" IconColor="Color.Warning"
-                                 Count="@ExcusedCount" Label="Ospravedlnený" />
+                                 Count="@ExcusedCount" Label="@DomainLabels.AttendanceStatusText(AttendanceStatus.Excused)" />
         </MudItem>
     </MudGrid>
 
-    <MudText Typo="Typo.h6" Class="mb-3">Nadchádzajúce tréningy</MudText>
+    <MudText Typo="Typo.h6" Class="mb-3">@T("attendance.overview.upcomingTrainings")</MudText>
     @if (Upcoming.Count == 0)
     {
         <MudPaper Class="card-standard empty-state" Elevation="0">
             <MudIcon Icon="@Icons.Material.Rounded.Event" Class="empty-state__icon" />
-            <div class="empty-state__title">Žiadne nadchádzajúce tréningy</div>
+            <div class="empty-state__title">@T("attendance.overview.noUpcoming")</div>
         </MudPaper>
     }
     else

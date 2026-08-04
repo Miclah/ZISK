@@ -1,4 +1,5 @@
 ﻿@page "/admin/pouzivatelia"
+@inherits LocalizedComponentBase
 @using System.ComponentModel.DataAnnotations
 @using ZISK.Client.Components
 @using ZISK.Client.Display
@@ -6,14 +7,14 @@
 @using ZISK.Shared.DTOs.Users
 @attribute [Authorize(Roles = "Admin")]
 
-<PageTitle>Správa používateľov</PageTitle>
+<PageTitle>@T("admin.users.pageTitle")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
-<PageHeader Icon="@Icons.Material.Filled.People" Title="Správa používateľov">
+<PageHeader Icon="@Icons.Material.Filled.People" Title="@T("admin.users.pageTitle")">
     <Actions>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
-            Pridať používateľa
+            @T("dashboard.admin.addUser")
         </MudButton>
     </Actions>
 </PageHeader>
@@ -22,19 +23,19 @@
     <MudGrid>
         <MudItem xs="12" md="7">
             <MudTextField @bind-Value="SearchText"
-                          Label="Hľadať podľa mena alebo telefónu"
+                          Label="@T("admin.users.searchLabel")"
                           Variant="Variant.Outlined"
                           Immediate="true"
                           Adornment="Adornment.End"
                           AdornmentIcon="@Icons.Material.Filled.Search" />
         </MudItem>
         <MudItem xs="12" md="5">
-            <MudSelect T="string" @bind-Value="SelectedRole" Label="Filter roly" Variant="Variant.Outlined" Clearable="true">
-                <MudSelectItem Value="@("Coach")">Tréner</MudSelectItem>
-                <MudSelectItem Value="@("Parent")">Rodič</MudSelectItem>
-                <MudSelectItem Value="@("Athlete")">Športovec</MudSelectItem>
-                <MudSelectItem Value="@("Child")">Dieťa</MudSelectItem>
-                <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
+            <MudSelect T="string" @bind-Value="SelectedRole" Label="@T("admin.users.roleFilterLabel")" Variant="Variant.Outlined" Clearable="true">
+                <MudSelectItem Value="@("Coach")">@T("role.coach")</MudSelectItem>
+                <MudSelectItem Value="@("Parent")">@T("role.parent")</MudSelectItem>
+                <MudSelectItem Value="@("Athlete")">@T("role.athlete")</MudSelectItem>
+                <MudSelectItem Value="@("Child")">@T("role.child")</MudSelectItem>
+                <MudSelectItem Value="@("Admin")">@T("role.admin")</MudSelectItem>
             </MudSelect>
         </MudItem>
     </MudGrid>
@@ -58,12 +59,12 @@ else
     <MudHidden Breakpoint="Breakpoint.MdAndDown">
         <MudTable Items="_filteredUsers" Hover="true" Striped="true" Elevation="2" Dense="true">
             <HeaderContent>
-                <MudTh>Meno</MudTh>
-                <MudTh>Priezvisko</MudTh>
-                <MudTh>Rola</MudTh>
-                <MudTh>Telefón</MudTh>
-                <MudTh>Tím</MudTh>
-                <MudTh Style="text-align:right">Akcie</MudTh>
+                <MudTh>@T("admin.users.table.firstName")</MudTh>
+                <MudTh>@T("admin.users.table.lastName")</MudTh>
+                <MudTh>@T("dashboard.latestUsers.role")</MudTh>
+                <MudTh>@T("admin.users.table.phone")</MudTh>
+                <MudTh>@T("dashboard.team")</MudTh>
+                <MudTh Style="text-align:right">@T("attendance.excuses.actions")</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd>@context.FirstName</MudTd>
@@ -72,14 +73,14 @@ else
                     <MudChip T="string" Size="Size.Small" Color="@DomainLabels.RoleColor(context.Role)">@DomainLabels.Role(context.Role)</MudChip>
                 </MudTd>
                 <MudTd>@(string.IsNullOrWhiteSpace(context.PhoneNumber) ? "-" : context.PhoneNumber)</MudTd>
-                <MudTd>@(string.IsNullOrWhiteSpace(context.TeamName) ? "Nepriradený" : context.TeamName)</MudTd>
+                <MudTd>@(string.IsNullOrWhiteSpace(context.TeamName) ? T("admin.users.unassigned") : context.TeamName)</MudTd>
                 <MudTd Style="text-align:right">
                     @if (context.Role == "Child")
                     {
                         <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward"
                                        Color="Color.Warning"
                                        Size="Size.Small"
-                                       Title="Povýšiť na športovca"
+                                       Title="@T("admin.users.upgradeToAthlete")"
                                        OnClick="() => ConfirmUpgradeToAthlete(context)" />
                     }
                     <MudIconButton Icon="@Icons.Material.Filled.Edit"
@@ -93,7 +94,7 @@ else
                 </MudTd>
             </RowTemplate>
             <NoRecordsContent>
-                <MudText>Žiadni používatelia</MudText>
+                <MudText>@T("admin.users.noUsers")</MudText>
             </NoRecordsContent>
         </MudTable>
     </MudHidden>
@@ -127,7 +128,7 @@ else
                                     <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward"
                                                    Color="Color.Warning"
                                                    Size="Size.Small"
-                                                   Title="Povýšiť na športovca"
+                                                   Title="@T("admin.users.upgradeToAthlete")"
                                                    OnClick="() => ConfirmUpgradeToAthlete(user)" />
                                 }
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
@@ -146,7 +147,7 @@ else
         }
         else
         {
-            <MudText>Žiadni používatelia</MudText>
+            <MudText>@T("admin.users.noUsers")</MudText>
         }
     </MudHidden>
 }
@@ -154,54 +155,54 @@ else
 
 <MudDialog @bind-Visible="_editDialogVisible" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
     <TitleContent>
-        <MudText Typo="Typo.h6">Upraviť používateľa</MudText>
+        <MudText Typo="Typo.h6">@T("admin.users.editUser")</MudText>
     </TitleContent>
     <DialogContent>
         <EditForm Model="@_editModel" OnValidSubmit="SaveUser">
-            <DataAnnotationsValidator />
-            <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mb-3">Osobné údaje</MudText>
+            <LocalizedDataAnnotationsValidator />
+            <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mb-3">@T("admin.users.personalData")</MudText>
             <MudGrid>
                 <MudItem xs="12" md="6">
                     <MudTextField @bind-Value="_editModel.FirstName"
                                   For="@(() => _editModel.FirstName)"
-                                  Label="Meno" Variant="Variant.Outlined" />
+                                  Label="@T("admin.users.table.firstName")" Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudTextField @bind-Value="_editModel.LastName"
                                   For="@(() => _editModel.LastName)"
-                                  Label="Priezvisko" Variant="Variant.Outlined" />
+                                  Label="@T("admin.users.table.lastName")" Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudTextField @bind-Value="_editModel.Phone"
                                   For="@(() => _editModel.Phone)"
-                                  Label="Telefón" Variant="Variant.Outlined"
+                                  Label="@T("admin.users.table.phone")" Variant="Variant.Outlined"
                                   Placeholder="+421 905 123 456" />
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudTextField @bind-Value="_editModel.RodneCislo"
                                   For="@(() => _editModel.RodneCislo)"
-                                  Label="Rodné číslo" Variant="Variant.Outlined"
+                                  Label="@T("admin.users.birthNumber")" Variant="Variant.Outlined"
                                   Placeholder="991231/1234" />
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudDatePicker @bind-Date="_editModel.DateOfBirth"
-                                   Label="Dátum narodenia" Variant="Variant.Outlined" Clearable="true" />
+                                   Label="@T("dashboard.child.dateOfBirth")" Variant="Variant.Outlined" Clearable="true" />
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudSelect T="string" @bind-Value="_editModel.Role"
                                For="@(() => _editModel.Role)"
-                               Label="Rola" Variant="Variant.Outlined">
-                        <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
-                        <MudSelectItem Value="@("Coach")">Tréner</MudSelectItem>
-                        <MudSelectItem Value="@("Parent")">Rodič</MudSelectItem>
-                        <MudSelectItem Value="@("Athlete")">Športovec</MudSelectItem>
-                        <MudSelectItem Value="@("Child")">Dieťa</MudSelectItem>
+                               Label="@T("dashboard.latestUsers.role")" Variant="Variant.Outlined">
+                        <MudSelectItem Value="@("Admin")">@T("role.admin")</MudSelectItem>
+                        <MudSelectItem Value="@("Coach")">@T("role.coach")</MudSelectItem>
+                        <MudSelectItem Value="@("Parent")">@T("role.parent")</MudSelectItem>
+                        <MudSelectItem Value="@("Athlete")">@T("role.athlete")</MudSelectItem>
+                        <MudSelectItem Value="@("Child")">@T("role.child")</MudSelectItem>
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_editModel.Bydlisko"
                                   For="@(() => _editModel.Bydlisko)"
-                                  Label="Bydlisko" Variant="Variant.Outlined" Lines="2"
+                                  Label="@T("admin.users.address")" Variant="Variant.Outlined" Lines="2"
                                   Placeholder="Hlavná 1, 010 01 Žilina" />
                 </MudItem>
 
@@ -209,18 +210,18 @@ else
                 {
                     <MudItem xs="12">
                         <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
-                            Dieťa musí mať 1–2 rodičov.
+                            @T("admin.users.childNeedsParents")
                         </MudAlert>
-                        <MudTextField @bind-Value="ParentSearch" Label="Hľadať rodiča" Variant="Variant.Outlined"
+                        <MudTextField @bind-Value="ParentSearch" Label="@T("admin.users.searchParent")" Variant="Variant.Outlined"
                                       Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-2" />
                         <MudSelect T="string"
                                    SelectedValues="_selectedParentIds"
                                    SelectedValuesChanged="OnSelectedParentsChanged"
-                                   Label="Prepojení rodičia"
+                                   Label="@T("admin.users.linkedParents")"
                                    Variant="Variant.Outlined"
                                    MultiSelection="true"
                                    SelectAll="true"
-                                   SelectAllText="Vybrať všetkých"
+                                   SelectAllText="@T("admin.users.selectAll")"
                                    MultiSelectionTextFunc="@(ids => string.Join(", ", ids.Select(id => _parents.FirstOrDefault(p => p.Id == id)?.FullName ?? id)))">
                             @foreach (var parent in _filteredParents)
                             {
@@ -236,7 +237,7 @@ else
                                   Variant="Variant.Filled"
                                   Loading="_isSaving"
                                   FullWidth="true">
-                        Uložiť
+                        @T("admin.users.save")
                     </LoadingButton>
                 </MudItem>
             </MudGrid>

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ZISK.Data;
 using ZISK.Data.Entities;
 using ZISK.Shared.DTOs.Documents;
+using ZISK.Shared.Localization;
 using DocumentCategory = ZISK.Shared.Enums.DocumentCategory;
 
 namespace ZISK.Services;
@@ -10,11 +11,13 @@ public class DocumentService : IDocumentService
 {
     private readonly ApplicationDbContext _context;
     private readonly IFileService _fileService;
+    private readonly ICurrentLanguage _currentLanguage;
 
-    public DocumentService(ApplicationDbContext context, IFileService fileService)
+    public DocumentService(ApplicationDbContext context, IFileService fileService, ICurrentLanguage currentLanguage)
     {
         _context = context;
         _fileService = fileService;
+        _currentLanguage = currentLanguage;
     }
 
     public async Task<List<DocumentDto>> GetDocumentsAsync(DocumentCategory? category)
@@ -110,7 +113,7 @@ public class DocumentService : IDocumentService
             ?? throw new KeyNotFoundException();
 
         if (string.IsNullOrEmpty(document.FilePath))
-            throw new InvalidOperationException("Dokument nemá priradený súbor");
+            throw new InvalidOperationException(Translations.Get(_currentLanguage.Current, "errors.document.noFile"));
 
         var contentType = _fileService.GetContentType(document.FilePath);
         var fileName = Path.GetFileName(document.FilePath);

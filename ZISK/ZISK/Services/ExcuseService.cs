@@ -4,6 +4,7 @@ using ZISK.Data;
 using ZISK.Data.Entities;
 using ZISK.Extensions;
 using ZISK.Shared.DTOs.Excuses;
+using ZISK.Shared.Localization;
 using ExcuseStatus = ZISK.Shared.Enums.ExcuseStatus;
 
 namespace ZISK.Services;
@@ -13,12 +14,14 @@ public class ExcuseService : IExcuseService
     private readonly ApplicationDbContext _context;
     private readonly ITeamAccessService _teamAccessService;
     private readonly IAuditService _auditService;
+    private readonly ICurrentLanguage _currentLanguage;
 
-    public ExcuseService(ApplicationDbContext context, ITeamAccessService teamAccessService, IAuditService auditService)
+    public ExcuseService(ApplicationDbContext context, ITeamAccessService teamAccessService, IAuditService auditService, ICurrentLanguage currentLanguage)
     {
         _context = context;
         _teamAccessService = teamAccessService;
         _auditService = auditService;
+        _currentLanguage = currentLanguage;
     }
 
     public async Task<List<ExcuseListDto>> GetExcusesAsync(ExcuseStatus? status, ClaimsPrincipal user)
@@ -123,10 +126,10 @@ public class ExcuseService : IExcuseService
         ValidateExcuseFields(request.Reason, request.Note, request.DateFrom, request.DateTo);
 
         if (request.TrainingEventId == null && request.DateFrom == null)
-            throw new ArgumentException("Musíte zadať buď konkrétny tréning alebo dátum absencie");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.excuse.needsTrainingOrDate"));
 
         var child = await _context.Users.FindAsync(request.ChildId)
-            ?? throw new ArgumentException("Dieťa neexistuje");
+            ?? throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.excuse.childNotFound"));
 
         if (user.IsInRole("Parent"))
         {
@@ -316,19 +319,21 @@ public class ExcuseService : IExcuseService
 
     // dateFromForRange is separate from dateFrom: on Update, dateFrom is the new edited value,
     // but the range validation needs the original DateFrom to check correctly. Two parameters prevent confusion.
-    private static void ValidateExcuseFields(string? reason, string? note, DateTime? dateFrom, DateTime? dateTo, DateTime? dateFromForRange = null)
+    private void ValidateExcuseFields(string? reason, string? note, DateTime? dateFrom, DateTime? dateTo, DateTime? dateFromForRange = null)
     {
+        var lang = _currentLanguage.Current;
+
         if (!string.IsNullOrWhiteSpace(reason) && (reason.Length < 3 || reason.Length > 200))
-            throw new ArgumentException("Dôvod musí mať 3-200 znakov");
+            throw new ArgumentException(Translations.Get(lang, "errors.excuse.reasonLength"));
 
         if (note != null && note.Length > 500)
-            throw new ArgumentException("Poznámka môže mať max 500 znakov");
+            throw new ArgumentException(Translations.Get(lang, "errors.excuse.noteMaxLength"));
 
         if (dateFrom.HasValue && dateFrom.Value < DateTime.UtcNow.AddDays(-30))
-            throw new ArgumentException("Dátum nemôže byť starší ako 30 dní");
+            throw new ArgumentException(Translations.Get(lang, "errors.excuse.dateTooOld"));
 
         var effectiveDateFrom = dateFromForRange ?? dateFrom;
         if (dateTo.HasValue && effectiveDateFrom.HasValue && dateTo.Value < effectiveDateFrom.Value)
-            throw new ArgumentException("Dátum 'Do' nemôže byť pred dátumom 'Od'");
+            throw new ArgumentException(Translations.Get(lang, "errors.excuse.dateToBeforeFrom"));
     }
 }

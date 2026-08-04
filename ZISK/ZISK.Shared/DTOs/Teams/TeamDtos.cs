@@ -31,26 +31,26 @@ public record TeamMemberDto(
 );
 
 public record CreateTeamRequest(
-    [Required(ErrorMessage = "Názov tímu je povinný.")]
-    [StringLength(100, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 100 znakov.")]
+    [Required(ErrorMessage = "validation.teamName.required")]
+    [StringLength(100, MinimumLength = 2, ErrorMessage = "validation.name.length2to100")]
     string Name,
 
-    [StringLength(50, ErrorMessage = "Skratka môže mať max 50 znakov.")]
+    [StringLength(50, ErrorMessage = "validation.shortName.maxLength50")]
     string? ShortName,
 
-    [StringLength(500, ErrorMessage = "Popis môže mať max 500 znakov.")]
+    [StringLength(500, ErrorMessage = "validation.description.maxLength500")]
     string? Description
 );
 
 public record UpdateTeamRequest(
-    [Required(ErrorMessage = "Názov tímu je povinný.")]
-    [StringLength(100, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 100 znakov.")]
+    [Required(ErrorMessage = "validation.teamName.required")]
+    [StringLength(100, MinimumLength = 2, ErrorMessage = "validation.name.length2to100")]
     string Name,
 
-    [StringLength(50, ErrorMessage = "Skratka môže mať max 50 znakov.")]
+    [StringLength(50, ErrorMessage = "validation.shortName.maxLength50")]
     string? ShortName,
 
-    [StringLength(500, ErrorMessage = "Popis môže mať max 500 znakov.")]
+    [StringLength(500, ErrorMessage = "validation.description.maxLength500")]
     string? Description,
 
     bool IsActive

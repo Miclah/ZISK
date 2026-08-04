@@ -1,4 +1,5 @@
 ﻿@page "/oznamy"
+@inherits LocalizedComponentBase
 @using ZISK.Client.Display
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Announcements
@@ -7,22 +8,22 @@
 @inject ISnackbar Snackbar
 @attribute [Authorize]
 
-<PageTitle>Oznamy</PageTitle>
+<PageTitle>@T("announcements.pageTitle")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-2">
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="mb-4">
-    <MudText Typo="Typo.h4">Oznamy</MudText>
+    <MudText Typo="Typo.h4">@T("announcements.pageTitle")</MudText>
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
-        <MudSelect T="AnnouncementPriority?" @bind-Value="_filterPriority" Label="Priorita"
+        <MudSelect T="AnnouncementPriority?" @bind-Value="_filterPriority" Label="@T("announcements.priorityFilterLabel")"
                    Variant="Variant.Outlined" Dense="true" Clearable="true" Style="min-width:200px;">
-            <MudSelectItem T="AnnouncementPriority?" Value="@(AnnouncementPriority.High)">Vysoká</MudSelectItem>
-            <MudSelectItem T="AnnouncementPriority?" Value="@(AnnouncementPriority.Medium)">Stredná</MudSelectItem>
-            <MudSelectItem T="AnnouncementPriority?" Value="@(AnnouncementPriority.Low)">Nízka</MudSelectItem>
+            <MudSelectItem T="AnnouncementPriority?" Value="@(AnnouncementPriority.High)">@DomainLabels.PriorityText(AnnouncementPriority.High)</MudSelectItem>
+            <MudSelectItem T="AnnouncementPriority?" Value="@(AnnouncementPriority.Medium)">@DomainLabels.PriorityText(AnnouncementPriority.Medium)</MudSelectItem>
+            <MudSelectItem T="AnnouncementPriority?" Value="@(AnnouncementPriority.Low)">@DomainLabels.PriorityText(AnnouncementPriority.Low)</MudSelectItem>
         </MudSelect>
         <AuthorizeView Roles="Admin,Coach">
             <MudButton Variant="Variant.Filled" Color="Color.Primary"
                        StartIcon="@Icons.Material.Rounded.Add" Href="/oznamy/vytvorit">
-                Nový oznam
+                @T("announcements.newAnnouncement")
             </MudButton>
         </AuthorizeView>
     </MudStack>
@@ -43,9 +44,9 @@ else if (!FilteredAnnouncements.Any())
 {
     <MudPaper Class="card-standard empty-state" Elevation="0">
         <MudIcon Icon="@Icons.Material.Rounded.Announcement" Class="empty-state__icon" />
-        <div class="empty-state__title">Žiadne oznamy</div>
+        <div class="empty-state__title">@T("announcements.noAnnouncementsTitle")</div>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @(_filterPriority.HasValue ? "Pre vybraný filter neexistujú žiadne oznamy." : "Zatiaľ neboli zverejnené žiadne oznamy.")
+            @(_filterPriority.HasValue ? T("announcements.noAnnouncementsFiltered") : T("dashboard.panel.noAnnouncementsPublished"))
         </MudText>
     </MudPaper>
 }
@@ -93,7 +94,7 @@ else
                                 @if (announcement.ValidUntil.HasValue)
                                 {
                                     <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                        Platí do @announcement.ValidUntil.Value.ToString("dd.MM.yyyy")
+                                        @T("announcements.validUntil") @announcement.ValidUntil.Value.ToString("dd.MM.yyyy")
                                     </MudText>
                                 }
                             </MudStack>
@@ -138,7 +139,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -164,12 +165,12 @@ else
         try
         {
             await AnnouncementsApi.DeleteAnnouncementAsync(id);
-            Snackbar.Add("Oznam vymazaný", Severity.Success);
+            Snackbar.Add(T("announcements.deleted"), Severity.Success);
             await LoadAnnouncements();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 }

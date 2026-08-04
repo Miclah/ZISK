@@ -1,4 +1,5 @@
 ﻿@page "/coach"
+@inherits LocalizedComponentBase
 @using System.Security.Claims
 @using System.Globalization
 @using ZISK.Client.Components.Dashboard
@@ -17,7 +18,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @attribute [Authorize(Roles = "Coach")]
 
-<PageTitle>Nástenka trénera</PageTitle>
+<PageTitle>@T("dashboard.coach.pageTitle")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-2">
 @if (_isLoading)
@@ -45,13 +46,13 @@ else
             <MudButton Variant="Variant.Filled" Color="Color.Secondary"
                        StartIcon="@Icons.Material.Rounded.AddCircle"
                        OnClick='() => NavigationManager.NavigateTo("/kalendar")'>
-                Naplánovať tréning
+                @T("dashboard.scheduleTraining")
             </MudButton>
             <MudButton Variant="Variant.Outlined" Color="Color.Inherit"
                        Style="border-color: rgba(255,255,255,0.4); color: #fff;"
                        StartIcon="@Icons.Material.Rounded.Campaign"
                        OnClick='() => NavigationManager.NavigateTo("/coach/oznamy")'>
-                Nový oznam
+                @T("dashboard.coach.newAnnouncement")
             </MudButton>
         </Actions>
     </DashboardHero>
@@ -59,19 +60,19 @@ else
     <MudGrid Class="mb-4" Spacing="3">
         <MudItem xs="6" sm="3">
             <CompactStatCard Icon="@Icons.Material.Filled.FitnessCenter" IconColor="Color.Primary"
-                             Value="@_kpiTrainingsThisWeek.ToString()" Label="Tréningy tento týždeň" />
+                             Value="@_kpiTrainingsThisWeek.ToString()" Label="@T("dashboard.coach.kpi.trainingsThisWeek")" />
         </MudItem>
         <MudItem xs="6" sm="3">
             <CompactStatCard Icon="@Icons.Material.Filled.EventBusy" IconColor="Color.Warning"
-                             Value="@_kpiPendingExcuses.ToString()" Label="Nové ospravedlnenky" />
+                             Value="@_kpiPendingExcuses.ToString()" Label="@T("dashboard.coach.kpi.newExcuses")" />
         </MudItem>
         <MudItem xs="6" sm="3">
             <CompactStatCard Icon="@Icons.Material.Filled.Groups" IconColor="Color.Tertiary"
-                             Value="@_memberCount.ToString()" Label="Hráčov v tíme" />
+                             Value="@_memberCount.ToString()" Label="@T("dashboard.coach.kpi.teamMembers")" />
         </MudItem>
         <MudItem xs="6" sm="3">
             <CompactStatCard Icon="@Icons.Material.Filled.Campaign" IconColor="Color.Info"
-                             Value="@_kpiRecentAnnouncements.ToString()" Label="Nové oznamy (7 dní)" />
+                             Value="@_kpiRecentAnnouncements.ToString()" Label="@T("dashboard.coach.kpi.newAnnouncements")" />
         </MudItem>
     </MudGrid>
 
@@ -97,7 +98,7 @@ else
                 <RecentExcusesPanel Excuses="_recentExcuses" />
 
                 <ActiveAnnouncementsPanel Announcements="_announcements"
-                                          Title="Aktuálne oznamy"
+                                          Title="@T("dashboard.coach.currentAnnouncements")"
                                           MaxItems="4"
                                           OnShowAll='() => NavigationManager.NavigateTo("/coach/oznamy")' />
             </MudStack>
@@ -208,7 +209,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní nástenky trénera: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("dashboard.coach.errorLoading")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -219,12 +220,12 @@ else
     private string GetRelativeTime(DateTime dt)
     {
         var diff = dt - DateTime.Now;
-        if (diff.TotalMinutes < 0) return "prebieha";
-        if (diff.TotalHours < 1) return $"o {(int)diff.TotalMinutes} min";
-        if (diff.TotalHours < 24) return $"o {(int)diff.TotalHours} h";
+        if (diff.TotalMinutes < 0) return T("dashboard.coach.relative.inProgress");
+        if (diff.TotalHours < 1) return string.Format(T("dashboard.coach.relative.inMinutes"), (int)diff.TotalMinutes);
+        if (diff.TotalHours < 24) return string.Format(T("dashboard.coach.relative.inHours"), (int)diff.TotalHours);
         var days = (int)Math.Round(diff.TotalDays);
-        if (days == 1) return "zajtra";
-        return $"o {days} dní";
+        if (days == 1) return T("dashboard.coach.relative.tomorrow");
+        return string.Format(T("dashboard.coach.relative.inDays"), days);
     }
 
 

@@ -1,5 +1,7 @@
 ﻿@page "/admin/treningy"
+@inherits LocalizedComponentBase
 @using ZISK.Client.Components
+@using ZISK.Client.Display
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Teams
 @using ZISK.Shared.DTOs.Seasons
@@ -7,14 +9,14 @@
 @using ZISK.Shared.Enums
 @attribute [Authorize(Roles = "Admin,Coach")]
 
-<PageTitle>Správa tréningov</PageTitle>
+<PageTitle>@T("admin.trainings.pageTitle")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4" Spacing="2" Wrap="Wrap.Wrap">
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
         <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Size="Size.Large" Color="Color.Primary" />
-        <MudText Typo="Typo.h4">Správa tréningov</MudText>
+        <MudText Typo="Typo.h4">@T("admin.trainings.pageTitle")</MudText>
     </MudStack>
     @if (_activeTab == 0)
     {
@@ -22,7 +24,7 @@
                    Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.Add"
                    OnClick="OpenCreateDialog">
-            Nový tréning
+            @T("admin.trainings.newTraining")
         </MudButton>
     }
 </MudStack>
@@ -33,7 +35,7 @@
              ApplyEffectsToContainer="true"
              PanelClass="pa-3"
              AlwaysShowScrollButtons="false">
-        <MudTabPanel Text="Jednorazové" Icon="@Icons.Material.Filled.Event">
+        <MudTabPanel Text="@T("admin.trainings.tabs.oneTime")" Icon="@Icons.Material.Filled.Event">
             @if (_isLoading)
             {
                 <MudStack Spacing="2">
@@ -48,11 +50,11 @@
                 <MudPaper Class="pa-8" Elevation="0" Outlined="true">
                     <MudStack AlignItems="AlignItems.Center" Spacing="2">
                         <MudIcon Icon="@Icons.Material.Filled.EventBusy" Size="Size.Large" Color="Color.Default" />
-                        <MudText Typo="Typo.body1" Color="Color.Secondary">Zatiaľ neexistujú žiadne tréningy.</MudText>
+                        <MudText Typo="Typo.body1" Color="Color.Secondary">@T("admin.trainings.noTrainingsYet")</MudText>
                         <MudButton Variant="Variant.Filled" Color="Color.Primary"
                                    StartIcon="@Icons.Material.Filled.Add"
                                    OnClick="OpenCreateDialog">
-                            Vytvoriť prvý tréning
+                            @T("admin.trainings.createFirst")
                         </MudButton>
                     </MudStack>
                 </MudPaper>
@@ -65,21 +67,21 @@
                         <MudIcon Icon="@Icons.Material.Filled.FilterList" Color="Color.Secondary" />
                         <MudSelect T="Guid?" Value="_filterSeasonId"
                                    ValueChanged="OnSeasonChanged"
-                                   Label="Sezóna" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                                   Label="@T("admin.trainings.seasonLabel")" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
                                    Style="min-width: 180px;">
                             @foreach (var season in _seasons)
                             {
                                 <MudSelectItem T="Guid?" Value="@((Guid?)season.Id)">
-                                    @season.Name@(season.IsActive ? " (aktívna)" : "")
+                                    @season.Name@(season.IsActive ? T("admin.trainings.activeSuffix") : "")
                                 </MudSelectItem>
                             }
-                            <MudSelectItem T="Guid?" Value="@((Guid?)null)">Všetky sezóny</MudSelectItem>
+                            <MudSelectItem T="Guid?" Value="@((Guid?)null)">@T("admin.trainings.allSeasons")</MudSelectItem>
                         </MudSelect>
                         <MudSelect T="Guid?" Value="_filterTeamId"
                                    ValueChanged="@(v => { _filterTeamId = v; OnFilterChanged(); })"
-                                   Label="Tím" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                                   Label="@T("dashboard.team")" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
                                    Style="min-width: 180px;" Clearable="true">
-                            <MudSelectItem T="Guid?" Value="@((Guid?)null)">Všetky tímy</MudSelectItem>
+                            <MudSelectItem T="Guid?" Value="@((Guid?)null)">@T("admin.trainings.allTeams")</MudSelectItem>
                             @foreach (var team in _teams)
                             {
                                 <MudSelectItem T="Guid?" Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
@@ -87,26 +89,26 @@
                         </MudSelect>
                         <MudSelect T="TrainingType?" Value="_filterType"
                                    ValueChanged="@(v => { _filterType = v; OnFilterChanged(); })"
-                                   Label="Typ" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                                   Label="@T("admin.trainings.typeLabel")" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
                                    Style="min-width: 160px;" Clearable="true">
-                            <MudSelectItem T="TrainingType?" Value="@((TrainingType?)null)">Všetky typy</MudSelectItem>
-                            <MudSelectItem T="TrainingType?" Value="@((TrainingType?)TrainingType.Conditioning)">Kondičný</MudSelectItem>
-                            <MudSelectItem T="TrainingType?" Value="@((TrainingType?)TrainingType.Technical)">Technický</MudSelectItem>
-                            <MudSelectItem T="TrainingType?" Value="@((TrainingType?)TrainingType.Match)">Herný</MudSelectItem>
-                            <MudSelectItem T="TrainingType?" Value="@((TrainingType?)TrainingType.Recovery)">Regeneračný</MudSelectItem>
-                            <MudSelectItem T="TrainingType?" Value="@((TrainingType?)TrainingType.Other)">Iný</MudSelectItem>
+                            <MudSelectItem T="TrainingType?" Value="@((TrainingType?)null)">@T("admin.trainings.allTypes")</MudSelectItem>
+                            <MudSelectItem T="TrainingType?" Value="@((TrainingType?)TrainingType.Conditioning)">@DomainLabels.TrainingTypeText(TrainingType.Conditioning)</MudSelectItem>
+                            <MudSelectItem T="TrainingType?" Value="@((TrainingType?)TrainingType.Technical)">@DomainLabels.TrainingTypeText(TrainingType.Technical)</MudSelectItem>
+                            <MudSelectItem T="TrainingType?" Value="@((TrainingType?)TrainingType.Match)">@DomainLabels.TrainingTypeText(TrainingType.Match)</MudSelectItem>
+                            <MudSelectItem T="TrainingType?" Value="@((TrainingType?)TrainingType.Recovery)">@DomainLabels.TrainingTypeText(TrainingType.Recovery)</MudSelectItem>
+                            <MudSelectItem T="TrainingType?" Value="@((TrainingType?)TrainingType.Other)">@DomainLabels.TrainingTypeText(TrainingType.Other)</MudSelectItem>
                         </MudSelect>
                         @if (_filterTeamId is not null || _filterType is not null)
                         {
                             <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Default"
                                        StartIcon="@Icons.Material.Filled.Clear"
                                        OnClick="@(() => { _filterTeamId = null; _filterType = null; OnFilterChanged(); })">
-                                Vyčistiť
+                                @T("admin.trainings.clear")
                             </MudButton>
                         }
                         <MudSpacer />
                         <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            @_filteredTrainings.Count z @_trainings.Count
+                            @string.Format(T("admin.trainings.countOfTotal"), _filteredTrainings.Count, _trainings.Count)
                         </MudText>
                     </MudStack>
                 </MudPaper>
@@ -117,11 +119,11 @@
                               Hover="true"
                               Elevation="0">
                         <HeaderContent>
-                            <MudTh>Dátum</MudTh>
-                            <MudTh>Názov</MudTh>
-                            <MudTh>Tím</MudTh>
-                            <MudTh>Typ</MudTh>
-                            <MudTh Style="text-align: right;">Akcie</MudTh>
+                            <MudTh>@T("attendance.history.date")</MudTh>
+                            <MudTh>@T("admin.trainings.table.name")</MudTh>
+                            <MudTh>@T("dashboard.team")</MudTh>
+                            <MudTh>@T("admin.trainings.typeLabel")</MudTh>
+                            <MudTh Style="text-align: right;">@T("attendance.excuses.actions")</MudTh>
                         </HeaderContent>
                         <RowTemplate>
                             <MudTd>
@@ -136,17 +138,17 @@
                             <MudTd>@context.TeamName</MudTd>
                             <MudTd>
                                 <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.Type)">
-                                    @GetTypeText(context.Type)
+                                    @DomainLabels.TrainingTypeText(context.Type)
                                 </MudChip>
                             </MudTd>
                             <MudTd Style="text-align: right;">
-                                <MudTooltip Text="Upraviť">
+                                <MudTooltip Text="@T("admin.trainings.editTooltip")">
                                     <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                                    Size="Size.Small"
                                                    Color="Color.Primary"
                                                    OnClick="@(() => OpenEditDialog(context))" />
                                 </MudTooltip>
-                                <MudTooltip Text="Vymazať">
+                                <MudTooltip Text="@T("admin.trainings.deleteTooltip")">
                                     <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                                    Size="Size.Small"
                                                    Color="Color.Error"
@@ -155,7 +157,7 @@
                             </MudTd>
                         </RowTemplate>
                         <PagerContent>
-                            <MudTablePager RowsPerPageString="Riadkov na stranu:" InfoFormat="{first_item}–{last_item} z {all_items}" PageSizeOptions="new[] { 10, 25, 50 }" />
+                            <MudTablePager RowsPerPageString="@T("admin.trainings.rowsPerPage")" InfoFormat="@T("admin.trainings.pagerInfoFormat")" PageSizeOptions="new[] { 10, 25, 50 }" />
                         </PagerContent>
                     </MudTable>
                 </MudHidden>
@@ -171,7 +173,7 @@
                         {
                             <MudPaper Class="pa-4" Elevation="0" Outlined="true">
                                 <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
-                                    Žiadne tréningy nezodpovedajú filtru.
+                                    @T("admin.trainings.noTrainingsMatchFilter")
                                 </MudText>
                             </MudPaper>
                         }
@@ -185,7 +187,7 @@
                                             <MudText Typo="Typo.caption" Color="Color.Secondary">@training.TeamName</MudText>
                                         </MudStack>
                                         <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(training.Type)">
-                                            @GetTypeText(training.Type)
+                                            @DomainLabels.TrainingTypeText(training.Type)
                                         </MudChip>
                                     </MudStack>
                                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
@@ -214,7 +216,7 @@
                                        FullWidth="true"
                                        StartIcon="@Icons.Material.Filled.ExpandMore"
                                        OnClick="LoadMoreMobile">
-                                Načítať ďalšie (@(totalFiltered - _mobileShown))
+                                @string.Format(T("admin.trainings.loadMore"), totalFiltered - _mobileShown)
                             </MudButton>
                         }
                     </MudStack>
@@ -222,7 +224,7 @@
             }
         </MudTabPanel>
 
-        <MudTabPanel Text="Opakované" Icon="@Icons.Material.Filled.Repeat">
+        <MudTabPanel Text="@T("admin.trainings.tabs.recurring")" Icon="@Icons.Material.Filled.Repeat">
             <TrainingSeriesManager IsAdmin="true" />
         </MudTabPanel>
     </MudTabs>

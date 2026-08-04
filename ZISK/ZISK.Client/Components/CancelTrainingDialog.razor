@@ -1,3 +1,4 @@
+@inherits LocalizedComponentBase
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Trainings
 @inject ITrainingsApi TrainingsApi
@@ -7,24 +8,24 @@
     <DialogContent>
         <MudStack Spacing="2">
             <MudText Typo="Typo.body2">
-                Naozaj chcete zrušiť tréning <strong>@TrainingTitle</strong>?
+                @T("cancelTrainingDialog.confirmPrefix") <strong>@TrainingTitle</strong>?
             </MudText>
             <MudTextField @bind-Value="_reason"
-                          Label="Dôvod zrušenia"
+                          Label="@T("cancelTrainingDialog.reasonLabel")"
                           Variant="Variant.Outlined"
                           Lines="3"
                           Required="true"
-                          RequiredError="Dôvod je povinný."
+                          RequiredError="@T("cancelTrainingDialog.reasonRequired")"
                           MaxLength="500" />
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Späť</MudButton>
+        <MudButton OnClick="Cancel">@T("childDetail.back")</MudButton>
         <LoadingButton Color="Color.Error" Variant="Variant.Filled"
                        Loading="_isSubmitting"
                        Disabled="string.IsNullOrWhiteSpace(_reason)"
-                       OnClick="Confirm" LoadingText="Ruším...">
-            Zrušiť tréning
+                       OnClick="Confirm" LoadingText="@T("cancelTrainingDialog.cancelling")">
+            @T("trainingDetailDialog.cancelTraining")
         </LoadingButton>
     </DialogActions>
 </MudDialog>
@@ -44,12 +45,12 @@
         try
         {
             await TrainingsApi.CancelTrainingAsync(TrainingId, new CancelTrainingRequest(_reason));
-            Snackbar.Add("Tréning bol zrušený.", Severity.Success);
+            Snackbar.Add(T("cancelTrainingDialog.cancelled"), Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {

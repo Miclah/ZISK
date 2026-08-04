@@ -1,4 +1,5 @@
 @page "/kalendar"
+@inherits LocalizedComponentBase
 @using System.Globalization
 @using ZISK.Client.Services
 @using ZISK.Client.Components
@@ -12,11 +13,11 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
 
-<PageTitle>Kalendár tréningov</PageTitle>
+<PageTitle>@T("calendar.pageTitle")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-2">
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3" Wrap="Wrap.Wrap">
-    <MudText Typo="Typo.h5">Kalendár tréningov</MudText>
+    <MudText Typo="Typo.h5">@T("calendar.pageTitle")</MudText>
 
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
         <AuthorizeView Roles="Parent">
@@ -24,7 +25,7 @@
                 @if (_contextOptions.Count > 1)
                 {
                     <MudSelect T="string" Value="@_selectedContext" ValueChanged="OnContextChanged"
-                               Label="Zobraziť za" Variant="Variant.Outlined" Dense="true" Style="min-width:180px">
+                               Label="@T("calendar.viewAs")" Variant="Variant.Outlined" Dense="true" Style="min-width:180px">
                         @foreach (var opt in _contextOptions)
                         {
                             <MudSelectItem Value="@opt.Key">@opt.Label</MudSelectItem>
@@ -39,7 +40,7 @@
                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
                            StartIcon="@Icons.Material.Rounded.Add"
                            OnClick="OpenCreateDialog">
-                    Pridať tréning
+                    @T("calendar.addTraining")
                 </MudButton>
             </Authorized>
         </AuthorizeView>
@@ -75,35 +76,35 @@
         <MudHidden Breakpoint="Breakpoint.MdAndDown">
             <MudStack Spacing="3">
                 <MudPaper Elevation="0" Class="card-standard pa-4">
-                    <MudText Typo="Typo.subtitle1" Style="font-weight:600;" Class="mb-3">Legenda</MudText>
+                    <MudText Typo="Typo.subtitle1" Style="font-weight:600;" Class="mb-3">@T("calendar.legend")</MudText>
                     <MudStack Spacing="2">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                             <span class="training-chip training-chip--conditioning" style="display:inline-block;min-width:14px;height:14px;border-radius:50%;"></span>
-                            <MudText Typo="Typo.body2">Kondičný</MudText>
+                            <MudText Typo="Typo.body2">@T("calendar.legend.conditioning")</MudText>
                         </MudStack>
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                             <span class="training-chip training-chip--technical" style="display:inline-block;min-width:14px;height:14px;border-radius:50%;"></span>
-                            <MudText Typo="Typo.body2">Technický</MudText>
+                            <MudText Typo="Typo.body2">@T("calendar.legend.technical")</MudText>
                         </MudStack>
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                             <span class="training-chip training-chip--match" style="display:inline-block;min-width:14px;height:14px;border-radius:50%;"></span>
-                            <MudText Typo="Typo.body2">Zápas</MudText>
+                            <MudText Typo="Typo.body2">@T("calendar.legend.match")</MudText>
                         </MudStack>
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                             <span class="training-chip training-chip--recovery" style="display:inline-block;min-width:14px;height:14px;border-radius:50%;"></span>
-                            <MudText Typo="Typo.body2">Regenerácia</MudText>
+                            <MudText Typo="Typo.body2">@T("calendar.legend.recovery")</MudText>
                         </MudStack>
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                             <span class="training-chip training-chip--other" style="display:inline-block;min-width:14px;height:14px;border-radius:50%;"></span>
-                            <MudText Typo="Typo.body2">Iné</MudText>
+                            <MudText Typo="Typo.body2">@T("calendar.legend.other")</MudText>
                         </MudStack>
                     </MudStack>
                 </MudPaper>
 
                 <MudPaper Elevation="0" Class="card-standard pa-4">
-                    <MudText Typo="Typo.subtitle1" Style="font-weight:600;" Class="mb-1">Najbližšie tréningy</MudText>
+                    <MudText Typo="Typo.subtitle1" Style="font-weight:600;" Class="mb-1">@T("dashboard.panel.upcomingTrainings")</MudText>
                     <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
-                        @_items.Count(i => !i.IsCancelled) v zobrazenom období
+                        @string.Format(T("calendar.countInPeriod"), _items.Count(i => !i.IsCancelled))
                     </MudText>
 
                     @{
@@ -116,7 +117,7 @@
 
                     @if (!upcoming.Any())
                     {
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne nadchádzajúce tréningy.</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@T("dashboard.panel.noUpcomingTrainings")</MudText>
                     }
                     else
                     {
@@ -212,7 +213,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba pri načítaní tréningov: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("calendar.errorLoadingTrainings")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -227,7 +228,7 @@
             { x => x.Training, item.TrainingDto }
         };
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<TrainingDetailDialog>("Detail tréningu", parameters, options);
+        var dialog = await DialogService.ShowAsync<TrainingDetailDialog>(T("calendar.trainingDetail"), parameters, options);
         var result = await dialog.Result;
         if (result != null && !result.Canceled && _lastRange != null)
             await LoadItemsAsync(_lastRange);
@@ -242,7 +243,7 @@
             { x => x.DefaultStart, DateTime.Now.Date.AddHours(17) }
         };
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<TrainingFormDialog>("Pridať tréning", parameters, options);
+        var dialog = await DialogService.ShowAsync<TrainingFormDialog>(T("calendar.addTraining"), parameters, options);
         var result = await dialog.Result;
         if (result != null && !result.Canceled && _lastRange != null)
             await LoadItemsAsync(_lastRange);

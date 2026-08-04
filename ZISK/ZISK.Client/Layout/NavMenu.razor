@@ -1,161 +1,163 @@
+@inherits LocalizedComponentBase
+
 <MudStack Class="pa-3" Style="height: 100%;" Justify="Justify.SpaceBetween">
     <MudNavMenu Rounded="true" Margin="Margin.Dense" Color="Color.Primary">
 
         <AuthorizeView Roles="Parent">
             <MudText Typo="Typo.caption" Class="px-3 pt-2 pb-1 nav-section-header">
-                Hlavné
+                @T("nav.section.main")
             </MudText>
 
             <MudNavLink Href="/domov"
                         Icon="@Icons.Material.Rounded.Dashboard"
                         Match="NavLinkMatch.Prefix">
-                Nástenka
+                @T("nav.dashboard")
             </MudNavLink>
 
             <MudNavLink Href="/kalendar"
                         Icon="@Icons.Material.Rounded.CalendarMonth"
                         Match="NavLinkMatch.Prefix">
-                Kalendár tréningov
+                @T("nav.calendar")
             </MudNavLink>
 
             <MudNavLink Href="/oznamy"
                         Icon="@Icons.Material.Rounded.Announcement"
                         Match="NavLinkMatch.Prefix">
-                Oznamy
+                @T("nav.announcements")
             </MudNavLink>
         </AuthorizeView>
 
         <AuthorizeView Roles="Parent">
             <MudDivider Class="my-2 mx-2" Light="true" />
             <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1 nav-section-header">
-                Športovec / Rodič
+                @T("nav.section.athleteParent")
             </MudText>
 
             <MudNavLink Href="/dochadzka"
                         Icon="@Icons.Material.Rounded.EventNote"
                         Match="NavLinkMatch.Prefix">
-                Dochádzka
+                @T("nav.attendance")
             </MudNavLink>
         </AuthorizeView>
 
         <AuthorizeView Roles="Child,Athlete">
             <MudText Typo="Typo.caption" Class="px-3 pt-2 pb-1 nav-section-header">
-                Dieťa
+                @T("nav.section.child")
             </MudText>
 
             <MudNavLink Href="/dieta"
                         Icon="@Icons.Material.Rounded.Dashboard"
                         Match="NavLinkMatch.Prefix">
-                Môj prehľad
+                @T("nav.myOverview")
             </MudNavLink>
 
             <MudNavLink Href="/kalendar"
                         Icon="@Icons.Material.Rounded.CalendarMonth"
                         Match="NavLinkMatch.Prefix">
-                Kalendár tréningov
+                @T("nav.calendar")
             </MudNavLink>
 
             <MudNavLink Href="/oznamy"
                         Icon="@Icons.Material.Rounded.Announcement"
                         Match="NavLinkMatch.Prefix">
-                Oznamy
+                @T("nav.announcements")
             </MudNavLink>
         </AuthorizeView>
 
         <AuthorizeView Roles="Coach">
             <MudDivider Class="my-2 mx-2" Light="true" />
             <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1 nav-section-header">
-                Tréner
+                @T("nav.section.coach")
             </MudText>
 
             <MudNavLink Href="/coach"
                         Icon="@Icons.Material.Rounded.Home"
                         Match="NavLinkMatch.All">
-                Nástenka
+                @T("nav.dashboard")
             </MudNavLink>
 
             <MudNavLink Href="/kalendar"
                         Icon="@Icons.Material.Rounded.CalendarMonth"
                         Match="NavLinkMatch.Prefix">
-                Kalendár tréningov
+                @T("nav.calendar")
             </MudNavLink>
 
             <MudNavLink Href="/coach/tim"
                         Icon="@Icons.Material.Rounded.Groups"
                         Match="NavLinkMatch.Prefix">
-                Môj tím
+                @T("nav.myTeam")
             </MudNavLink>
 
             <MudNavLink Href="/coach/oznamy"
                         Icon="@Icons.Material.Rounded.Announcement"
                         Match="NavLinkMatch.Prefix">
-                Oznamy
+                @T("nav.announcements")
             </MudNavLink>
         </AuthorizeView>
 
         <AuthorizeView Roles="Admin">
             <MudDivider Class="my-2 mx-2" Light="true" />
             <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1 nav-section-header">
-                Prehľad
+                @T("nav.section.overview")
             </MudText>
 
             <MudNavLink Href="/admin"
                         Icon="@Icons.Material.Rounded.Dashboard"
                         Match="NavLinkMatch.All">
-                Nástenka
+                @T("nav.dashboard")
             </MudNavLink>
             <MudNavLink Href="/admin/statistiky"
                         Icon="@Icons.Material.Rounded.BarChart"
                         Match="NavLinkMatch.Prefix">
-                Štatistiky
+                @T("nav.stats")
             </MudNavLink>
 
             <MudDivider Class="my-2 mx-2" Light="true" />
             <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1 nav-section-header">
-                Používatelia
+                @T("nav.section.users")
             </MudText>
 
             <MudNavLink Href="/admin/pouzivatelia"
                         Icon="@Icons.Material.Rounded.People"
                         Match="NavLinkMatch.Prefix">
-                Používatelia
+                @T("nav.users")
             </MudNavLink>
             <MudNavLink Href="/admin/timy"
                         Icon="@Icons.Material.Rounded.Groups"
                         Match="NavLinkMatch.Prefix">
-                Tímy
+                @T("nav.teams")
             </MudNavLink>
 
             <MudDivider Class="my-2 mx-2" Light="true" />
             <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1 nav-section-header">
-                Tréningy
+                @T("nav.section.trainings")
             </MudText>
 
             <MudNavLink Href="/admin/treningy"
                         Icon="@Icons.Material.Rounded.FitnessCenter"
                         Match="NavLinkMatch.Prefix">
-                Tréningy
+                @T("nav.trainings")
             </MudNavLink>
             <MudNavLink Href="/admin/sezony"
                         Icon="@Icons.Material.Rounded.CalendarMonth"
                         Match="NavLinkMatch.Prefix">
-                Sezóny
+                @T("nav.seasons")
             </MudNavLink>
             <MudNavLink Href="/admin/ospravedlnenky"
                         Icon="@Icons.Material.Rounded.Description"
                         Match="NavLinkMatch.Prefix">
-                Ospravedlnenky
+                @T("nav.excuses")
             </MudNavLink>
 
             <MudDivider Class="my-2 mx-2" Light="true" />
             <MudText Typo="Typo.caption" Class="px-3 pt-1 pb-1 nav-section-header">
-                Komunikácia
+                @T("nav.section.communication")
             </MudText>
 
             <MudNavLink Href="/admin/systemove-oznamy"
                         Icon="@Icons.Material.Rounded.Announcement"
                         Match="NavLinkMatch.Prefix">
-                Systémové oznamy
+                @T("nav.systemAnnouncements")
             </MudNavLink>
         </AuthorizeView>
     </MudNavMenu>
@@ -168,7 +170,7 @@
                         Match="NavLinkMatch.All"
                         ForceLoad="true"
                         Style="color: var(--zisk-logout-color);">
-                Odhlásiť sa
+                @T("nav.logout")
             </MudNavLink>
         </MudNavMenu>
         <MudText Typo="Typo.caption" Align="Align.Center" Class="pa-2 nav-copyright">

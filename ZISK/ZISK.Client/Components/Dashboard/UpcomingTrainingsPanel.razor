@@ -1,3 +1,4 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @using ZISK.Client.Display
 @using ZISK.Shared.DTOs.Trainings
 @*
@@ -8,19 +9,19 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
             <MudIcon Icon="@Icons.Material.Filled.Event" Color="Color.Primary" />
-            <MudText Typo="Typo.h6">@Title</MudText>
+            <MudText Typo="Typo.h6">@(Title ?? T("dashboard.panel.upcomingTrainings"))</MudText>
         </MudStack>
         @if (OnShowAll.HasDelegate)
         {
             <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="OnShowAll">
-                @ShowAllText
+                @(ShowAllText ?? T("dashboard.panel.all"))
             </MudButton>
         }
     </MudStack>
 
     @if (Trainings.Count == 0)
     {
-        <MudText Typo="Typo.body2" Color="Color.Secondary">@EmptyText</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@(EmptyText ?? T("dashboard.panel.upcomingTrainingsEmpty7d"))</MudText>
     }
     else
     {
@@ -48,11 +49,11 @@
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<TrainingEventDto> Trainings { get; set; } = [];
 
-    [Parameter] public string Title { get; set; } = "Najbližšie tréningy";
+    [Parameter] public string? Title { get; set; }
 
-    [Parameter] public string EmptyText { get; set; } = "Žiadne tréningy v najbližších 7 dňoch.";
+    [Parameter] public string? EmptyText { get; set; }
 
-    [Parameter] public string ShowAllText { get; set; } = "Všetky";
+    [Parameter] public string? ShowAllText { get; set; }
 
     /// <summary>When set, a "show all" button appears in the header.</summary>
     [Parameter] public EventCallback OnShowAll { get; set; }

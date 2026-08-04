@@ -2,9 +2,11 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ZISK.Data.Entities;
 
-public class Season
+public class Season : IDemoScoped
 {
     public Guid Id { get; set; }
+
+    public Guid? DemoSessionId { get; set; }
 
     [Required]
     [MaxLength(100)]

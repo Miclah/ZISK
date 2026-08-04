@@ -1,15 +1,28 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ZISK.Data.Entities;
+using ZISK.Services.Demo;
 
 // Pomoc s AI
 namespace ZISK.Data
 {
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        private readonly IDemoSessionContext? _demoSessionContext;
+
+        // Bound to by every IDemoScoped HasQueryFilter below. Reading it off the DbContext
+        // instance (rather than closing over a local variable) is EF Core's standard
+        // multi-tenant filter pattern - it makes the predicate a per-instance runtime
+        // parameter instead of a value baked into the first compiled query plan. Outside
+        // ZISK_SEED_MODE=demo (or in tests that construct the context directly, bypassing DI)
+        // _demoSessionContext is null and this is always null, which makes every filter
+        // below "DemoSessionId == null" - i.e. a no-op against unscoped data.
+        public Guid? DemoSessionId => _demoSessionContext?.Current;
+
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IDemoSessionContext? demoSessionContext = null)
             : base(options)
         {
+            _demoSessionContext = demoSessionContext;
         }
 
         public DbSet<Team> Teams => Set<Team>();
@@ -25,18 +38,25 @@ namespace ZISK.Data
         public DbSet<Document> Documents => Set<Document>();
         public DbSet<CoachTeam> CoachTeams => Set<CoachTeam>();
         public DbSet<ParentInvitation> ParentInvitations => Set<ParentInvitation>();
+        public DbSet<DemoSession> DemoSessions => Set<DemoSession>();
+        public DbSet<DemoTemplateMeta> DemoTemplateMetas => Set<DemoTemplateMeta>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
+            // Uniqueness is scoped per demo session so that two visitors' clones (or the
+            // shared template, DemoSessionId == null) never collide on phone/RC/team name -
+            // each is its own independent copy of the same starting data. Outside demo mode
+            // DemoSessionId is always null for every row, so this behaves exactly like a plain
+            // unique index over PhoneNumber/RodneCislo/Name, same as before.
             builder.Entity<ApplicationUser>()
-                .HasIndex(u => u.PhoneNumber)
+                .HasIndex(u => new { u.DemoSessionId, u.PhoneNumber })
                 .IsUnique()
                 .HasFilter("[PhoneNumber] IS NOT NULL");
 
             builder.Entity<ApplicationUser>()
-                .HasIndex(u => u.RodneCislo)
+                .HasIndex(u => new { u.DemoSessionId, u.RodneCislo })
                 .IsUnique()
                 .HasFilter("[RodneCislo] IS NOT NULL");
 
@@ -45,7 +65,7 @@ namespace ZISK.Data
                 .HasMaxLength(20);
 
             builder.Entity<Team>()
-                .HasIndex(t => t.Name)
+                .HasIndex(t => new { t.DemoSessionId, t.Name })
                 .IsUnique();
 
             // TeamMember
@@ -67,8 +87,9 @@ namespace ZISK.Data
             // Season
             // Filtered unique index: only rows where IsActive=1 are included, so there can be at most one active season at a time.
             // Inactive seasons (IsActive=0/null) are not covered by the index and can coexist freely.
+            // Scoped by DemoSessionId so every demo clone (and the template) can each have their own active season.
             builder.Entity<Season>()
-                .HasIndex(s => s.IsActive)
+                .HasIndex(s => new { s.DemoSessionId, s.IsActive })
                 .IsUnique()
                 .HasFilter("[IsActive] = 1");
 
@@ -249,6 +270,35 @@ namespace ZISK.Data
 
             builder.Entity<ParentInvitation>()
                 .HasIndex(pi => pi.CodeHash);
+
+            // DemoTemplateMeta is a single-row table (Id is always 1, set explicitly) -
+            // without this, EF's SqlServer provider defaults an int PK to IDENTITY, which
+            // then rejects the explicit Id = 1 insert.
+            builder.Entity<DemoTemplateMeta>()
+                .Property(m => m.Id)
+                .ValueGeneratedNever();
+
+            // Demo-session isolation: every IDemoScoped entity is filtered to rows whose
+            // DemoSessionId matches the current request's demo session (see DemoSessionId
+            // property above). Applied uniformly and declaratively here so no service or
+            // controller had to be touched to get per-visitor isolation - the same reasoning
+            // behind CLAUDE.md's warning that team-scoping was applied ad hoc per-service and
+            // some endpoints were missed. This can't repeat that mistake because it isn't
+            // opt-in per query.
+            builder.Entity<Team>().HasQueryFilter(e => e.DemoSessionId == DemoSessionId);
+            builder.Entity<TeamMember>().HasQueryFilter(e => e.DemoSessionId == DemoSessionId);
+            builder.Entity<CoachTeam>().HasQueryFilter(e => e.DemoSessionId == DemoSessionId);
+            builder.Entity<Season>().HasQueryFilter(e => e.DemoSessionId == DemoSessionId);
+            builder.Entity<TrainingSeries>().HasQueryFilter(e => e.DemoSessionId == DemoSessionId);
+            builder.Entity<TrainingEvent>().HasQueryFilter(e => e.DemoSessionId == DemoSessionId);
+            builder.Entity<AttendanceRecord>().HasQueryFilter(e => e.DemoSessionId == DemoSessionId);
+            builder.Entity<AbsenceRequest>().HasQueryFilter(e => e.DemoSessionId == DemoSessionId);
+            builder.Entity<Announcement>().HasQueryFilter(e => e.DemoSessionId == DemoSessionId);
+            builder.Entity<AnnouncementAttachment>().HasQueryFilter(e => e.DemoSessionId == DemoSessionId);
+            builder.Entity<Document>().HasQueryFilter(e => e.DemoSessionId == DemoSessionId);
+            builder.Entity<ParentInvitation>().HasQueryFilter(e => e.DemoSessionId == DemoSessionId);
+            builder.Entity<ParentChild>().HasQueryFilter(e => e.DemoSessionId == DemoSessionId);
+            builder.Entity<ApplicationUser>().HasQueryFilter(e => e.DemoSessionId == DemoSessionId);
         }
     }
 }

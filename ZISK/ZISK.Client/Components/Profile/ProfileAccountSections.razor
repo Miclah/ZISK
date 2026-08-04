@@ -1,3 +1,4 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @using ZISK.Client.Components
 @using ZISK.Shared.DTOs.Users
 @*
@@ -8,49 +9,63 @@
 
 @if (Section == "email")
 {
-    <ProfileSectionHeading Icon="@Icons.Material.Rounded.Email" Title="Emailová adresa" />
+    <ProfileSectionHeading Icon="@Icons.Material.Rounded.Email" Title="@T("profile.emailAddress")" />
     <MudStack Spacing="3" Style="max-width:520px;">
-        <ReadOnlyField Label="Aktuálny email" Value="@Email" />
+        <ReadOnlyField Label="@T("profile.currentEmail")" Value="@Email" />
         <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
-            Tento email používate aj na prihlásenie. Po zmene budete automaticky prihlásení s novým emailom.
+            @T("profile.emailChangeHint")
         </MudText>
+        @if (IsDemo)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">@T("profile.demoLocked")</MudAlert>
+        }
         <MudButton Variant="Variant.Filled" Color="Color.Primary"
                    StartIcon="@Icons.Material.Rounded.Edit"
                    OnClick="OnChangeEmail"
+                   Disabled="@IsDemo"
                    Style="align-self:flex-start;">
-            Zmeniť email
+            @T("profile.changeEmail")
         </MudButton>
     </MudStack>
 }
 else if (Section == "password")
 {
-    <ProfileSectionHeading Icon="@Icons.Material.Rounded.Lock" Title="Heslo" />
+    <ProfileSectionHeading Icon="@Icons.Material.Rounded.Lock" Title="@T("profile.nav.password")" />
     <MudStack Spacing="3" Style="max-width:520px;">
         <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
-            Pre zmenu hesla budete potrebovať svoje súčasné heslo.
-            Nové heslo musí mať aspoň 8 znakov, obsahovať malé aj veľké písmeno a číslicu.
+            @T("profile.passwordChangeHint")
         </MudText>
+        @if (IsDemo)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">@T("profile.demoLocked")</MudAlert>
+        }
         <MudButton Variant="Variant.Filled" Color="Color.Primary"
                    StartIcon="@Icons.Material.Rounded.Lock"
                    OnClick="OnChangePassword"
+                   Disabled="@IsDemo"
                    Style="align-self:flex-start;">
-            Zmeniť heslo
+            @T("profile.changePassword")
         </MudButton>
     </MudStack>
 }
 else if (Section == "personal")
 {
-    <ProfileSectionHeading Icon="@Icons.Material.Rounded.DataUsage" Title="Osobné údaje a účet" />
+    <ProfileSectionHeading Icon="@Icons.Material.Rounded.DataUsage" Title="@T("profile.personalDataAndAccount")" />
     <MudStack Spacing="3" Style="max-width:520px;">
         <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
-            Odstránenie účtu trvalo zruší váš prístup do systému aj všetky uložené údaje.
-            <strong>Túto akciu nemožno vrátiť späť.</strong>
+            @T("profile.deleteAccountWarning")
+            <strong>@T("profile.deleteAccountIrreversible")</strong>
         </MudAlert>
+        @if (IsDemo)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">@T("profile.demoLocked")</MudAlert>
+        }
         <MudButton Variant="Variant.Filled" Color="Color.Error"
                    StartIcon="@Icons.Material.Rounded.DeleteForever"
                    OnClick="OnDeleteAccount"
+                   Disabled="@IsDemo"
                    Style="align-self:flex-start;">
-            Odstrániť účet
+            @T("profile.deleteAccount")
         </MudButton>
     </MudStack>
 }
@@ -60,6 +75,15 @@ else if (Section == "personal")
     [Parameter, EditorRequired] public string Section { get; set; } = default!;
 
     [Parameter] public string Email { get; set; } = "";
+
+    /// <summary>
+    /// Greys these actions out for a demo visitor. The sections stay visible on purpose - the
+    /// point of the demo is to show the app has them - but the buttons do nothing, because a
+    /// visitor signed in through "Try as [Role]" has no password to change, no reachable inbox,
+    /// and deleting the account would strand them (see MeController's IsDemoVisitor). The server
+    /// refuses these calls regardless of what this flag says.
+    /// </summary>
+    [Parameter] public bool IsDemo { get; set; }
 
     [Parameter] public EventCallback OnChangeEmail { get; set; }
     [Parameter] public EventCallback OnChangePassword { get; set; }

@@ -17,9 +17,11 @@ namespace ZISK.Data.Entities
         Athletes
     }
 
-    public class Announcement
+    public class Announcement : IDemoScoped
     {
         public Guid Id { get; set; }
+
+        public Guid? DemoSessionId { get; set; }
 
         [Required]
         [MaxLength(200)]
@@ -54,9 +56,11 @@ namespace ZISK.Data.Entities
         public ICollection<AnnouncementAttachment> Attachments { get; set; } = [];
     }
 
-    public class AnnouncementAttachment
+    public class AnnouncementAttachment : IDemoScoped
     {
         public Guid Id { get; set; }
+
+        public Guid? DemoSessionId { get; set; }
 
         public Guid AnnouncementId { get; set; }
 

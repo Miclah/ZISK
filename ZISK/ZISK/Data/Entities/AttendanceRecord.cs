@@ -10,9 +10,11 @@ namespace ZISK.Data.Entities
         Excused
     }
 
-    public class AttendanceRecord
+    public class AttendanceRecord : IDemoScoped
     {
         public Guid Id { get; set; }
+
+        public Guid? DemoSessionId { get; set; }
 
         public Guid TrainingEventId { get; set; }
 

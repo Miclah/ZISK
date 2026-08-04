@@ -112,7 +112,8 @@ public class FamilyDashboardTests
             new NoopAudit(),
             emailSender,
             teamAccess ?? new NoTeamAccess(),
-            loggerFactory.CreateLogger<ChildrenController>());
+            loggerFactory.CreateLogger<ChildrenController>(),
+            new FakeCurrentLanguage());
 
         controller.ControllerContext = new ControllerContext
         {
@@ -123,11 +124,11 @@ public class FamilyDashboardTests
 
     private static AttendanceService MakeAttendanceSvc(ApplicationDbContext db,
         ITeamAccessService? teamAccess = null)
-        => new(db, teamAccess ?? new NoTeamAccess(), new NoopAudit());
+        => new(db, teamAccess ?? new NoTeamAccess(), new NoopAudit(), new FakeCurrentLanguage());
 
     private static ExcuseService MakeExcuseSvc(ApplicationDbContext db,
         ITeamAccessService? teamAccess = null)
-        => new(db, teamAccess ?? new NoTeamAccess(), new NoopAudit());
+        => new(db, teamAccess ?? new NoTeamAccess(), new NoopAudit(), new FakeCurrentLanguage());
 
     // ── Tests ────────────────────────────────────────────────────────────────
 

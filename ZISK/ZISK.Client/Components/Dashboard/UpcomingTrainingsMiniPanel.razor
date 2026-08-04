@@ -1,3 +1,4 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @using ZISK.Shared.DTOs.Trainings
 @*
     Sidebar list of the next few trainings. Each entry may be tagged with the family member it belongs to,
@@ -6,19 +7,19 @@
 
 <MudPaper Class="card-standard pa-4" Elevation="0">
     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
-        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@Title</MudText>
+        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@(Title ?? T("dashboard.panel.upcomingTrainings"))</MudText>
         @if (OnShowAll.HasDelegate)
         {
             <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
                        EndIcon="@Icons.Material.Rounded.ChevronRight" OnClick="OnShowAll">
-                @ShowAllText
+                @(ShowAllText ?? T("dashboard.panel.calendar"))
             </MudButton>
         }
     </MudStack>
 
     @if (Items.Count == 0)
     {
-        <MudText Typo="Typo.body2" Color="Color.Secondary">@EmptyText</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@(EmptyText ?? T("dashboard.panel.noUpcomingTrainings"))</MudText>
     }
     else
     {
@@ -57,9 +58,9 @@
     /// <summary>Only meaningful for a parent with several children; an athlete sees only their own.</summary>
     [Parameter] public bool ShowOwnerChip { get; set; }
 
-    [Parameter] public string Title { get; set; } = "Najbližšie tréningy";
-    [Parameter] public string EmptyText { get; set; } = "Žiadne nadchádzajúce tréningy.";
-    [Parameter] public string ShowAllText { get; set; } = "Kalendár";
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? EmptyText { get; set; }
+    [Parameter] public string? ShowAllText { get; set; }
     [Parameter] public int MaxItems { get; set; } = 5;
 
     [Parameter] public EventCallback OnShowAll { get; set; }

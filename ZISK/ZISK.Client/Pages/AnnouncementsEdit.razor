@@ -1,19 +1,21 @@
 @page "/oznamy/upravit/{Id:guid}"
+@inherits LocalizedComponentBase
 @using System.ComponentModel.DataAnnotations
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Announcements
 @using ZISK.Shared.DTOs.Teams
 @using ZISK.Shared.Enums
+@using ZISK.Client.Display
 @inject IAnnouncementsApi AnnouncementsApi
 @inject ITeamsApi TeamsApi
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @attribute [Authorize(Roles = "Admin,Coach")]
 
-<PageTitle>Upraviť oznam</PageTitle>
+<PageTitle>@T("announcementForm.editTitle")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
-    <MudText Typo="Typo.h4" Class="mb-4">Upraviť oznam</MudText>
+    <MudText Typo="Typo.h4" Class="mb-4">@T("announcementForm.editTitle")</MudText>
 
     @if (_isLoading)
 {
@@ -21,24 +23,24 @@
 }
 else if (_announcement == null)
 {
-    <MudAlert Severity="Severity.Error">Oznam nebol nájdený</MudAlert>
+    <MudAlert Severity="Severity.Error">@T("announcementForm.notFound")</MudAlert>
 }
 else
 {
     <MudPaper Class="pa-4" Elevation="2">
         <EditForm Model="@_model" OnValidSubmit="Submit">
-            <DataAnnotationsValidator />
+            <LocalizedDataAnnotationsValidator />
             <MudStack Spacing="3">
                 <MudTextField @bind-Value="_model.Title"
                               For="@(() => _model.Title)"
-                              Label="Nadpis" Variant="Variant.Outlined" />
+                              Label="@T("coachAnnouncements.headingLabel")" Variant="Variant.Outlined" />
                 <MudTextField @bind-Value="_model.Content"
                               For="@(() => _model.Content)"
-                              Label="Obsah" Variant="Variant.Outlined" Lines="5" />
+                              Label="@T("admin.announcements.contentLabel")" Variant="Variant.Outlined" Lines="5" />
 
                 <MudGrid>
                     <MudItem xs="12" sm="6">
-                        <MudSelect T="Guid?" @bind-Value="_model.TargetTeamId" Label="Tím" Variant="Variant.Outlined" Clearable="true">
+                        <MudSelect T="Guid?" @bind-Value="_model.TargetTeamId" Label="@T("dashboard.team")" Variant="Variant.Outlined" Clearable="true">
                             @foreach (var team in _teams)
                             {
                                 <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
@@ -46,35 +48,35 @@ else
                         </MudSelect>
                     </MudItem>
                     <MudItem xs="12" sm="6">
-                        <MudSelect T="TargetAudience" @bind-Value="_model.TargetAudience" Label="Cieľová skupina" Variant="Variant.Outlined">
-                            <MudSelectItem Value="TargetAudience.All">Všetci</MudSelectItem>
-                            <MudSelectItem Value="TargetAudience.Parents">Rodičia</MudSelectItem>
-                            <MudSelectItem Value="TargetAudience.Athletes">Športovci</MudSelectItem>
+                        <MudSelect T="TargetAudience" @bind-Value="_model.TargetAudience" Label="@T("announcementForm.targetAudienceLabel")" Variant="Variant.Outlined">
+                            <MudSelectItem Value="TargetAudience.All">@T("announcementForm.audience.all")</MudSelectItem>
+                            <MudSelectItem Value="TargetAudience.Parents">@T("announcementForm.audience.parents")</MudSelectItem>
+                            <MudSelectItem Value="TargetAudience.Athletes">@T("announcementForm.audience.athletes")</MudSelectItem>
                         </MudSelect>
                     </MudItem>
                 </MudGrid>
 
                 <MudGrid>
                     <MudItem xs="12" sm="6">
-                        <MudSelect T="AnnouncementPriority" @bind-Value="_model.Priority" Label="Priorita" Variant="Variant.Outlined">
-                            <MudSelectItem Value="AnnouncementPriority.Low">Nízka</MudSelectItem>
-                            <MudSelectItem Value="AnnouncementPriority.Medium">Stredná</MudSelectItem>
-                            <MudSelectItem Value="AnnouncementPriority.High">Vysoká</MudSelectItem>
+                        <MudSelect T="AnnouncementPriority" @bind-Value="_model.Priority" Label="@T("announcements.priorityFilterLabel")" Variant="Variant.Outlined">
+                            <MudSelectItem Value="AnnouncementPriority.Low">@DomainLabels.PriorityText(AnnouncementPriority.Low)</MudSelectItem>
+                            <MudSelectItem Value="AnnouncementPriority.Medium">@DomainLabels.PriorityText(AnnouncementPriority.Medium)</MudSelectItem>
+                            <MudSelectItem Value="AnnouncementPriority.High">@DomainLabels.PriorityText(AnnouncementPriority.High)</MudSelectItem>
                         </MudSelect>
                     </MudItem>
                     <MudItem xs="12" sm="6">
-                        <MudDatePicker @bind-Date="_model.ValidUntil" Label="Platí do" Variant="Variant.Outlined" Clearable="true" />
+                        <MudDatePicker @bind-Date="_model.ValidUntil" Label="@T("announcements.validUntil")" Variant="Variant.Outlined" Clearable="true" />
                     </MudItem>
                 </MudGrid>
 
-                <MudCheckBox @bind-Value="_model.IsPinned" Label="Pripnúť" Color="Color.Primary" />
+                <MudCheckBox @bind-Value="_model.IsPinned" Label="@T("announcementForm.pin")" Color="Color.Primary" />
 
                 <MudStack Row="true" Justify="Justify.SpaceBetween">
-                    <MudButton Variant="Variant.Text" Href="/oznamy">Zrušiť</MudButton>
+                    <MudButton Variant="Variant.Text" Href="/oznamy">@T("admin.users.cancel")</MudButton>
                     <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
                                Disabled="@_isSubmitting">
                         @if (_isSubmitting) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
-                        Uložiť
+                        @T("admin.users.save")
                     </MudButton>
                 </MudStack>
             </MudStack>
@@ -114,7 +116,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -129,12 +131,12 @@ else
         {
             var request = new UpdateAnnouncementRequest(_model.Title, _model.Content, _model.TargetTeamId, _model.TargetAudience, _model.Priority, _model.IsPinned, _model.ValidUntil);
             await AnnouncementsApi.UpdateAnnouncementAsync(Id, request);
-            Snackbar.Add("Oznam upravený", Severity.Success);
+            Snackbar.Add(T("announcementForm.updated"), Severity.Success);
             NavigationManager.NavigateTo("/oznamy");
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {

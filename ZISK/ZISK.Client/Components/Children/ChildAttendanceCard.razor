@@ -1,3 +1,4 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @using ZISK.Client.Display
 @using ZISK.Shared.DTOs.Attendance
 @*
@@ -8,13 +9,13 @@
     <MudCardHeader>
         <CardHeaderContent>
             <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
-                <MudText Typo="Typo.subtitle1">Dochádzka</MudText>
+                <MudText Typo="Typo.subtitle1">@T("childDetail.attendanceTitle")</MudText>
                 <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
-                    <MudDatePicker Date="From" DateChanged="FromChanged" Label="Od"
+                    <MudDatePicker Date="From" DateChanged="FromChanged" Label="@T("childDetail.from")"
                                    Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:130px;" />
-                    <MudDatePicker Date="To" DateChanged="ToChanged" Label="Do"
+                    <MudDatePicker Date="To" DateChanged="ToChanged" Label="@T("childDetail.to")"
                                    Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:130px;" />
-                    <MudButton OnClick="OnReload" Variant="Variant.Text" Color="Color.Primary" Size="Size.Small">Zobraziť</MudButton>
+                    <MudButton OnClick="OnReload" Variant="Variant.Text" Color="Color.Primary" Size="Size.Small">@T("childDetail.show")</MudButton>
                 </MudStack>
             </MudStack>
         </CardHeaderContent>
@@ -26,19 +27,19 @@
                 <MudItem xs="4">
                     <MudPaper Elevation="0" Class="pa-2 text-center">
                         <MudText Typo="Typo.h6" Color="Color.Success">@Stats.Present</MudText>
-                        <MudText Typo="Typo.caption">Prítomný</MudText>
+                        <MudText Typo="Typo.caption">@DomainLabels.AttendanceStatusText(AttendanceStatus.Present)</MudText>
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="4">
                     <MudPaper Elevation="0" Class="pa-2 text-center">
                         <MudText Typo="Typo.h6" Color="Color.Error">@Stats.Absent</MudText>
-                        <MudText Typo="Typo.caption">Neprítomný</MudText>
+                        <MudText Typo="Typo.caption">@DomainLabels.AttendanceStatusText(AttendanceStatus.Absent)</MudText>
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="4">
                     <MudPaper Elevation="0" Class="pa-2 text-center">
                         <MudText Typo="Typo.h6" Color="Color.Warning">@Stats.Excused</MudText>
-                        <MudText Typo="Typo.caption">Ospravedlnený</MudText>
+                        <MudText Typo="Typo.caption">@DomainLabels.AttendanceStatusText(AttendanceStatus.Excused)</MudText>
                     </MudPaper>
                 </MudItem>
             </MudGrid>
@@ -46,15 +47,15 @@
 
         @if (Records.Count == 0)
         {
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Žiadne záznamy za vybrané obdobie.</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@T("childDetail.noRecordsForPeriod")</MudText>
         }
         else
         {
             <MudTable Items="@Records" Dense="true" Hover="true">
                 <HeaderContent>
-                    <MudTh>Dátum</MudTh>
-                    <MudTh>Tréning</MudTh>
-                    <MudTh>Stav</MudTh>
+                    <MudTh>@T("attendance.history.date")</MudTh>
+                    <MudTh>@T("dashboard.child.training")</MudTh>
+                    <MudTh>@T("dashboard.child.status")</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>@context.Date.ToString("dd.MM.yyyy")</MudTd>
@@ -70,6 +71,7 @@
     </MudCardContent>
 </MudCard>
 
+@using ZISK.Shared.Enums
 @code {
     [Parameter] public AttendanceStatsDto? Stats { get; set; }
     [Parameter, EditorRequired] public IReadOnlyList<UserAttendanceDto> Records { get; set; } = [];

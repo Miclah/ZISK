@@ -1,4 +1,5 @@
-﻿@using ZISK.Shared.DTOs.Children
+﻿@inherits ZISK.Client.Components.LocalizedComponentBase
+@using ZISK.Shared.DTOs.Children
 @*
     "Základné informácie": the child's static details, with an edit affordance.
 *@
@@ -7,11 +8,11 @@
     <MudCardHeader>
         <CardHeaderContent>
             <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
-                <MudText Typo="Typo.subtitle1">Základné informácie</MudText>
+                <MudText Typo="Typo.subtitle1">@T("childDetail.basicInfo")</MudText>
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
                            StartIcon="@Icons.Material.Filled.Edit"
                            OnClick="OnEdit">
-                    Upraviť dieťa
+                    @T("childDetail.editChild")
                 </MudButton>
             </MudStack>
         </CardHeaderContent>
@@ -19,20 +20,20 @@
     <MudCardContent>
         <MudGrid>
             <MudItem xs="12" sm="6">
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Dátum narodenia</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@T("dashboard.child.dateOfBirth")</MudText>
                 <MudText Typo="Typo.body2">@(Detail.DateOfBirth?.ToString("dd.MM.yyyy") ?? "-")</MudText>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Vek</MudText>
-                <MudText Typo="Typo.body2">@(Age?.ToString() ?? "-") @(Age.HasValue ? "rokov" : "")</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@T("childDetail.age")</MudText>
+                <MudText Typo="Typo.body2">@(Age?.ToString() ?? "-") @(Age.HasValue ? T("dashboard.childSummary.yearsOld") : "")</MudText>
             </MudItem>
             <MudItem xs="12">
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Bydlisko</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@T("admin.users.address")</MudText>
                 <MudText Typo="Typo.body2">@(string.IsNullOrWhiteSpace(Detail.Bydlisko) ? "-" : Detail.Bydlisko)</MudText>
             </MudItem>
             <MudItem xs="12">
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Tím</MudText>
-                <MudText Typo="Typo.body2">@(Detail.TeamName ?? "Bez tímu")</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@T("dashboard.team")</MudText>
+                <MudText Typo="Typo.body2">@(Detail.TeamName ?? T("dashboard.child.noTeam"))</MudText>
             </MudItem>
         </MudGrid>
     </MudCardContent>

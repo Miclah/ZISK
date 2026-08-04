@@ -177,6 +177,9 @@ namespace ZISK.Migrations
                     b.Property<DateOnly?>("DateOfBirth")
                         .HasColumnType("date");
 
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -245,11 +248,11 @@ namespace ZISK.Migrations
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
-                    b.HasIndex("PhoneNumber")
+                    b.HasIndex("DemoSessionId", "PhoneNumber")
                         .IsUnique()
                         .HasFilter("[PhoneNumber] IS NOT NULL");
 
-                    b.HasIndex("RodneCislo")
+                    b.HasIndex("DemoSessionId", "RodneCislo")
                         .IsUnique()
                         .HasFilter("[RodneCislo] IS NOT NULL");
 
@@ -274,6 +277,9 @@ namespace ZISK.Migrations
 
                     b.Property<DateTime?>("DateTo")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
@@ -332,6 +338,9 @@ namespace ZISK.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("IsPinned")
                         .HasColumnType("bit");
 
@@ -382,6 +391,9 @@ namespace ZISK.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("FileName")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -418,6 +430,9 @@ namespace ZISK.Migrations
                     b.Property<string>("CoachComment")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("MarkedByUserId")
                         .HasColumnType("nvarchar(450)");
@@ -460,6 +475,9 @@ namespace ZISK.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("IsPrimary")
                         .HasColumnType("bit");
 
@@ -476,6 +494,40 @@ namespace ZISK.Migrations
                     b.ToTable("CoachTeams");
                 });
 
+            modelBuilder.Entity("ZISK.Data.Entities.DemoSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedFromRole")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DemoSessions");
+                });
+
+            modelBuilder.Entity("ZISK.Data.Entities.DemoTemplateMeta", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("GeneratedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DemoTemplateMetas");
+                });
+
             modelBuilder.Entity("ZISK.Data.Entities.Document", b =>
                 {
                     b.Property<Guid>("Id")
@@ -484,6 +536,9 @@ namespace ZISK.Migrations
 
                     b.Property<int>("Category")
                         .HasColumnType("int");
+
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("FilePath")
                         .IsRequired()
@@ -534,6 +589,9 @@ namespace ZISK.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("datetime2");
 
@@ -578,6 +636,9 @@ namespace ZISK.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateOnly>("EndDate")
                         .HasColumnType("date");
 
@@ -594,7 +655,7 @@ namespace ZISK.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsActive")
+                    b.HasIndex("DemoSessionId", "IsActive")
                         .IsUnique()
                         .HasFilter("[IsActive] = 1");
 
@@ -609,6 +670,9 @@ namespace ZISK.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -628,8 +692,9 @@ namespace ZISK.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
-                        .IsUnique();
+                    b.HasIndex("DemoSessionId", "Name")
+                        .IsUnique()
+                        .HasFilter("[DemoSessionId] IS NOT NULL");
 
                     b.ToTable("Teams");
                 });
@@ -641,6 +706,9 @@ namespace ZISK.Migrations
 
                     b.Property<string>("UserId")
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("JoinedAt")
                         .HasColumnType("datetime2");
@@ -668,6 +736,9 @@ namespace ZISK.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("EndTime")
                         .HasColumnType("datetime2");
@@ -733,6 +804,9 @@ namespace ZISK.Migrations
                     b.Property<int>("DaysOfWeek")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<TimeOnly>("EndTime")
                         .HasColumnType("time");
 
@@ -778,6 +852,9 @@ namespace ZISK.Migrations
 
                     b.Property<string>("ChildId")
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsPrimary")
                         .HasColumnType("bit");

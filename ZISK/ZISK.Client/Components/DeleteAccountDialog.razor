@@ -1,3 +1,4 @@
+@inherits LocalizedComponentBase
 @using ZISK.Shared.DTOs.Users
 @inject IMeApi MeApi
 @inject ISnackbar Snackbar
@@ -7,31 +8,31 @@
     <TitleContent>
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
             <MudIcon Icon="@Icons.Material.Rounded.Warning" Color="Color.Error" />
-            <MudText Typo="Typo.h6">Odstránenie účtu</MudText>
+            <MudText Typo="Typo.h6">@T("profile.deleteAccountDialogTitle")</MudText>
         </MudStack>
     </TitleContent>
     <DialogContent>
         <EditForm Model="_model" OnValidSubmit="Submit">
-            <DataAnnotationsValidator />
+            <LocalizedDataAnnotationsValidator />
             <MudStack Spacing="3" Style="min-width:340px;">
                 <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
-                    <strong>Pozor!</strong> Po potvrdení bude váš účet trvalo odstránený.
-                    Túto akciu <strong>nie je možné vrátiť späť</strong>.
+                    <strong>@T("deleteAccountDialog.warningPrefix")</strong> @T("deleteAccountDialog.warningText")
+                    <strong>@T("deleteAccountDialog.irreversibleStrong")</strong>.
                 </MudAlert>
                 <MudTextField @bind-Value="_model.CurrentPassword"
                               For="@(() => _model.CurrentPassword)"
-                              Label="Pre potvrdenie zadajte heslo"
+                              Label="@T("deleteAccountDialog.passwordConfirmLabel")"
                               InputType="InputType.Password"
                               Variant="Variant.Outlined" />
             </MudStack>
         </EditForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Disabled="_isSubmitting">Zrušiť</MudButton>
+        <MudButton OnClick="Cancel" Disabled="_isSubmitting">@T("admin.users.cancel")</MudButton>
         <LoadingButton Color="Color.Error" Variant="Variant.Filled"
                        OnClick="SubmitForm" Loading="_isSubmitting"
-                       LoadingText="Odstraňujem...">
-            Trvalo odstrániť účet
+                       LoadingText="@T("deleteAccountDialog.deleting")">
+            @T("deleteAccountDialog.permanentlyDeleteAccount")
         </LoadingButton>
     </DialogActions>
 </MudDialog>
@@ -60,13 +61,13 @@
         try
         {
             await MeApi.DeleteMyAccountAsync(new DeleteMyAccountRequest(_model.CurrentPassword));
-            Snackbar.Add("Účet bol odstránený.", Severity.Success);
+            Snackbar.Add(T("deleteAccountDialog.accountDeleted"), Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
             Navigation.NavigateTo("/logout", forceLoad: true);
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {

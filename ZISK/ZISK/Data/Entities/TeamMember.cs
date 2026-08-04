@@ -2,8 +2,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ZISK.Data.Entities;
 
-public class TeamMember
+public class TeamMember : IDemoScoped
 {
+    public Guid? DemoSessionId { get; set; }
+
     public Guid TeamId { get; set; }
 
     [ForeignKey(nameof(TeamId))]

@@ -1,4 +1,5 @@
 ﻿@page "/admin/statistiky"
+@inherits LocalizedComponentBase
 @using ZISK.Client.Components
 @using ZISK.Client.Components.Stats
 @using ZISK.Client.Services
@@ -7,17 +8,17 @@
 @inject ISnackbar Snackbar
 @attribute [Authorize(Roles = "Admin")]
 
-<PageTitle>Štatistiky</PageTitle>
+<PageTitle>@T("admin.stats.pageTitle")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
-<PageHeader Icon="@Icons.Material.Filled.Insights" Title="Štatistiky klubu">
+<PageHeader Icon="@Icons.Material.Filled.Insights" Title="@T("admin.stats.title")">
     <Actions>
         <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.Refresh"
                    OnClick="LoadAllAsync"
                    Disabled="_isLoading">
-            Obnoviť
+            @T("admin.stats.refresh")
         </MudButton>
     </Actions>
 </PageHeader>
@@ -42,24 +43,24 @@ else
 {
     <MudGrid Class="mb-4">
         <MudItem xs="12" sm="6" md="3">
-            <StatCard Label="Aktívne tímy"
+            <StatCard Label="@T("admin.stats.activeTeams")"
                       Value="@($"{_dashboardStats?.ActiveTeams} / {_dashboardStats?.TotalTeams}")"
                       Icon="@Icons.Material.Filled.Groups" IconColor="Color.Primary" />
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <StatCard Label="Aktívni členovia"
+            <StatCard Label="@T("admin.stats.activeMembers")"
                       Value="@(_dashboardStats?.ActiveMembers.ToString() ?? "0")"
-                      Caption="@($"z {_dashboardStats?.TotalMembers} celkovo")"
+                      Caption="@string.Format(T("admin.stats.ofTotalSuffix"), _dashboardStats?.TotalMembers)"
                       Icon="@Icons.Material.Filled.EmojiPeople" IconColor="Color.Secondary" />
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <StatCard Label="Priemerná účasť"
+            <StatCard Label="@T("dashboard.admin.averageAttendance")"
                       Value="@($"{_attendanceStats?.PresentPercent ?? 0}%")"
-                      Caption="@($"za {_selectedDays} dní")"
+                      Caption="@string.Format(T("admin.stats.forDaysSuffix"), _selectedDays)"
                       Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success" />
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <StatCard Label="Čakajúce ospravedlnenky"
+            <StatCard Label="@T("admin.stats.pendingExcuses")"
                       Value="@(_dashboardStats?.PendingExcuses.ToString() ?? "0")"
                       Icon="@Icons.Material.Filled.EventBusy"
                       IconColor="@(_dashboardStats?.PendingExcuses > 0 ? Color.Warning : Color.Default)" />
@@ -79,7 +80,7 @@ else
 
         <MudItem xs="12" md="6">
             <TeamRankingPanel Teams="_teamStats"
-                              Title="Top tímy podľa účasti"
+                              Title="@T("admin.stats.topTeamsByAttendance")"
                               Icon="@Icons.Material.Filled.EmojiEvents"
                               IconColor="Color.Success"
                               BestFirst="true" />
@@ -87,7 +88,7 @@ else
 
         <MudItem xs="12" md="6">
             <TeamRankingPanel Teams="_teamStats"
-                              Title="Tímy s najnižšou účasťou"
+                              Title="@T("admin.stats.lowestAttendanceTeams")"
                               Icon="@Icons.Material.Filled.TrendingDown"
                               IconColor="Color.Error"
                               BestFirst="false" />
@@ -190,7 +191,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 

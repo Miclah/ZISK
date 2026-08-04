@@ -4,8 +4,10 @@ using ZISK.Data.Entities;
 
 namespace ZISK.Data
 {
-    public class ApplicationUser : IdentityUser
+    public class ApplicationUser : IdentityUser, IDemoScoped
     {
+        public Guid? DemoSessionId { get; set; }
+
         [Required]
         [MaxLength(100)]
         public string FirstName { get; set; } = string.Empty;

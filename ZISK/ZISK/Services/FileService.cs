@@ -1,25 +1,31 @@
+using ZISK.Shared.Localization;
+
 namespace ZISK.Services;
 
 public class FileService : IFileService
 {
     private readonly IWebHostEnvironment _environment;
+    private readonly ICurrentLanguage _currentLanguage;
 
-    public FileService(IWebHostEnvironment environment)
+    public FileService(IWebHostEnvironment environment, ICurrentLanguage currentLanguage)
     {
         _environment = environment;
+        _currentLanguage = currentLanguage;
     }
 
     public (bool IsValid, string? ErrorMessage) ValidateFile(IFormFile file, long maxSizeBytes, string[] allowedExtensions)
     {
+        var lang = _currentLanguage.Current;
+
         if (file == null || file.Length == 0)
-            return (false, "Súbor je prázdny");
+            return (false, Translations.Get(lang, "errors.file.empty"));
 
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (!allowedExtensions.Contains(extension))
-            return (false, "Nepodporovaný typ súboru");
+            return (false, Translations.Get(lang, "errors.file.unsupportedType"));
 
         if (file.Length > maxSizeBytes)
-            return (false, $"Súbor je príliš veľký (max {maxSizeBytes / 1024 / 1024}MB)");
+            return (false, string.Format(Translations.Get(lang, "errors.file.tooLarge"), maxSizeBytes / 1024 / 1024));
 
         return (true, null);
     }

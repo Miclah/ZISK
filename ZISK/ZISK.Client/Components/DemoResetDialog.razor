@@ -1,0 +1,50 @@
+@inherits LocalizedComponentBase
+@using ZISK.Client.Services
+@inject IDemoApi DemoApi
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.body2">
+                @T("demoReset.confirmText")
+            </MudText>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@T("demoReset.back")</MudButton>
+        <LoadingButton Color="Color.Error" Variant="Variant.Filled"
+                       Loading="_isSubmitting"
+                       OnClick="Confirm" LoadingText="@T("demoReset.loadingText")">
+            @T("demoReset.confirmButton")
+        </LoadingButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private bool _isSubmitting;
+
+    private async Task Confirm()
+    {
+        _isSubmitting = true;
+        try
+        {
+            await DemoApi.ResetAsync();
+            MudDialog.Close(DialogResult.Ok(true));
+            // The reset endpoint signs the caller out (their own account was just replaced by
+            // the fresh clone) - forceLoad so the WASM app picks up the cleared auth state
+            // instead of rendering stale cascading auth state client-side.
+            NavigationManager.NavigateTo("/demo", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            _isSubmitting = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

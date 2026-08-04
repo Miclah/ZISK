@@ -69,7 +69,7 @@ public partial class AdminTrainings
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -104,7 +104,7 @@ public partial class AdminTrainings
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {
@@ -132,12 +132,12 @@ public partial class AdminTrainings
         };
 
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<TrainingFormDialog>("Nový tréning", parameters, options);
+        var dialog = await DialogService.ShowAsync<TrainingFormDialog>(T("admin.trainings.newTraining"), parameters, options);
         var result = await dialog.Result;
 
         if (result is not null && !result.Canceled)
         {
-            Snackbar.Add("Tréning vytvorený", Severity.Success);
+            Snackbar.Add(T("admin.trainings.trainingCreated"), Severity.Success);
             await LoadTrainings();
         }
     }
@@ -151,12 +151,12 @@ public partial class AdminTrainings
         };
 
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<TrainingFormDialog>("Upraviť tréning", parameters, options);
+        var dialog = await DialogService.ShowAsync<TrainingFormDialog>(T("admin.trainings.editTraining"), parameters, options);
         var result = await dialog.Result;
 
         if (result is not null && !result.Canceled)
         {
-            Snackbar.Add("Tréning upravený", Severity.Success);
+            Snackbar.Add(T("admin.trainings.trainingUpdated"), Severity.Success);
             await LoadTrainings();
         }
     }
@@ -164,10 +164,10 @@ public partial class AdminTrainings
     private async Task ConfirmDeleteAsync(TrainingEventDto training)
     {
         bool? confirm = await DialogService.ShowMessageBoxAsync(
-            "Vymazať tréning",
-            $"Naozaj chcete vymazať tréning '{training.Title}' ({training.StartTime:dd.MM.yyyy HH:mm})?",
-            yesText: "Áno, vymazať",
-            cancelText: "Zrušiť",
+            T("admin.trainings.deleteTrainingTitle"),
+            string.Format(T("admin.trainings.deleteConfirmText"), training.Title, training.StartTime.ToString("dd.MM.yyyy HH:mm")),
+            yesText: T("admin.users.yesDelete"),
+            cancelText: T("admin.users.cancel"),
             options: new DialogOptions { MaxWidth = MaxWidth.Small });
 
         if (confirm != true) return;
@@ -175,12 +175,12 @@ public partial class AdminTrainings
         try
         {
             await TrainingsApi.DeleteTrainingAsync(training.Id);
-            Snackbar.Add("Tréning vymazaný", Severity.Success);
+            Snackbar.Add(T("admin.trainings.trainingDeleted"), Severity.Success);
             await LoadTrainings();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
     }
 
@@ -191,15 +191,6 @@ public partial class AdminTrainings
         TrainingType.Match => Color.Tertiary,
         TrainingType.Recovery => Color.Info,
         _ => Color.Default
-    };
-
-    private static string GetTypeText(TrainingType type) => type switch
-    {
-        TrainingType.Conditioning => "Kondičný",
-        TrainingType.Technical => "Technický",
-        TrainingType.Match => "Herný",
-        TrainingType.Recovery => "Regeneračný",
-        _ => "Iný"
     };
 
     // Reads colors directly from AppTheme so border colors stay in sync with the MudBlazor theme.

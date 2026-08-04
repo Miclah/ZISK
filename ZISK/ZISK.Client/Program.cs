@@ -26,7 +26,9 @@ builder.Services.AddAuthenticationStateDeserialization();
 builder.Services.AddScoped<UserContextService>();
 builder.Services.AddScoped<OnlineStatusService>();
 builder.Services.AddSingleton<HttpActivityTracker>();
+builder.Services.AddSingleton<ILanguageService, LanguageService>();
 builder.Services.AddTransient<LoadingHttpMessageHandler>();
+builder.Services.AddTransient<AcceptLanguageHandler>();
 
 var baseAddress = new Uri(builder.HostEnvironment.BaseAddress);
 
@@ -42,54 +44,78 @@ var refitSettings = new RefitSettings
 // Pomoc s AI pri robeni Refit klientov
 builder.Services.AddRefitClient<IExcusesApi>(refitSettings)
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<LoadingHttpMessageHandler>();
+    .AddHttpMessageHandler<LoadingHttpMessageHandler>()
+    .AddHttpMessageHandler<AcceptLanguageHandler>();
 
 builder.Services.AddRefitClient<IAttendanceApi>(refitSettings)
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<LoadingHttpMessageHandler>();
+    .AddHttpMessageHandler<LoadingHttpMessageHandler>()
+    .AddHttpMessageHandler<AcceptLanguageHandler>();
 
 builder.Services.AddRefitClient<ITrainingsApi>(refitSettings)
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<LoadingHttpMessageHandler>();
+    .AddHttpMessageHandler<LoadingHttpMessageHandler>()
+    .AddHttpMessageHandler<AcceptLanguageHandler>();
 
 builder.Services.AddRefitClient<ITeamsApi>(refitSettings)
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<LoadingHttpMessageHandler>();
+    .AddHttpMessageHandler<LoadingHttpMessageHandler>()
+    .AddHttpMessageHandler<AcceptLanguageHandler>();
 
 builder.Services.AddRefitClient<IAnnouncementsApi>(refitSettings)
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<LoadingHttpMessageHandler>();
+    .AddHttpMessageHandler<LoadingHttpMessageHandler>()
+    .AddHttpMessageHandler<AcceptLanguageHandler>();
 
 builder.Services.AddRefitClient<IDocumentsApi>(refitSettings)
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<LoadingHttpMessageHandler>();
+    .AddHttpMessageHandler<LoadingHttpMessageHandler>()
+    .AddHttpMessageHandler<AcceptLanguageHandler>();
 
 builder.Services.AddRefitClient<IChildrenApi>(refitSettings)
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<LoadingHttpMessageHandler>();
+    .AddHttpMessageHandler<LoadingHttpMessageHandler>()
+    .AddHttpMessageHandler<AcceptLanguageHandler>();
 
 builder.Services.AddRefitClient<IUsersApi>(refitSettings)
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<LoadingHttpMessageHandler>();
+    .AddHttpMessageHandler<LoadingHttpMessageHandler>()
+    .AddHttpMessageHandler<AcceptLanguageHandler>();
 
 builder.Services.AddRefitClient<IMeApi>(refitSettings)
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<LoadingHttpMessageHandler>();
+    .AddHttpMessageHandler<LoadingHttpMessageHandler>()
+    .AddHttpMessageHandler<AcceptLanguageHandler>();
 
 builder.Services.AddRefitClient<IStatsApi>(refitSettings)
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<LoadingHttpMessageHandler>();
+    .AddHttpMessageHandler<LoadingHttpMessageHandler>()
+    .AddHttpMessageHandler<AcceptLanguageHandler>();
 
 builder.Services.AddRefitClient<IInvitationsApi>(refitSettings)
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<LoadingHttpMessageHandler>();
+    .AddHttpMessageHandler<LoadingHttpMessageHandler>()
+    .AddHttpMessageHandler<AcceptLanguageHandler>();
 
 builder.Services.AddRefitClient<ISeasonsApi>(refitSettings)
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<LoadingHttpMessageHandler>();
+    .AddHttpMessageHandler<LoadingHttpMessageHandler>()
+    .AddHttpMessageHandler<AcceptLanguageHandler>();
 
 builder.Services.AddRefitClient<ITrainingSeriesApi>(refitSettings)
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
-    .AddHttpMessageHandler<LoadingHttpMessageHandler>();
+    .AddHttpMessageHandler<LoadingHttpMessageHandler>()
+    .AddHttpMessageHandler<AcceptLanguageHandler>();
 
-await builder.Build().RunAsync();
+builder.Services.AddRefitClient<IDemoApi>(refitSettings)
+    .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
+    .AddHttpMessageHandler<LoadingHttpMessageHandler>()
+    .AddHttpMessageHandler<AcceptLanguageHandler>();
+
+var host = builder.Build();
+
+// Reads the persisted zisk_lang cookie before the app renders, so pages don't flash Slovak
+// and then re-render in English a frame later for a returning English-preference visitor.
+await host.Services.GetRequiredService<ILanguageService>().InitializeAsync();
+
+await host.RunAsync();

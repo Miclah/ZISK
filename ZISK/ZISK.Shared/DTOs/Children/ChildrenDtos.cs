@@ -3,12 +3,12 @@ using System.ComponentModel.DataAnnotations;
 namespace ZISK.Shared.DTOs.Children;
 
 public record CreateChildRequest(
-    [Required(ErrorMessage = "Meno je povinné.")][MaxLength(100, ErrorMessage = "Meno môže mať max 100 znakov.")] string FirstName,
-    [Required(ErrorMessage = "Priezvisko je povinné.")][MaxLength(100, ErrorMessage = "Priezvisko môže mať max 100 znakov.")] string LastName,
-    [Required(ErrorMessage = "Dátum narodenia je povinný.")] DateOnly DateOfBirth,
+    [Required(ErrorMessage = "validation.firstName.required")][MaxLength(100, ErrorMessage = "validation.firstName.maxLength100")] string FirstName,
+    [Required(ErrorMessage = "validation.lastName.required")][MaxLength(100, ErrorMessage = "validation.lastName.maxLength100")] string LastName,
+    [Required(ErrorMessage = "validation.dateOfBirth.required")] DateOnly DateOfBirth,
     string? Email,
     bool SameAddressAsParent,
-    [MaxLength(300, ErrorMessage = "Bydlisko môže mať max 300 znakov.")] string? Bydlisko,
+    [MaxLength(300, ErrorMessage = "validation.bydlisko.maxLength300")] string? Bydlisko,
     Guid? TeamId,
     bool CreateCredentials,
     string? Password,
@@ -25,10 +25,10 @@ public record ParentDto(
 );
 
 public record UpdateChildRequest(
-    [Required(ErrorMessage = "Meno je povinné.")][MaxLength(100, ErrorMessage = "Meno môže mať max 100 znakov.")] string FirstName,
-    [Required(ErrorMessage = "Priezvisko je povinné.")][MaxLength(100, ErrorMessage = "Priezvisko môže mať max 100 znakov.")] string LastName,
-    [MaxLength(300, ErrorMessage = "Bydlisko môže mať max 300 znakov.")] string? Bydlisko,
-    [Required(ErrorMessage = "Dátum narodenia je povinný.")] DateOnly DateOfBirth,
+    [Required(ErrorMessage = "validation.firstName.required")][MaxLength(100, ErrorMessage = "validation.firstName.maxLength100")] string FirstName,
+    [Required(ErrorMessage = "validation.lastName.required")][MaxLength(100, ErrorMessage = "validation.lastName.maxLength100")] string LastName,
+    [MaxLength(300, ErrorMessage = "validation.bydlisko.maxLength300")] string? Bydlisko,
+    [Required(ErrorMessage = "validation.dateOfBirth.required")] DateOnly DateOfBirth,
     Guid? TeamId
 );
 

@@ -6,10 +6,10 @@ public record UpdateExcuseRequest(
     DateTime? DateFrom,
     DateTime? DateTo,
 
-    [Required(ErrorMessage = "Dôvod je povinný.")]
-    [StringLength(1000, MinimumLength = 3, ErrorMessage = "Dôvod musí mať 3 – 1000 znakov.")]
+    [Required(ErrorMessage = "validation.reason.required")]
+    [StringLength(1000, MinimumLength = 3, ErrorMessage = "validation.reason.length3to1000")]
     string Reason,
 
-    [StringLength(500, ErrorMessage = "Poznámka môže mať max 500 znakov.")]
+    [StringLength(500, ErrorMessage = "validation.note.maxLength500")]
     string? Note
 );

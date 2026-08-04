@@ -1,23 +1,24 @@
 @page "/nepovolene"
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @layout MainLayout
 @attribute [AllowAnonymous]
 @inject NavigationManager Navigation
 
-<PageTitle>Nemáte prístup</PageTitle>
+<PageTitle>@T("forbidden.pageTitle")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
     <MudPaper Class="pa-8 text-center" Elevation="2">
         <MudIcon Icon="@Icons.Material.Rounded.Block" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 4rem;" />
-        <MudText Typo="Typo.h4" Class="mb-2">Nemáte prístup</MudText>
+        <MudText Typo="Typo.h4" Class="mb-2">@T("forbidden.pageTitle")</MudText>
         <MudText Typo="Typo.body1" Class="mb-6" Color="Color.Secondary">
-            K tejto sekcii nemáte dostatočné oprávnenia. Ak si myslíte, že ide o chybu, kontaktujte administrátora.
+            @T("forbidden.text")
         </MudText>
         <MudStack Row="true" Justify="Justify.Center" Spacing="2">
             <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => Navigation.NavigateTo("/"))">
-                Domov
+                @T("forbidden.home")
             </MudButton>
             <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="@(() => Navigation.NavigateTo(Navigation.Uri, forceLoad: true))">
-                Obnoviť
+                @T("admin.stats.refresh")
             </MudButton>
         </MudStack>
     </MudPaper>

@@ -5,7 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using ZISK.Data;
 using ZISK.Services;
+using ZISK.Services.Demo;
 using ZISK.Shared.DTOs.Users;
+using ZISK.Shared.Localization;
 
 namespace ZISK.Controllers;
 
@@ -18,18 +20,44 @@ public class MeController : ControllerBase
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly IAuditService _auditService;
     private readonly IUserService _userService;
+    private readonly ICurrentLanguage _currentLanguage;
+    private readonly IDemoSessionContext _demoSession;
 
     public MeController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         IAuditService auditService,
-        IUserService userService)
+        IUserService userService,
+        ICurrentLanguage currentLanguage,
+        IDemoSessionContext demoSession)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _auditService = auditService;
         _userService = userService;
+        _currentLanguage = currentLanguage;
+        _demoSession = demoSession;
     }
+
+    /// <summary>
+    /// Credential and account-lifecycle changes are refused for a demo visitor.
+    ///
+    /// They reached the app through /demo's "Try as [Role]" button, not a password, so there is
+    /// nothing for a new password to unlock and no inbox behind the generated address. Letting
+    /// these through only breaks the visit: deleting the account removes the cloned user their
+    /// session is built on, so returning to /demo and picking the same role dead-ends on "role
+    /// not found" with no way back short of clearing cookies.
+    ///
+    /// This has to be enforced here rather than only by disabling the buttons - the UI is not a
+    /// security boundary, and these endpoints are reachable directly.
+    ///
+    /// Current is null outside demo mode and also for the owner (who signs in through /login into
+    /// the template data), so neither is affected.
+    /// </summary>
+    private bool IsDemoVisitor => _demoSession.Current is not null;
+
+    private ActionResult DemoNotAllowed() =>
+        BadRequest(Translations.Get(_currentLanguage.Current, "errors.demo.accountLocked"));
 
     [HttpGet]
     public async Task<ActionResult<MyProfileDto>> GetMyProfile()
@@ -79,7 +107,7 @@ public class MeController : ControllerBase
             var existingWithPhone = await _userManager.Users
                 .FirstOrDefaultAsync(u => u.PhoneNumber == request.PhoneNumber && u.Id != user.Id);
             if (existingWithPhone is not null)
-                return BadRequest("Toto telefónne číslo už používa iný účet.");
+                return BadRequest(Translations.Get(_currentLanguage.Current, "errors.me.phoneTaken"));
         }
 
         if (phoneChanged)
@@ -122,6 +150,9 @@ public class MeController : ControllerBase
     [HttpPost("change-password")]
     public async Task<IActionResult> ChangeMyPassword([FromBody] ChangeMyPasswordRequest request)
     {
+        if (IsDemoVisitor)
+            return DemoNotAllowed();
+
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
@@ -132,7 +163,7 @@ public class MeController : ControllerBase
 
         var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
         if (!result.Succeeded)
-            return BadRequest(string.Join("; ", result.Errors.Select(e => TranslateIdentityError(e))));
+            return BadRequest(string.Join("; ", result.Errors.Select(e => TranslateIdentityError(e, _currentLanguage.Current))));
 
         await _signInManager.RefreshSignInAsync(user);
         _auditService.Log("MyPasswordChanged", "User", user.Id, User, null);
@@ -143,6 +174,9 @@ public class MeController : ControllerBase
     [HttpPost("change-email")]
     public async Task<IActionResult> ChangeMyEmail([FromBody] ChangeMyEmailRequest request)
     {
+        if (IsDemoVisitor)
+            return DemoNotAllowed();
+
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
@@ -152,23 +186,23 @@ public class MeController : ControllerBase
             return NotFound();
 
         if (!await _userManager.CheckPasswordAsync(user, request.CurrentPassword))
-            return BadRequest("Súčasné heslo nie je správne.");
+            return BadRequest(Translations.Get(_currentLanguage.Current, "errors.me.passwordMismatch"));
 
         var newEmail = request.NewEmail.Trim();
         if (string.Equals(user.Email, newEmail, StringComparison.OrdinalIgnoreCase))
-            return BadRequest("Nový email je rovnaký ako súčasný.");
+            return BadRequest(Translations.Get(_currentLanguage.Current, "errors.me.newEmailSameAsCurrent"));
 
         var existing = await _userManager.FindByEmailAsync(newEmail);
         if (existing is not null && existing.Id != user.Id)
-            return BadRequest("Tento email už používa iný účet.");
+            return BadRequest(Translations.Get(_currentLanguage.Current, "errors.me.duplicateEmail"));
 
         var setEmailResult = await _userManager.SetEmailAsync(user, newEmail);
         if (!setEmailResult.Succeeded)
-            return BadRequest(string.Join("; ", setEmailResult.Errors.Select(TranslateIdentityError)));
+            return BadRequest(string.Join("; ", setEmailResult.Errors.Select(e => TranslateIdentityError(e, _currentLanguage.Current))));
 
         var setUserNameResult = await _userManager.SetUserNameAsync(user, newEmail);
         if (!setUserNameResult.Succeeded)
-            return BadRequest(string.Join("; ", setUserNameResult.Errors.Select(TranslateIdentityError)));
+            return BadRequest(string.Join("; ", setUserNameResult.Errors.Select(e => TranslateIdentityError(e, _currentLanguage.Current))));
 
         await _signInManager.RefreshSignInAsync(user);
         _auditService.Log("MyEmailChanged", "User", user.Id, User, new { NewEmail = newEmail });
@@ -179,6 +213,9 @@ public class MeController : ControllerBase
     [HttpDelete]
     public async Task<IActionResult> DeleteMyAccount([FromBody] DeleteMyAccountRequest request)
     {
+        if (IsDemoVisitor)
+            return DemoNotAllowed();
+
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
@@ -188,7 +225,7 @@ public class MeController : ControllerBase
             return NotFound();
 
         if (!await _userManager.CheckPasswordAsync(user, request.CurrentPassword))
-            return BadRequest("Súčasné heslo nie je správne.");
+            return BadRequest(Translations.Get(_currentLanguage.Current, "errors.me.passwordMismatch"));
 
         // Goes through UserService.DeleteUserAsync (not _userManager.DeleteAsync directly) because it
         // cleans up Restrict-FK rows first (CoachTeam, TrainingSeries.CoachId, ParentInvitation,
@@ -208,17 +245,17 @@ public class MeController : ControllerBase
         return NoContent();
     }
 
-    private static string TranslateIdentityError(IdentityError error) => error.Code switch
+    private static string TranslateIdentityError(IdentityError error, Lang lang) => error.Code switch
     {
-        "PasswordMismatch" => "Súčasné heslo nie je správne.",
-        "PasswordTooShort" => "Heslo je príliš krátke (min. 8 znakov).",
-        "PasswordRequiresDigit" => "Heslo musí obsahovať aspoň jednu číslicu.",
-        "PasswordRequiresLower" => "Heslo musí obsahovať aspoň jedno malé písmeno.",
-        "PasswordRequiresUpper" => "Heslo musí obsahovať aspoň jedno veľké písmeno.",
-        "PasswordRequiresNonAlphanumeric" => "Heslo musí obsahovať aspoň jeden špeciálny znak.",
-        "DuplicateEmail" => "Tento email už používa iný účet.",
-        "DuplicateUserName" => "Toto používateľské meno je už obsadené.",
-        "InvalidEmail" => "Neplatný formát emailu.",
+        "PasswordMismatch" => Translations.Get(lang, "errors.me.passwordMismatch"),
+        "PasswordTooShort" => Translations.Get(lang, "errors.me.passwordTooShort"),
+        "PasswordRequiresDigit" => Translations.Get(lang, "errors.me.passwordRequiresDigit"),
+        "PasswordRequiresLower" => Translations.Get(lang, "errors.me.passwordRequiresLower"),
+        "PasswordRequiresUpper" => Translations.Get(lang, "errors.me.passwordRequiresUpper"),
+        "PasswordRequiresNonAlphanumeric" => Translations.Get(lang, "errors.me.passwordRequiresNonAlphanumeric"),
+        "DuplicateEmail" => Translations.Get(lang, "errors.me.duplicateEmail"),
+        "DuplicateUserName" => Translations.Get(lang, "errors.me.duplicateUserName"),
+        "InvalidEmail" => Translations.Get(lang, "errors.me.invalidEmail"),
         _ => error.Description
     };
 }

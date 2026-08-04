@@ -1,3 +1,4 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @using ZISK.Client.Layout
 @using ZISK.Shared.DTOs.Trainings
 @*
@@ -7,7 +8,7 @@
 
 <MudPaper Class="card-standard pa-4" Elevation="0">
     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
-        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Najbližší tréning</MudText>
+        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@T("dashboard.coachNextTraining.title")</MudText>
         @if (Training is not null)
         {
             <MudChip T="string" Size="Size.Small" Color="Color.Primary" Icon="@Icons.Material.Rounded.Schedule">
@@ -20,11 +21,11 @@
     {
         <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Class="py-6" Spacing="1">
             <MudIcon Icon="@Icons.Material.Rounded.EventAvailable" Size="Size.Large" Color="Color.Default" />
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Nemáte naplánovaný žiadny nadchádzajúci tréning.</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@T("dashboard.coachNextTraining.noneScheduled")</MudText>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2"
                        StartIcon="@Icons.Material.Rounded.AddCircle"
                        OnClick="OnSchedule">
-                Naplánovať tréning
+                @T("dashboard.scheduleTraining")
             </MudButton>
         </MudStack>
     }
@@ -41,26 +42,26 @@
                 </MudStack>
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                     <MudIcon Icon="@Icons.Material.Rounded.Place" Size="Size.Small" Color="Color.Secondary" />
-                    <MudText Typo="Typo.body2">@(Training.Location ?? "Neuvedené")</MudText>
+                    <MudText Typo="Typo.body2">@(Training.Location ?? T("dashboard.locationNotSpecified"))</MudText>
                 </MudStack>
             </MudStack>
 
             <MudGrid Spacing="2" Class="mt-1">
                 <MudItem xs="4">
-                    <CountTile Value="@ExpectedCount" Label="Očakávaní" Hex="@ThemeColors.Success" />
+                    <CountTile Value="@ExpectedCount" Label="@T("dashboard.expected")" Hex="@ThemeColors.Success" />
                 </MudItem>
                 <MudItem xs="4">
-                    <CountTile Value="@ExcusedCount" Label="Ospravedlnení" Hex="@ThemeColors.Warning" />
+                    <CountTile Value="@ExcusedCount" Label="@T("dashboard.excused")" Hex="@ThemeColors.Warning" />
                 </MudItem>
                 <MudItem xs="4">
-                    <CountTile Value="@MemberCount" Label="Tím" Hex="@ThemeColors.Tertiary" />
+                    <CountTile Value="@MemberCount" Label="@T("dashboard.team")" Hex="@ThemeColors.Tertiary" />
                 </MudItem>
             </MudGrid>
 
             <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-2"
                        EndIcon="@Icons.Material.Rounded.ChevronRight"
                        OnClick="OnOpen">
-                Otvoriť tréning
+                @T("dashboard.openTraining")
             </MudButton>
         </MudStack>
     }

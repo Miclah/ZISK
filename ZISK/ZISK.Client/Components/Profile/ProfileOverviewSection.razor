@@ -1,3 +1,4 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @using ZISK.Client.Components
 @using ZISK.Shared.DTOs.Users
 @*
@@ -5,44 +6,44 @@
     Name, surname, birth number and date of birth are admin-managed, hence read-only here.
 *@
 
-<ProfileSectionHeading Icon="@Icons.Material.Rounded.Person" Title="Základné údaje" />
+<ProfileSectionHeading Icon="@Icons.Material.Rounded.Person" Title="@T("profile.basicData")" />
 
 <MudGrid Spacing="3">
     <MudItem xs="12" sm="6">
-        <ReadOnlyField Label="Meno" Value="@Profile.FirstName" />
+        <ReadOnlyField Label="@T("admin.users.table.firstName")" Value="@Profile.FirstName" />
     </MudItem>
     <MudItem xs="12" sm="6">
-        <ReadOnlyField Label="Priezvisko" Value="@Profile.LastName" />
+        <ReadOnlyField Label="@T("admin.users.table.lastName")" Value="@Profile.LastName" />
     </MudItem>
     <MudItem xs="12" sm="6">
-        <ReadOnlyField Label="Dátum narodenia" Value="@BirthDateText" />
+        <ReadOnlyField Label="@T("dashboard.child.dateOfBirth")" Value="@BirthDateText" />
     </MudItem>
     <MudItem xs="12" sm="6">
-        <ReadOnlyField Label="Rodné číslo" Value="@(Profile.RodneCislo ?? "—")" />
+        <ReadOnlyField Label="@T("admin.users.birthNumber")" Value="@(Profile.RodneCislo ?? "—")" />
     </MudItem>
     <MudItem xs="12" sm="6">
-        <ReadOnlyField Label="Rola v systéme" Value="@RoleText" />
+        <ReadOnlyField Label="@T("profile.systemRole")" Value="@RoleText" />
     </MudItem>
     <MudItem xs="12" sm="6">
-        <ReadOnlyField Label="Účet vytvorený" Value="@CreatedAtText" />
+        <ReadOnlyField Label="@T("profile.accountCreated")" Value="@CreatedAtText" />
     </MudItem>
 </MudGrid>
 
 <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-4" Dense="true">
-    Údaje ako meno, priezvisko, rodné číslo a dátum narodenia môže zmeniť iba administrátor.
+    @T("profile.adminManagedNote")
 </MudAlert>
 
 @if (IsParent)
 {
     <MudDivider Class="my-4" />
-    <MudText Typo="Typo.subtitle1" Class="mb-2">Pripojiť sa k dieťaťu</MudText>
+    <MudText Typo="Typo.subtitle1" Class="mb-2">@T("profile.connectToChild")</MudText>
     <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);" Class="mb-3">
-        Zadajte kód, ktorý vám poskytol iný rodič, a prepojte sa s dieťaťom.
+        @T("profile.connectToChildHint")
     </MudText>
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
         <MudTextField Value="RedeemCode" ValueChanged="@((string v) => RedeemCodeChanged.InvokeAsync(v))"
                       Immediate="true"
-                      Label="Kód pozvánky"
+                      Label="@T("profile.invitationCode")"
                       Variant="Variant.Outlined"
                       Placeholder="XXXX-XXXX"
                       Style="max-width:200px;"
@@ -53,7 +54,7 @@
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
             }
-            Pripojiť
+            @T("profile.connect")
         </MudButton>
     </MudStack>
 }

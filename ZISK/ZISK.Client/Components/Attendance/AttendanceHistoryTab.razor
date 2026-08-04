@@ -1,3 +1,4 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @using System.Globalization
 @using ZISK.Client.Display
 @using ZISK.Shared.DTOs.Attendance
@@ -10,14 +11,14 @@
 <MudPaper Class="card-standard pa-4 mb-4" Elevation="0">
     <MudGrid Spacing="2">
         <MudItem xs="12" sm="4">
-            <MudDatePicker Date="DateFrom" DateChanged="DateFromChanged" Label="Od dátumu" Variant="Variant.Outlined" />
+            <MudDatePicker Date="DateFrom" DateChanged="DateFromChanged" Label="@T("attendance.history.dateFrom")" Variant="Variant.Outlined" />
         </MudItem>
         <MudItem xs="12" sm="4">
-            <MudDatePicker Date="DateTo" DateChanged="DateToChanged" Label="Do dátumu" Variant="Variant.Outlined" />
+            <MudDatePicker Date="DateTo" DateChanged="DateToChanged" Label="@T("attendance.history.dateTo")" Variant="Variant.Outlined" />
         </MudItem>
         <MudItem xs="12" sm="4" Class="d-flex align-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnFilter">
-                Filtrovať
+                @T("attendance.history.filter")
             </MudButton>
         </MudItem>
     </MudGrid>
@@ -36,8 +37,8 @@ else if (Records.Count == 0)
 {
     <MudPaper Class="card-standard empty-state" Elevation="0">
         <MudIcon Icon="@Icons.Material.Rounded.EventBusy" Class="empty-state__icon" />
-        <div class="empty-state__title">Žiadne záznamy o dochádzke</div>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">Vo vybranom období nie sú evidované žiadne tréningy.</MudText>
+        <div class="empty-state__title">@T("attendance.history.noRecordsTitle")</div>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@T("attendance.history.noRecordsText")</MudText>
     </MudPaper>
 }
 else
@@ -46,11 +47,11 @@ else
         <MudPaper Class="card-standard pa-2" Elevation="0">
             <MudTable Items="@Records" Hover="true" Elevation="0" Breakpoint="Breakpoint.None">
                 <HeaderContent>
-                    <MudTh>Dátum</MudTh>
-                    <MudTh>Dieťa</MudTh>
-                    <MudTh>Tréning</MudTh>
-                    <MudTh>Stav</MudTh>
-                    <MudTh>Poznámka trénera</MudTh>
+                    <MudTh>@T("attendance.history.date")</MudTh>
+                    <MudTh>@T("attendance.history.child")</MudTh>
+                    <MudTh>@T("dashboard.child.training")</MudTh>
+                    <MudTh>@T("dashboard.child.status")</MudTh>
+                    <MudTh>@T("attendance.history.coachNote")</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>
@@ -97,14 +98,14 @@ else
                             @item.ChildName · @item.Date.ToString("dd.MM.yyyy") · @item.Date.ToString("dddd", SlovakCulture)
                         </MudText>
                         <MudText Typo="Typo.body2">
-                            @(string.IsNullOrWhiteSpace(item.Note) ? "Bez poznámky trénera" : item.Note)
+                            @(string.IsNullOrWhiteSpace(item.Note) ? T("attendance.history.noCoachNote") : item.Note)
                         </MudText>
                         @if (item.Status == AttendanceStatus.Absent && CanCreateExcuse)
                         {
                             <MudStack Row="true" Justify="Justify.FlexEnd">
                                 <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
                                            OnClick="OnCreateExcuse">
-                                    Podať ospravedlnenku
+                                    @T("attendance.history.submitExcuse")
                                 </MudButton>
                             </MudStack>
                         }

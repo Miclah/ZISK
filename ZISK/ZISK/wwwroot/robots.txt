@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /login
+Disallow: /__owner
+Disallow: /Account
+Disallow: /registracia
+Disallow: /overenie

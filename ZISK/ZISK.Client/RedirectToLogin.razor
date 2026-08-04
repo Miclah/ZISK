@@ -1,7 +1,9 @@
-﻿@inject NavigationManager Nav
+﻿@using ZISK.Client.Services
+@inject NavigationManager Nav
+@inject IDemoApi DemoApi
 
 @code {
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         var returnUrl = Nav.ToBaseRelativePath(Nav.Uri);
 
@@ -10,9 +12,32 @@
             returnUrl = "/";
         }
 
+        // In public-demo mode, /login 404s for anyone without the owner cookie (see
+        // DemoAccessGuardMiddleware) - sending an anonymous visitor there would just dead-end
+        // them. Route them to /demo's "Try as [Role]" landing instead. Best-effort: if the
+        // status check itself fails (offline, cold start), fall back to the normal /login path
+        // rather than leaving the visitor stuck on a blank page.
+        //
+        // This only covers client-side navigation once WASM is interactive. A first (static SSR)
+        // request never reaches this component - the authorization middleware challenges the
+        // component's endpoint first, so the equivalent demo check lives on the application
+        // cookie's OnRedirectToLogin in the server's Program.cs.
+        var isDemo = false;
+        try
+        {
+            isDemo = (await DemoApi.GetStatusAsync()).IsDemo;
+        }
+        catch
+        {
+        }
+
+        if (isDemo)
+        {
+            Nav.NavigateTo("/demo", forceLoad: true);
+            return;
+        }
 
         var encodedReturnUrl = Uri.EscapeDataString(returnUrl);
-
         Nav.NavigateTo($"/login?ReturnUrl={encodedReturnUrl}", forceLoad: true);
     }
 }

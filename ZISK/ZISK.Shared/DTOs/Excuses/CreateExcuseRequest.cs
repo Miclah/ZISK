@@ -3,16 +3,16 @@ using System.ComponentModel.DataAnnotations;
 namespace ZISK.Shared.DTOs.Excuses;
 
 public record CreateExcuseRequest(
-    [Required(ErrorMessage = "Dieťa je povinné.")]
+    [Required(ErrorMessage = "validation.child.required")]
     string ChildId,
 
     Guid? TrainingEventId,
     DateTime? DateFrom,
     DateTime? DateTo,
 
-    [StringLength(1000, ErrorMessage = "Dôvod môže mať max 1000 znakov.")]
+    [StringLength(1000, ErrorMessage = "validation.reason.maxLength1000")]
     string? Reason,
 
-    [StringLength(500, ErrorMessage = "Poznámka môže mať max 500 znakov.")]
+    [StringLength(500, ErrorMessage = "validation.note.maxLength500")]
     string? Note
 );

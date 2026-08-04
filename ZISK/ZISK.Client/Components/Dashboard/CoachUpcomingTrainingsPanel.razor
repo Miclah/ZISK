@@ -1,3 +1,4 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @using ZISK.Client.Layout
 @using ZISK.Shared.DTOs.Trainings
 @*
@@ -7,19 +8,19 @@
 
 <MudPaper Class="card-standard pa-4" Elevation="0">
     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
-        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Najbližšie tréningy</MudText>
+        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@T("dashboard.panel.upcomingTrainings")</MudText>
         @if (OnShowAll.HasDelegate)
         {
             <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
                        EndIcon="@Icons.Material.Rounded.ChevronRight" OnClick="OnShowAll">
-                Kalendár
+                @T("dashboard.panel.calendar")
             </MudButton>
         }
     </MudStack>
 
     @if (Trainings.Count == 0)
     {
-        <MudText Typo="Typo.body2" Color="Color.Secondary">@EmptyText</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@(EmptyText ?? T("dashboard.panel.upcomingTrainingsEmpty14d"))</MudText>
     }
     else
     {
@@ -48,7 +49,7 @@
                         </MudStack>
                         @if (t.IsCancelled)
                         {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Error">Zrušený</MudChip>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Error">@T("dashboard.cancelled")</MudChip>
                         }
                         else
                         {
@@ -65,7 +66,7 @@
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<TrainingEventDto> Trainings { get; set; } = [];
 
-    [Parameter] public string EmptyText { get; set; } = "Žiadne ďalšie tréningy v najbližších 14 dňoch.";
+    [Parameter] public string? EmptyText { get; set; }
     [Parameter] public int MaxItems { get; set; } = 5;
 
     [Parameter] public EventCallback<Guid> OnOpenTraining { get; set; }

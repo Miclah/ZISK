@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ZISK.Data;
 using ZISK.Data.Entities;
 using ZISK.Shared.DTOs.Trainings;
+using ZISK.Shared.Localization;
 
 namespace ZISK.Services;
 
@@ -11,15 +12,18 @@ public class TrainingSeriesService : ITrainingSeriesService
     private readonly ApplicationDbContext _context;
     private readonly ITeamAccessService _teamAccessService;
     private readonly IAuditService _auditService;
+    private readonly ICurrentLanguage _currentLanguage;
 
     public TrainingSeriesService(
         ApplicationDbContext context,
         ITeamAccessService teamAccessService,
-        IAuditService auditService)
+        IAuditService auditService,
+        ICurrentLanguage currentLanguage)
     {
         _context = context;
         _teamAccessService = teamAccessService;
         _auditService = auditService;
+        _currentLanguage = currentLanguage;
     }
 
     public async Task<List<TrainingSeriesDto>> GetSeriesAsync(ClaimsPrincipal user, Guid? teamId = null, Guid? seasonId = null)
@@ -59,13 +63,13 @@ public class TrainingSeriesService : ITrainingSeriesService
     public async Task<TrainingSeriesDto> CreateSeriesAsync(CreateTrainingSeriesRequest request, string coachId, ClaimsPrincipal user)
     {
         if (request.StartTime >= request.EndTime)
-            throw new ArgumentException("Čas začiatku musí byť pred časom konca.");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.trainingSeries.startBeforeEnd"));
 
         if (!await _context.Teams.AnyAsync(t => t.Id == request.TeamId))
-            throw new ArgumentException("Tím neexistuje.");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.trainingSeries.teamNotFound"));
 
         if (!await _context.Seasons.AnyAsync(s => s.Id == request.SeasonId))
-            throw new ArgumentException("Sezóna neexistuje.");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.trainingSeries.seasonNotFound"));
 
         await EnsureTeamAccessAsync(request.TeamId, user);
 
@@ -96,7 +100,7 @@ public class TrainingSeriesService : ITrainingSeriesService
     public async Task<TrainingSeriesDto> UpdateSeriesAsync(Guid id, UpdateTrainingSeriesRequest request, ClaimsPrincipal user)
     {
         if (request.StartTime >= request.EndTime)
-            throw new ArgumentException("Čas začiatku musí byť pred časom konca.");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.trainingSeries.startBeforeEnd"));
 
         var series = await _context.TrainingSeries.FindAsync(id) ?? throw new KeyNotFoundException();
         await EnsureTeamAccessAsync(series.TeamId, user);
@@ -136,7 +140,7 @@ public class TrainingSeriesService : ITrainingSeriesService
         await EnsureTeamAccessAsync(series.TeamId, user);
 
         if (from >= to)
-            throw new ArgumentException("Dátum od musí byť pred dátumom do.");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.trainingSeries.fromBeforeTo"));
 
         var existingDates = await _context.TrainingEvents
             .Where(te => te.SeriesId == seriesId)

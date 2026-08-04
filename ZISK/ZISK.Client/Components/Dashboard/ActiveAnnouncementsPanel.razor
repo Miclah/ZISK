@@ -1,3 +1,4 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @using ZISK.Client.Display
 @using ZISK.Shared.DTOs.Announcements
 @*
@@ -7,19 +8,19 @@
 
 <MudPaper Class="card-standard pa-4" Elevation="0">
     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
-        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@Title</MudText>
+        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@(Title ?? T("dashboard.panel.activeAnnouncements"))</MudText>
         @if (OnShowAll.HasDelegate)
         {
             <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
                        EndIcon="@Icons.Material.Rounded.ChevronRight" OnClick="OnShowAll">
-                @ShowAllText
+                @(ShowAllText ?? T("dashboard.panel.all"))
             </MudButton>
         }
     </MudStack>
 
     @if (Announcements.Count == 0)
     {
-        <MudText Typo="Typo.body2" Color="Color.Secondary">@EmptyText</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@(EmptyText ?? T("dashboard.panel.noActiveAnnouncements"))</MudText>
     }
     else
     {
@@ -48,9 +49,9 @@
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<AnnouncementListDto> Announcements { get; set; } = [];
 
-    [Parameter] public string Title { get; set; } = "Aktívne oznamy";
-    [Parameter] public string EmptyText { get; set; } = "Žiadne aktívne oznamy.";
-    [Parameter] public string ShowAllText { get; set; } = "Všetky";
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? EmptyText { get; set; }
+    [Parameter] public string? ShowAllText { get; set; }
     [Parameter] public int MaxItems { get; set; } = 5;
 
     [Parameter] public EventCallback OnShowAll { get; set; }

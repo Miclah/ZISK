@@ -5,6 +5,7 @@
             Uložiť
         </LoadingButton>
 *@
+@inherits LocalizedComponentBase
 <MudButton Disabled="@(Loading || Disabled)"
            Variant="@Variant"
            Color="@Color"
@@ -19,7 +20,7 @@
     @if (Loading)
     {
         <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-        @(string.IsNullOrEmpty(LoadingText) ? "Ukladám..." : LoadingText)
+        @(string.IsNullOrEmpty(LoadingText) ? T("common.saving") : LoadingText)
     }
     else
     {

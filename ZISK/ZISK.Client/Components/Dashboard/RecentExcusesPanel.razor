@@ -1,3 +1,4 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @using ZISK.Client.Layout
 @using ZISK.Shared.DTOs.Excuses
 @*
@@ -6,7 +7,7 @@
 
 <MudPaper Class="card-standard pa-4" Elevation="0">
     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
-        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@Title</MudText>
+        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@(Title ?? T("dashboard.panel.newExcuses"))</MudText>
         @if (Excuses.Count > 0)
         {
             <MudChip T="string" Size="Size.Small" Color="Color.Warning">@Excuses.Count</MudChip>
@@ -17,7 +18,7 @@
     {
         <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Class="py-4" Spacing="1">
             <MudIcon Icon="@Icons.Material.Rounded.CheckCircleOutline" Color="Color.Success" />
-            <MudText Typo="Typo.body2" Color="Color.Secondary">@EmptyText</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@(EmptyText ?? T("dashboard.panel.noNewExcuses"))</MudText>
         </MudStack>
     }
     else
@@ -40,7 +41,7 @@
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<ExcuseListDto> Excuses { get; set; } = [];
 
-    [Parameter] public string Title { get; set; } = "Nové ospravedlnenky";
-    [Parameter] public string EmptyText { get; set; } = "Žiadne nové ospravedlnenky.";
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? EmptyText { get; set; }
     [Parameter] public int MaxItems { get; set; } = 6;
 }

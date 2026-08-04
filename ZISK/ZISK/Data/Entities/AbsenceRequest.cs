@@ -8,9 +8,11 @@ namespace ZISK.Data.Entities
         Received
     }
 
-    public class AbsenceRequest
+    public class AbsenceRequest : IDemoScoped
     {
         public Guid Id { get; set; }
+
+        public Guid? DemoSessionId { get; set; }
 
         public string ChildId { get; set; } = string.Empty;
 

@@ -45,12 +45,12 @@ public record AttachmentDto(
 );
 
 public record CreateAnnouncementRequest(
-    [Required(ErrorMessage = "Názov je povinný.")]
-    [StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 200 znakov.")]
+    [Required(ErrorMessage = "validation.name.required")]
+    [StringLength(200, MinimumLength = 2, ErrorMessage = "validation.name.length2to200")]
     string Title,
 
-    [Required(ErrorMessage = "Obsah je povinný.")]
-    [StringLength(5000, ErrorMessage = "Obsah môže mať max 5000 znakov.")]
+    [Required(ErrorMessage = "validation.content.required")]
+    [StringLength(5000, ErrorMessage = "validation.content.maxLength5000")]
     string Content,
 
     Guid? TargetTeamId,
@@ -61,12 +61,12 @@ public record CreateAnnouncementRequest(
 );
 
 public record UpdateAnnouncementRequest(
-    [Required(ErrorMessage = "Názov je povinný.")]
-    [StringLength(200, MinimumLength = 2, ErrorMessage = "Názov musí mať 2 – 200 znakov.")]
+    [Required(ErrorMessage = "validation.name.required")]
+    [StringLength(200, MinimumLength = 2, ErrorMessage = "validation.name.length2to200")]
     string Title,
 
-    [Required(ErrorMessage = "Obsah je povinný.")]
-    [StringLength(5000, ErrorMessage = "Obsah môže mať max 5000 znakov.")]
+    [Required(ErrorMessage = "validation.content.required")]
+    [StringLength(5000, ErrorMessage = "validation.content.maxLength5000")]
     string Content,
 
     Guid? TargetTeamId,

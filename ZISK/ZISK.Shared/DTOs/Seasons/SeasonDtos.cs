@@ -12,25 +12,25 @@ public record SeasonDto(
 );
 
 public record CreateSeasonRequest(
-    [Required(ErrorMessage = "Názov sezóny je povinný.")]
-    [StringLength(100, MinimumLength = 2, ErrorMessage = "Názov musí mať 2–100 znakov.")]
+    [Required(ErrorMessage = "validation.seasonName.required")]
+    [StringLength(100, MinimumLength = 2, ErrorMessage = "validation.name.length2to100")]
     string Name,
 
-    [Required(ErrorMessage = "Dátum začiatku je povinný.")]
+    [Required(ErrorMessage = "validation.startDate.required")]
     DateOnly StartDate,
 
-    [Required(ErrorMessage = "Dátum konca je povinný.")]
+    [Required(ErrorMessage = "validation.endDate.required")]
     DateOnly EndDate
 );
 
 public record UpdateSeasonRequest(
-    [Required(ErrorMessage = "Názov sezóny je povinný.")]
-    [StringLength(100, MinimumLength = 2, ErrorMessage = "Názov musí mať 2–100 znakov.")]
+    [Required(ErrorMessage = "validation.seasonName.required")]
+    [StringLength(100, MinimumLength = 2, ErrorMessage = "validation.name.length2to100")]
     string Name,
 
-    [Required(ErrorMessage = "Dátum začiatku je povinný.")]
+    [Required(ErrorMessage = "validation.startDate.required")]
     DateOnly StartDate,
 
-    [Required(ErrorMessage = "Dátum konca je povinný.")]
+    [Required(ErrorMessage = "validation.endDate.required")]
     DateOnly EndDate
 );

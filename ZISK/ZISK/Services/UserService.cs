@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ZISK.Data;
 using ZISK.Data.Entities;
 using ZISK.Shared.DTOs.Users;
+using ZISK.Shared.Localization;
 
 namespace ZISK.Services;
 
@@ -14,19 +15,22 @@ public class UserService : IUserService
     private readonly IAuditService _auditService;
     private readonly IFileService _fileService;
     private readonly ILogger<UserService> _logger;
+    private readonly ICurrentLanguage _currentLanguage;
 
     public UserService(
         ApplicationDbContext context,
         UserManager<ApplicationUser> userManager,
         IAuditService auditService,
         IFileService fileService,
-        ILogger<UserService> logger)
+        ILogger<UserService> logger,
+        ICurrentLanguage currentLanguage)
     {
         _context = context;
         _userManager = userManager;
         _auditService = auditService;
         _fileService = fileService;
         _logger = logger;
+        _currentLanguage = currentLanguage;
     }
 
     public async Task<List<UserListDto>> GetUsersAsync(string? role)
@@ -171,23 +175,23 @@ public class UserService : IUserService
     public async Task<UserDto> CreateUserAsync(CreateUserRequest request, ClaimsPrincipal callingUser)
     {
         if (string.IsNullOrWhiteSpace(request.FirstName) || request.FirstName.Length < 2 || request.FirstName.Length > 100)
-            throw new ArgumentException("Meno musí mať 2-100 znakov");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.user.firstNameLength"));
 
         if (string.IsNullOrWhiteSpace(request.LastName) || request.LastName.Length < 2 || request.LastName.Length > 100)
-            throw new ArgumentException("Priezvisko musí mať 2-100 znakov");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.user.lastNameLength"));
 
         if (string.IsNullOrWhiteSpace(request.Email) || !request.Email.Contains('@'))
-            throw new ArgumentException("Neplatný email");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.user.invalidEmail"));
 
         if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
-            throw new ArgumentException("Heslo musí mať minimálne 8 znakov");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.user.passwordMinLength8"));
 
         var validRoles = new[] { "Admin", "Coach", "Parent", "Athlete", "Child" };
         if (!validRoles.Contains(request.Role))
-            throw new ArgumentException("Neplatná rola");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.user.invalidRole"));
 
         if (request.Role == "Child" && request.DateOfBirth is null)
-            throw new ArgumentException("Pre Dieťa je dátum narodenia povinný");
+            throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.user.childDateOfBirthRequired"));
 
         var user = new ApplicationUser
         {
@@ -205,7 +209,7 @@ public class UserService : IUserService
 
         var result = await _userManager.CreateAsync(user, request.Password);
         if (!result.Succeeded)
-            throw new InvalidOperationException(IdentityErrorLocalizer.LocalizeFirst(result.Errors));
+            throw new InvalidOperationException(IdentityErrorLocalizer.LocalizeFirst(result.Errors, _currentLanguage.Current));
 
         await _userManager.AddToRoleAsync(user, request.Role);
 
@@ -253,7 +257,7 @@ public class UserService : IUserService
         if (effectiveRole == "Child")
         {
             if (user.DateOfBirth is null)
-                throw new ArgumentException("Pre Dieťa je dátum narodenia povinný");
+                throw new ArgumentException(Translations.Get(_currentLanguage.Current, "errors.user.childDateOfBirthRequired"));
             await EnsureChildParentLinksAsync(user, request.ParentIds);
         }
 
@@ -308,7 +312,7 @@ public class UserService : IUserService
         exists = await _context.CoachTeams.AnyAsync(ct => ct.CoachId == userId && ct.TeamId == teamId);
 
         if (exists)
-            throw new InvalidOperationException("Tím je už priradený");
+            throw new InvalidOperationException(Translations.Get(_currentLanguage.Current, "errors.user.teamAlreadyAssigned"));
 
         if (isPrimary)
         {
@@ -400,7 +404,7 @@ public class UserService : IUserService
 
         var result = await _userManager.DeleteAsync(user);
         if (!result.Succeeded)
-            throw new InvalidOperationException(IdentityErrorLocalizer.LocalizeFirst(result.Errors));
+            throw new InvalidOperationException(IdentityErrorLocalizer.LocalizeFirst(result.Errors, _currentLanguage.Current));
 
         _auditService.Log("Delete", "User", id, callingUser, null);
     }

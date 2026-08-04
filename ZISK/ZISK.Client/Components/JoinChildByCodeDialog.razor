@@ -1,3 +1,4 @@
+@inherits LocalizedComponentBase
 @using System.ComponentModel.DataAnnotations
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Invitations
@@ -8,25 +9,25 @@
 
 <MudDialog>
     <TitleContent>
-        <MudText Typo="Typo.h6">Pridať dieťa cez kód</MudText>
+        <MudText Typo="Typo.h6">@T("dashboard.family.addChildByCode")</MudText>
     </TitleContent>
     <DialogContent>
         <MudStack Spacing="3">
             <MudText Typo="Typo.body2" Color="Color.Secondary">
-                Zadajte kód, ktorý vám zdieľal druhý rodič. Po overení získate prístup k spoločnému dieťaťu.
+                @T("joinChildByCodeDialog.hint")
             </MudText>
             <MudTextField @bind-Value="_code"
-                          Label="Kód"
+                          Label="@T("inviteParentDialog.codeLabel")"
                           Variant="Variant.Outlined"
                           Placeholder="XXXX-XXXX"
                           Style="font-family: monospace; letter-spacing: 4px;" />
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Zrušiť</MudButton>
+        <MudButton OnClick="Cancel">@T("admin.users.cancel")</MudButton>
         <LoadingButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit"
-                       Loading="_isSubmitting" LoadingText="Overujem...">
-            Pridať dieťa
+                       Loading="_isSubmitting" LoadingText="@T("joinChildByCodeDialog.verifying")">
+            @T("dashboard.family.addChild")
         </LoadingButton>
     </DialogActions>
 </MudDialog>
@@ -44,7 +45,7 @@
     {
         if (string.IsNullOrWhiteSpace(_code))
         {
-            Snackbar.Add("Zadajte kód.", Severity.Warning);
+            Snackbar.Add(T("joinChildByCodeDialog.enterCode"), Severity.Warning);
             return;
         }
 
@@ -52,7 +53,7 @@
         try
         {
             await InvitationsApi.RedeemCodeAsync(new RedeemCodeRequest(_code.Trim().ToUpperInvariant()));
-            Snackbar.Add("Dieťa bolo pridané do vašej rodiny.", Severity.Success);
+            Snackbar.Add(T("joinChildByCodeDialog.added"), Severity.Success);
 
             try
             {
@@ -66,7 +67,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {

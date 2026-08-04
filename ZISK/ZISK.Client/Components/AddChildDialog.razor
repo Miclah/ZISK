@@ -1,3 +1,4 @@
+@inherits LocalizedComponentBase
 @using System.ComponentModel.DataAnnotations
 @using ZISK.Client.Services
 @using ZISK.Shared.DTOs.Children
@@ -10,7 +11,7 @@
 
 <MudDialog>
     <TitleContent>
-        <MudText Typo="Typo.h6">Pridať dieťa</MudText>
+        <MudText Typo="Typo.h6">@T("dashboard.family.addChild")</MudText>
     </TitleContent>
     <DialogContent>
         @if (_isLoading)
@@ -20,13 +21,13 @@
         else
         {
             <EditForm @ref="_editForm" Model="@_model" OnValidSubmit="Submit">
-                <DataAnnotationsValidator />
+                <LocalizedDataAnnotationsValidator />
                 <MudStack Spacing="3">
                     <MudGrid Spacing="2">
                         <MudItem xs="12" sm="6">
                             <MudTextField @bind-Value="_model.FirstName"
                                           For="@(() => _model.FirstName)"
-                                          Label="Meno"
+                                          Label="@T("admin.users.table.firstName")"
                                           Variant="Variant.Outlined"
                                           Immediate="true"
                                           OnInput="UpdateUsernamePreview" />
@@ -34,7 +35,7 @@
                         <MudItem xs="12" sm="6">
                             <MudTextField @bind-Value="_model.LastName"
                                           For="@(() => _model.LastName)"
-                                          Label="Priezvisko"
+                                          Label="@T("admin.users.table.lastName")"
                                           Variant="Variant.Outlined"
                                           Immediate="true"
                                           OnInput="UpdateUsernamePreview" />
@@ -44,7 +45,7 @@
                     @if (!string.IsNullOrWhiteSpace(_usernamePreview))
                     {
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Používateľské meno: </MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@T("addChildDialog.usernameLabel") </MudText>
                             @if (_editingUsername)
                             {
                                 <MudTextField @bind-Value="_model.OverrideUsername"
@@ -63,46 +64,46 @@
 
                     <MudDatePicker @bind-Date="_dobDate"
                                    For="@(() => _dobDate)"
-                                   Label="Dátum narodenia"
+                                   Label="@T("dashboard.child.dateOfBirth")"
                                    Variant="Variant.Outlined"
                                    DateFormat="dd.MM.yyyy"
                                    MaxDate="DateTime.Today"
                                    MinDate="DateTime.Today.AddYears(-18).AddDays(1)"
-                                   HelperText="Dieťa musí byť mladšie ako 18 rokov." />
+                                   HelperText="@T("addChildDialog.dobHelper")" />
 
                     <MudTextField @bind-Value="_model.Email"
                                   For="@(() => _model.Email)"
-                                  Label="Email (voliteľný)"
+                                  Label="@T("addChildDialog.emailOptional")"
                                   Variant="Variant.Outlined"
                                   InputType="InputType.Email" />
 
-                    <MudCheckBox @bind-Value="_model.SameAddressAsParent" Label="Bydlisko rovnaké ako moje" />
+                    <MudCheckBox @bind-Value="_model.SameAddressAsParent" Label="@T("addChildDialog.sameAddressAsParent")" />
 
                     @if (!_model.SameAddressAsParent)
                     {
                         <MudTextField @bind-Value="_model.Bydlisko"
-                                      Label="Bydlisko"
+                                      Label="@T("admin.users.address")"
                                       Variant="Variant.Outlined"
                                       MaxLength="300" />
                     }
 
-                    <MudSelect T="Guid?" @bind-Value="_model.TeamId" Label="Tím (voliteľný)" Variant="Variant.Outlined" Clearable="true">
+                    <MudSelect T="Guid?" @bind-Value="_model.TeamId" Label="@T("addChildDialog.teamOptional")" Variant="Variant.Outlined" Clearable="true">
                         @foreach (var team in _teams)
                         {
                             <MudSelectItem Value="@((Guid?)team.Id)">@team.Name</MudSelectItem>
                         }
                     </MudSelect>
 
-                    <MudCheckBox @bind-Value="_model.CreateCredentials" Label="Vytvoriť prihlasovacie údaje" />
+                    <MudCheckBox @bind-Value="_model.CreateCredentials" Label="@T("addChildDialog.createCredentials")" />
 
                     @if (_model.CreateCredentials)
                     {
                         <MudTextField @bind-Value="_model.Password"
                                       For="@(() => _model.Password)"
-                                      Label="Heslo"
+                                      Label="@T("profile.nav.password")"
                                       Variant="Variant.Outlined"
                                       InputType="InputType.Password"
-                                      HelperText="Minimálne 6 znakov." />
+                                      HelperText="@T("addChildDialog.passwordHelper")" />
                     }
                 </MudStack>
             </EditForm>
@@ -110,8 +111,8 @@
     </DialogContent>
     <DialogActions>
         <LoadingButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitForm"
-                       Loading="_isSubmitting" Disabled="_isLoading" LoadingText="Pridávam...">
-            Pridať dieťa
+                       Loading="_isSubmitting" Disabled="_isLoading" LoadingText="@T("addChildDialog.adding")">
+            @T("dashboard.family.addChild")
         </LoadingButton>
     </DialogActions>
 </MudDialog>
@@ -176,14 +177,14 @@
     {
         if (_dobDate is null)
         {
-            Snackbar.Add("Dátum narodenia je povinný.", Severity.Warning);
+            Snackbar.Add(T("addChildDialog.dobRequired"), Severity.Warning);
             return;
         }
 
         var dob = DateOnly.FromDateTime(_dobDate.Value);
         if (dob > DateOnly.FromDateTime(DateTime.Today) || dob <= DateOnly.FromDateTime(DateTime.Today).AddYears(-18))
         {
-            Snackbar.Add("Dieťa musí byť mladšie ako 18 rokov.", Severity.Warning);
+            Snackbar.Add(T("addChildDialog.dobHelper"), Severity.Warning);
             return;
         }
 
@@ -204,7 +205,7 @@
             );
 
             var created = await ChildrenApi.CreateAsync(request);
-            Snackbar.Add("Dieťa pridané", Severity.Success);
+            Snackbar.Add(T("addChildDialog.added"), Severity.Success);
 
             var children = await ChildrenApi.GetMyChildrenAsync();
             UserContextService.SetOptions(children.Select(c => new UserContextOption(
@@ -214,7 +215,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Chyba: {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
+            Snackbar.Add($"{T("attendance.errorGeneric")} {ApiErrorFormatter.ToUserMessage(ex)}", Severity.Error);
         }
         finally
         {

@@ -96,6 +96,8 @@ public class DatabaseInitializer
 
         var passwords = mode == SeedMode.Demo ? ResolveDemoPasswordSet() : SeedPasswordSet.LocalDefault;
 
+        var anchor = DateTime.UtcNow;
+
         var admin  = await EnsureUserAsync("admin@zisk.sk",  passwords.Admin,  "Admin",  "Miroslav", "Kráľ");
         var coach  = await EnsureUserAsync("trener@zisk.sk", passwords.Coach, "Coach",  "Marek",    "Kováčik");
         var parent = await EnsureUserAsync("rodic@zisk.sk",  passwords.Parent,  "Parent", "Peter",    "Novák");
@@ -103,15 +105,106 @@ public class DatabaseInitializer
 
         if (child != null && child.DateOfBirth == null)
         {
-            child.DateOfBirth = new DateOnly(2014, 5, 12);
+            // Relative to seed time rather than a fixed year, so the demo doesn't have an
+            // 11-year-old who is visibly 20 a few years from now.
+            child.DateOfBirth = DateOnly.FromDateTime(anchor).AddYears(-12);
             await _userManager.UpdateAsync(child);
         }
 
         await SeedTeamsAsync();
-        await EnsureDefaultSeasonAsync();
+        await EnsureDefaultSeasonAsync(anchor);
         await EnsureChildSeedUserAsync(child, parent);
         await EnsureCoachTeamAssignmentsAsync(coach);
-        await SeedSampleDataAsync(admin, coach, parent, child, passwords);
+        await SeedSampleDataAsync(admin, coach, parent, child, passwords, anchor);
+
+        if (mode == SeedMode.Demo)
+        {
+            // Marks "now" as the template's freshness baseline. Without this, the very first
+            // hourly RefreshDemoTemplateAsync pass would find no DemoTemplateMeta row, treat
+            // the template as infinitely stale, and immediately delete+regenerate the data
+            // this method just seeded.
+            var meta = await _context.DemoTemplateMetas.FirstOrDefaultAsync(m => m.Id == 1);
+            await SaveTemplateMetaAsync(meta, anchor);
+        }
+    }
+
+    /// <summary>
+    /// Regenerates the shared demo template's date-bound content (trainings, attendance,
+    /// absence requests, announcements, documents) anchored to "now", so a public demo
+    /// deployment never accumulates a calendar's worth of trainings sitting entirely in the
+    /// past. Called once at startup and then daily by DemoTemplateRefreshWorker. A no-op
+    /// outside ZISK_SEED_MODE=demo, and a no-op if the template was already refreshed within
+    /// the last 24 hours. Only ever touches DemoSessionId == null rows (the template) -
+    /// already-cloned visitor sessions are untouched, which the ambient query filter enforces
+    /// automatically since this always runs outside an HTTP request (DemoSessionId is null).
+    /// </summary>
+    public async Task RefreshDemoTemplateAsync()
+    {
+        if (SeedModeResolver.Resolve(_configuration) != SeedMode.Demo)
+            return;
+
+        var anchor = DateTime.UtcNow;
+        var meta = await _context.DemoTemplateMetas.FirstOrDefaultAsync(m => m.Id == 1);
+        if (meta != null && anchor - meta.GeneratedAt < TimeSpan.FromHours(24))
+            return;
+
+        _logger.LogInformation("Demo template data is stale (last generated {GeneratedAt:u}); regenerating.", meta?.GeneratedAt);
+
+        // Delete only the date-bound content, not teams/users/season - those don't need to be
+        // recreated daily, just occasionally nudged back into range (EnsureDefaultSeasonAsync
+        // below). Loaded + RemoveRange rather than ExecuteDeleteAsync so this stays exercisable
+        // against EF Core InMemory in tests, which doesn't support ExecuteDelete at all; at
+        // template scale (a few hundred rows) the extra round trip is not a real cost.
+        _context.AttendanceRecords.RemoveRange(await _context.AttendanceRecords.Where(x => x.DemoSessionId == null).ToListAsync());
+        _context.AbsenceRequests.RemoveRange(await _context.AbsenceRequests.Where(x => x.DemoSessionId == null).ToListAsync());
+        _context.AnnouncementAttachments.RemoveRange(await _context.AnnouncementAttachments.Where(x => x.DemoSessionId == null).ToListAsync());
+        _context.Announcements.RemoveRange(await _context.Announcements.Where(x => x.DemoSessionId == null).ToListAsync());
+        _context.Documents.RemoveRange(await _context.Documents.Where(x => x.DemoSessionId == null).ToListAsync());
+        _context.TrainingEvents.RemoveRange(await _context.TrainingEvents.Where(x => x.DemoSessionId == null).ToListAsync());
+        await _context.SaveChangesAsync();
+
+        await EnsureDefaultSeasonAsync(anchor);
+
+        var teams = await _context.Teams.Where(t => t.IsActive).OrderBy(t => t.Name).ToListAsync();
+        if (teams.Count == 0)
+        {
+            await SaveTemplateMetaAsync(meta, anchor);
+            return;
+        }
+
+        var admin  = await _userManager.FindByEmailAsync("admin@zisk.sk");
+        var coach  = await _userManager.FindByEmailAsync("trener@zisk.sk");
+        var parent = await _userManager.FindByEmailAsync("rodic@zisk.sk");
+
+        var teamIds = teams.Select(t => t.Id).ToHashSet();
+        var sampleChildren = await _context.TeamMembers
+            .Where(tm => teamIds.Contains(tm.TeamId))
+            .Select(tm => tm.User)
+            .Distinct()
+            .ToListAsync();
+
+        var sampleTrainings = await EnsureSampleTrainingsAsync(teams, anchor);
+        var attendanceUser  = coach ?? admin;
+
+        await EnsureSampleAttendanceAsync(sampleTrainings, sampleChildren, attendanceUser);
+        await EnsureSampleAbsenceRequestsAsync(sampleTrainings, sampleChildren, parent);
+        await EnsureRichSampleHistoryAsync(teams, sampleChildren, attendanceUser, parent, anchor);
+
+        var announcementAuthor = admin ?? coach;
+        await EnsureSampleAnnouncementsAsync(announcementAuthor, teams, anchor);
+        await EnsureSampleDocumentsAsync(admin, anchor);
+
+        await SaveTemplateMetaAsync(meta, anchor);
+    }
+
+    private async Task SaveTemplateMetaAsync(DemoTemplateMeta? existing, DateTime anchor)
+    {
+        if (existing == null)
+            _context.DemoTemplateMetas.Add(new DemoTemplateMeta { Id = 1, GeneratedAt = anchor });
+        else
+            existing.GeneratedAt = anchor;
+
+        await _context.SaveChangesAsync();
     }
 
     private sealed record SampleUserGroup(
@@ -130,20 +223,33 @@ public class DatabaseInitializer
         }
     }
 
-    private async Task EnsureDefaultSeasonAsync()
+    private async Task EnsureDefaultSeasonAsync(DateTime anchor)
     {
-        if (await _context.Seasons.AnyAsync())
-            return;
+        var anchorDate = DateOnly.FromDateTime(anchor);
+        var season = await _context.Seasons.FirstOrDefaultAsync(s => s.IsActive);
 
-        _context.Seasons.Add(new Season
+        if (season == null)
         {
-            Id        = Guid.NewGuid(),
-            Name      = "Jar 2026",
-            StartDate = new DateOnly(2026, 1, 1),
-            EndDate   = new DateOnly(2026, 6, 30),
-            IsActive  = true,
-            CreatedAt = DateTime.UtcNow
-        });
+            _context.Seasons.Add(new Season
+            {
+                Id        = Guid.NewGuid(),
+                Name      = $"Sezóna {anchor.Year}/{anchor.Year + 1}",
+                StartDate = anchorDate.AddMonths(-6),
+                EndDate   = anchorDate.AddMonths(6),
+                IsActive  = true,
+                CreatedAt = anchor
+            });
+        }
+        else if (anchorDate < season.StartDate || anchorDate > season.EndDate)
+        {
+            // The active season's window has drifted out of range (e.g. the app was
+            // redeployed a year later) - slide it forward instead of leaving every training
+            // generated below with a SeasonId that no longer covers "now".
+            season.Name      = $"Sezóna {anchor.Year}/{anchor.Year + 1}";
+            season.StartDate = anchorDate.AddMonths(-6);
+            season.EndDate   = anchorDate.AddMonths(6);
+        }
+
         await _context.SaveChangesAsync();
     }
 
@@ -280,7 +386,8 @@ public class DatabaseInitializer
         ApplicationUser? defaultCoach,
         ApplicationUser? defaultParent,
         ApplicationUser? coreChild,
-        SeedPasswordSet passwords)
+        SeedPasswordSet passwords,
+        DateTime anchor)
     {
         var teams = await _context.Teams
             .Where(t => t.IsActive)
@@ -290,7 +397,7 @@ public class DatabaseInitializer
         if (!teams.Any())
             return;
 
-        var sampleUsers   = await EnsureSampleUsersAsync(passwords);
+        var sampleUsers   = await EnsureSampleUsersAsync(passwords, anchor);
         var sampleChildren = await EnsureSampleChildrenAsync(teams, sampleUsers);
 
         // Zahrnúť aj hlavného testovacie dieťa do zoznamu pre dochádzku
@@ -300,7 +407,7 @@ public class DatabaseInitializer
         await EnsureSampleParentLinksAsync(defaultParent, sampleUsers, coreChild);
         await EnsureSampleCoachAssignmentsAsync(sampleUsers, teams);
 
-        var sampleTrainings = await EnsureSampleTrainingsAsync(teams);
+        var sampleTrainings = await EnsureSampleTrainingsAsync(teams, anchor);
         var attendanceUser  = defaultCoach ?? sampleUsers.Coaches.FirstOrDefault() ?? admin;
 
         await EnsureSampleAttendanceAsync(sampleTrainings, sampleChildren, attendanceUser);
@@ -308,19 +415,25 @@ public class DatabaseInitializer
         var sampleParent = sampleUsers.Parents.FirstOrDefault() ?? defaultParent;
         await EnsureSampleAbsenceRequestsAsync(sampleTrainings, sampleChildren, sampleParent);
 
-        await EnsureRichSampleHistoryAsync(teams, sampleChildren, attendanceUser, sampleParent);
+        await EnsureRichSampleHistoryAsync(teams, sampleChildren, attendanceUser, sampleParent, anchor);
 
         var announcementAuthor = admin ?? defaultCoach ?? sampleUsers.Coaches.FirstOrDefault();
-        await EnsureSampleAnnouncementsAsync(announcementAuthor, teams);
-        await EnsureSampleDocumentsAsync(admin);
+        await EnsureSampleAnnouncementsAsync(announcementAuthor, teams, anchor);
+        await EnsureSampleDocumentsAsync(admin, anchor);
     }
 
-    private async Task<SampleUserGroup> EnsureSampleUsersAsync(SeedPasswordSet passwords)
+    private async Task<SampleUserGroup> EnsureSampleUsersAsync(SeedPasswordSet passwords, DateTime anchor)
     {
         var coaches  = new List<ApplicationUser>();
         var parents  = new List<ApplicationUser>();
         var athletes = new List<ApplicationUser>();
         var children = new List<ApplicationUser>();
+
+        // Birth dates are computed relative to the seed anchor (age + a small deterministic
+        // day offset for variety) rather than fixed years, so a demo deployed years from now
+        // doesn't have "U15" athletes who are visibly 30.
+        var anchorDate = DateOnly.FromDateTime(anchor);
+        DateOnly BirthDate(int ageYears, int dayOffset) => anchorDate.AddYears(-ageYears).AddDays(-dayOffset);
 
         // Tréneri
         foreach (var (email, fn, ln) in new[]
@@ -353,13 +466,13 @@ public class DatabaseInitializer
         // Starší športovci (Athlete) — A-tím a B-tím
         foreach (var (email, fn, ln, dob) in new[]
         {
-            ("lukas.maly@zisk.sk",      "Lukáš",   "Malý",   new DateOnly(2004, 3, 15)),
-            ("martin.horak@zisk.sk",    "Martin",  "Horák",  new DateOnly(2005, 7, 22)),
-            ("jakub.blaha@zisk.sk",     "Jakub",   "Bláha",  new DateOnly(2004, 11, 8)),
-            ("adam.kral@zisk.sk",       "Adam",    "Kráľ",   new DateOnly(2005, 2, 14)),
-            ("michal.simon@zisk.sk",    "Michal",  "Šimon",  new DateOnly(2007, 5, 3)),
-            ("juraj.balog.jr@zisk.sk",  "Juraj",   "Balog",  new DateOnly(2006, 9, 18)),
-            ("richard.varga@zisk.sk",   "Richard", "Varga",  new DateOnly(2007, 1, 25))
+            ("lukas.maly@zisk.sk",      "Lukáš",   "Malý",   BirthDate(22, 74)),
+            ("martin.horak@zisk.sk",    "Martin",  "Horák",  BirthDate(21, 203)),
+            ("jakub.blaha@zisk.sk",     "Jakub",   "Bláha",  BirthDate(22, 312)),
+            ("adam.kral@zisk.sk",       "Adam",    "Kráľ",   BirthDate(21, 45)),
+            ("michal.simon@zisk.sk",    "Michal",  "Šimon",  BirthDate(19, 123)),
+            ("juraj.balog.jr@zisk.sk",  "Juraj",   "Balog",  BirthDate(20, 260)),
+            ("richard.varga@zisk.sk",   "Richard", "Varga",  BirthDate(19, 25))
         })
         {
             var u = await EnsureUserAsync(email, passwords.Child, "Athlete", fn, ln, dob);
@@ -369,14 +482,14 @@ public class DatabaseInitializer
         // Mladší deti (Child) — Žiaci a Prípravka
         foreach (var (email, fn, ln, dob) in new[]
         {
-            ("petra.horakova@zisk.sk",  "Petra",   "Horáková", new DateOnly(2010, 4, 7)),
-            ("klara.oravec@zisk.sk",    "Klára",   "Oravec",   new DateOnly(2011, 6, 12)),
-            ("filip.cerny@zisk.sk",     "Filip",   "Čierny",   new DateOnly(2010, 9, 30)),
-            ("zuzana.kralova@zisk.sk",  "Zuzana",  "Kráľová",  new DateOnly(2011, 3, 17)),
-            ("samuel.novak@zisk.sk",    "Samuel",  "Novák",    new DateOnly(2014, 8, 20)),
-            ("ema.holubova@zisk.sk",    "Ema",     "Holúbová", new DateOnly(2015, 1, 9)),
-            ("ondrej.maly@zisk.sk",     "Ondrej",  "Malý",     new DateOnly(2014, 11, 3)),
-            ("nina.blahova@zisk.sk",    "Nina",    "Bláhová",  new DateOnly(2015, 5, 28))
+            ("petra.horakova@zisk.sk",  "Petra",   "Horáková", BirthDate(16, 97)),
+            ("klara.oravec@zisk.sk",    "Klára",   "Oravec",   BirthDate(15, 163)),
+            ("filip.cerny@zisk.sk",     "Filip",   "Čierny",   BirthDate(16, 273)),
+            ("zuzana.kralova@zisk.sk",  "Zuzana",  "Kráľová",  BirthDate(15, 76)),
+            ("samuel.novak@zisk.sk",    "Samuel",  "Novák",    BirthDate(12, 232)),
+            ("ema.holubova@zisk.sk",    "Ema",     "Holúbová", BirthDate(11, 9)),
+            ("ondrej.maly@zisk.sk",     "Ondrej",  "Malý",     BirthDate(12, 307)),
+            ("nina.blahova@zisk.sk",    "Nina",    "Bláhová",  BirthDate(11, 148))
         })
         {
             var u = await EnsureUserAsync(email, passwords.Child, "Child", fn, ln, dob);
@@ -538,7 +651,7 @@ public class DatabaseInitializer
         await _context.SaveChangesAsync();
     }
 
-    private async Task<List<TrainingEvent>> EnsureSampleTrainingsAsync(List<Team> teams)
+    private async Task<List<TrainingEvent>> EnsureSampleTrainingsAsync(List<Team> teams, DateTime anchor)
     {
         // Ak už existujú tréningy, preskočíme (rich history ich vytvorí neskôr)
         if (await _context.TrainingEvents.AnyAsync())
@@ -549,7 +662,7 @@ public class DatabaseInitializer
             return [];
 
         var teamByName = teams.ToDictionary(t => t.Name, t => t);
-        var now = DateTime.UtcNow;
+        var now = anchor;
 
         var trainings = new List<TrainingEvent>
         {
@@ -702,7 +815,8 @@ public class DatabaseInitializer
         List<Team> teams,
         List<ApplicationUser> sampleChildren,
         ApplicationUser? markedByUser,
-        ApplicationUser? parent)
+        ApplicationUser? parent,
+        DateTime anchor)
     {
         if (!teams.Any() || !sampleChildren.Any())
             return;
@@ -715,8 +829,11 @@ public class DatabaseInitializer
         if (activeSeason == null)
             return;
 
-        var rng         = new Random(42); // fixný seed — rovnaké dáta pri každom reštarte
-        var now         = DateTime.UtcNow;
+        // Not a fixed seed anymore: a fixed Random would regenerate byte-identical
+        // attendance/absence patterns every single refresh, which looks obviously canned on a
+        // demo that's supposed to look freshly lived-in every day.
+        var rng         = new Random();
+        var now         = anchor;
         var startWindow = now.AddDays(-90);
 
         var trainings  = new List<TrainingEvent>();
@@ -756,8 +873,9 @@ public class DatabaseInitializer
             teamMemberCache[team.Id] = members;
         }
 
-        // Generujeme tréningy za posledných 90 dní + 7 dní dopredu
-        for (var day = startWindow.Date; day <= now.Date.AddDays(7); day = day.AddDays(1))
+        // Generujeme tréningy za posledných 90 dní + 21 dní dopredu (dosť budúcich tréningov na
+        // to, aby si návštevník mohol reálne vytvoriť ospravedlnenku na niečo, čo ešte nezačalo)
+        for (var day = startWindow.Date; day <= now.Date.AddDays(21); day = day.AddDays(1))
         {
             for (var teamIndex = 0; teamIndex < teams.Count; teamIndex++)
             {
@@ -871,7 +989,7 @@ public class DatabaseInitializer
             trainings.Count, attendances.Count, excuses.Count);
     }
 
-    private async Task EnsureSampleAnnouncementsAsync(ApplicationUser? author, List<Team> teams)
+    private async Task EnsureSampleAnnouncementsAsync(ApplicationUser? author, List<Team> teams, DateTime anchor)
     {
         if (author == null)
             return;
@@ -883,78 +1001,89 @@ public class DatabaseInitializer
         var aTeamId = teamByName.GetValueOrDefault("A-tím", teams[0].Id);
         var ziaciTeamId = teamByName.GetValueOrDefault("Žiaci", teams.Count > 2 ? teams[2].Id : teams[0].Id);
 
+        // Dates below are computed relative to the seed anchor rather than hardcoded, so the
+        // announcements still read as "this is happening soon" a year (or five) after this
+        // code was written, instead of referencing a June 2026 that has long since passed.
+        var campStart = anchor.AddDays(45);
+        var campEnd = campStart.AddDays(7);
+        var campDeadline = anchor.AddDays(18);
+        var trainingChangeDate = anchor.AddDays(6);
+        var parentsMeetingDate = anchor.AddDays(10);
+        var jerseyPickupDate = anchor.AddDays(((8 - (int)anchor.DayOfWeek) % 7) + 7); // next Monday, at least a week out
+        var semifinalDate = anchor.AddDays(14);
+
         _context.Announcements.AddRange(
             new Announcement
             {
                 Id             = Guid.NewGuid(),
-                Title          = "Letný tréningový tábor 2026 – prihlásenie do 20. júna",
-                Content        = "Vážení rodičia a športovci,\n\noznamujeme otvorenie prihlásenia na letný tréningový tábor ŠK ZISK, ktorý sa uskutoční od 7. do 14. júla 2026 v Nízkych Tatrách.\n\nPrihlasovanie prebieha cez formulár v sekcii Dokumenty alebo osobne v kancelárii klubu každý pracovný deň od 15:00 do 18:00.\n\nKapacita je obmedzená.",
+                Title          = $"Letný tréningový tábor – prihlásenie do {campDeadline:d. MMMM}",
+                Content        = $"Vážení rodičia a športovci,\n\noznamujeme otvorenie prihlásenia na letný tréningový tábor ŠK ZISK, ktorý sa uskutoční od {campStart:d. MMMM} do {campEnd:d. MMMM} v Nízkych Tatrách.\n\nPrihlasovanie prebieha cez formulár v sekcii Dokumenty alebo osobne v kancelárii klubu každý pracovný deň od 15:00 do 18:00.\n\nKapacita je obmedzená.",
                 TargetTeamId   = null,
                 TargetAudience = TargetAudience.All,
                 Priority       = AnnouncementPriority.High,
                 IsPinned       = true,
-                ValidUntil     = DateTime.UtcNow.AddDays(30),
+                ValidUntil     = campDeadline,
                 AuthorUserId   = author.Id,
-                PublishDate    = DateTime.UtcNow.AddDays(-2)
+                PublishDate    = anchor.AddDays(-2)
             },
             new Announcement
             {
                 Id             = Guid.NewGuid(),
-                Title          = "Zmena termínu tréningu A-tímu – 18. júna",
-                Content        = "Upozorňujeme členov A-tímu, že tréning naplánovaný na 18. júna (streda) sa presúva z 17:00 na 18:30 z dôvodu rekonštrukcie telocvične.\n\nMiesto zostáva rovnaké – Hlavná telocvičňa.",
+                Title          = $"Zmena termínu tréningu A-tímu – {trainingChangeDate:d. MMMM}",
+                Content        = $"Upozorňujeme členov A-tímu, že tréning naplánovaný na {trainingChangeDate:d. MMMM} sa presúva z 17:00 na 18:30 z dôvodu rekonštrukcie telocvične.\n\nMiesto zostáva rovnaké – Hlavná telocvičňa.",
                 TargetTeamId   = aTeamId,
                 TargetAudience = TargetAudience.Athletes,
                 Priority       = AnnouncementPriority.Medium,
                 IsPinned       = false,
-                ValidUntil     = DateTime.UtcNow.AddDays(14),
+                ValidUntil     = trainingChangeDate.AddDays(1),
                 AuthorUserId   = author.Id,
-                PublishDate    = DateTime.UtcNow.AddDays(-1)
+                PublishDate    = anchor.AddDays(-1)
             },
             new Announcement
             {
                 Id             = Guid.NewGuid(),
-                Title          = "Stretnutie rodičov žiakov – 12. júna o 18:00",
-                Content        = "Pozývame rodičov žiakov na informačné stretnutie, ktoré sa uskutoční 12. júna 2026 o 18:00 v zasadacej miestnosti klubu.\n\nProgram:\n• Hodnotenie jarnej časti sezóny\n• Informácie o tábore a letnom sústredení\n• Rôzne\n\nÚčasť je vítaná.",
+                Title          = $"Stretnutie rodičov žiakov – {parentsMeetingDate:d. MMMM} o 18:00",
+                Content        = $"Pozývame rodičov žiakov na informačné stretnutie, ktoré sa uskutoční {parentsMeetingDate:d. MMMM yyyy} o 18:00 v zasadacej miestnosti klubu.\n\nProgram:\n• Hodnotenie aktuálnej časti sezóny\n• Informácie o tábore a letnom sústredení\n• Rôzne\n\nÚčasť je vítaná.",
                 TargetTeamId   = ziaciTeamId,
                 TargetAudience = TargetAudience.Parents,
                 Priority       = AnnouncementPriority.High,
                 IsPinned       = false,
-                ValidUntil     = DateTime.UtcNow.AddDays(10),
+                ValidUntil     = parentsMeetingDate,
                 AuthorUserId   = author.Id,
-                PublishDate    = DateTime.UtcNow.AddHours(-18)
+                PublishDate    = anchor.AddHours(-18)
             },
             new Announcement
             {
                 Id             = Guid.NewGuid(),
-                Title          = "Nové dresy – vyzdvihnutie v pondelok od 16:00",
-                Content        = "Informujeme všetkých hráčov, že nové klubové dresy sú k dispozícii na vyzdvihnutie od pondelka 9. júna 2026 v čase 16:00 – 19:00 pri vstupe do telocvične.\n\nPrineste so sebou potvrdenie o zaplatení členského príspevku.",
+                Title          = $"Nové dresy – vyzdvihnutie v pondelok {jerseyPickupDate:d. MMMM} od 16:00",
+                Content        = $"Informujeme všetkých hráčov, že nové klubové dresy sú k dispozícii na vyzdvihnutie od pondelka {jerseyPickupDate:d. MMMM yyyy} v čase 16:00 – 19:00 pri vstupe do telocvične.\n\nPrineste so sebou potvrdenie o zaplatení členského príspevku.",
                 TargetTeamId   = null,
                 TargetAudience = TargetAudience.Athletes,
                 Priority       = AnnouncementPriority.Medium,
                 IsPinned       = false,
-                ValidUntil     = DateTime.UtcNow.AddDays(7),
+                ValidUntil     = jerseyPickupDate.AddDays(3),
                 AuthorUserId   = author.Id,
-                PublishDate    = DateTime.UtcNow.AddHours(-6)
+                PublishDate    = anchor.AddHours(-6)
             },
             new Announcement
             {
                 Id             = Guid.NewGuid(),
-                Title          = "Výsledky jarného kola – A-tím postupuje do semifinále!",
-                Content        = "S radosťou oznamujeme, že A-tím ŠK ZISK postúpil do semifinále jarného kola III. ligy po víťazstve 3:1 nad FK Záhorie.\n\nGratulujeme celému tímu a trénerovi Markovi Kováčikovi! Semifinálový zápas sa uskutoční 28. júna 2026 na domácom štadióne.\n\nTešíme sa na vašu podporu!",
+                Title          = "Výsledky posledného kola – A-tím postupuje do semifinále!",
+                Content        = $"S radosťou oznamujeme, že A-tím ŠK ZISK postúpil do semifinále aktuálneho súťažného kola III. ligy po víťazstve 3:1 nad FK Záhorie.\n\nGratulujeme celému tímu a trénerovi Markovi Kováčikovi! Semifinálový zápas sa uskutoční {semifinalDate:d. MMMM} na domácom štadióne.\n\nTešíme sa na vašu podporu!",
                 TargetTeamId   = aTeamId,
                 TargetAudience = TargetAudience.All,
                 Priority       = AnnouncementPriority.Low,
                 IsPinned       = false,
-                ValidUntil     = DateTime.UtcNow.AddDays(60),
+                ValidUntil     = semifinalDate.AddDays(2),
                 AuthorUserId   = author.Id,
-                PublishDate    = DateTime.UtcNow.AddHours(-48)
+                PublishDate    = anchor.AddHours(-48)
             }
         );
 
         await _context.SaveChangesAsync();
     }
 
-    private async Task EnsureSampleDocumentsAsync(ApplicationUser? uploader)
+    private async Task EnsureSampleDocumentsAsync(ApplicationUser? uploader, DateTime anchor)
     {
         if (await _context.Documents.AnyAsync())
             return;
@@ -968,7 +1097,7 @@ public class DatabaseInitializer
                 Category         = DocumentCategory.General,
                 TargetRoleId     = null,
                 UploadedByUserId = uploader?.Id,
-                UploadedAt       = DateTime.UtcNow.AddDays(-30)
+                UploadedAt       = anchor.AddDays(-30)
             },
             new Document
             {
@@ -978,17 +1107,17 @@ public class DatabaseInitializer
                 Category         = DocumentCategory.Contract,
                 TargetRoleId     = null,
                 UploadedByUserId = uploader?.Id,
-                UploadedAt       = DateTime.UtcNow.AddDays(-14)
+                UploadedAt       = anchor.AddDays(-14)
             },
             new Document
             {
                 Id               = Guid.NewGuid(),
-                Title            = "Tréningový plán – jar 2026",
-                FilePath         = "/uploads/documents/treningovy-plan-jar-2026.pdf",
+                Title            = "Tréningový plán – aktuálna sezóna",
+                FilePath         = "/uploads/documents/treningovy-plan.pdf",
                 Category         = DocumentCategory.TrainingPlan,
                 TargetRoleId     = null,
                 UploadedByUserId = uploader?.Id,
-                UploadedAt       = DateTime.UtcNow.AddDays(-7)
+                UploadedAt       = anchor.AddDays(-7)
             },
             new Document
             {
@@ -998,7 +1127,7 @@ public class DatabaseInitializer
                 Category         = DocumentCategory.Contract,
                 TargetRoleId     = null,
                 UploadedByUserId = uploader?.Id,
-                UploadedAt       = DateTime.UtcNow.AddDays(-3)
+                UploadedAt       = anchor.AddDays(-3)
             }
         );
 

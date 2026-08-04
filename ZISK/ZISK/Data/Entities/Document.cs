@@ -10,9 +10,11 @@ namespace ZISK.Data.Entities
         TrainingPlan
     }
 
-    public class Document
+    public class Document : IDemoScoped
     {
         public Guid Id { get; set; }
+
+        public Guid? DemoSessionId { get; set; }
 
         [Required]
         [MaxLength(200)]

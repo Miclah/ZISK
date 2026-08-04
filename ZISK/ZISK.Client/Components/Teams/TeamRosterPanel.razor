@@ -1,4 +1,5 @@
-﻿@*
+﻿@inherits ZISK.Client.Components.LocalizedComponentBase
+@*
     Two-column roster editor: available players on the left, current squad on the right, click to move
     between them. Body of the "Spravovanie súpisky" dialog.
 *@
@@ -18,15 +19,15 @@ else
         <MudItem xs="12" md="6">
             <MudPaper Class="pa-4" Elevation="1"
                       Style="height: 400px; display: grid; grid-template-rows: auto auto 1fr; overflow: hidden;">
-                <MudText Typo="Typo.subtitle1" Class="mb-2">Dostupní / v iných tímoch</MudText>
-                <MudTextField Value="_search" ValueChanged="@((string v) => OnSearchChanged(v))"
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@T("admin.teams.roster.availableTitle")</MudText>
+                <MudTextField Value="@_search" ValueChanged="@((string v) => OnSearchChanged(v))"
                               Immediate="true"
-                              Label="Hľadať" Adornment="Adornment.End"
+                              Label="@T("admin.teams.roster.search")" Adornment="Adornment.End"
                               AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-2" />
                 <div style="overflow-y: auto; min-height: 0;">
                     @if (_filteredAvailable.Count == 0)
                     {
-                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-2">Žiadni dostupní hráči</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-2">@T("admin.teams.roster.noAvailable")</MudText>
                     }
                     @foreach (var child in _filteredAvailable)
                     {
@@ -44,11 +45,11 @@ else
         <MudItem xs="12" md="6">
             <MudPaper Class="pa-4" Elevation="1"
                       Style="height: 400px; display: grid; grid-template-rows: auto 1fr; overflow: hidden;">
-                <MudText Typo="Typo.subtitle1" Class="mb-2">Aktuálna súpiska tímu (@Members.Count)</MudText>
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@string.Format(T("admin.teams.roster.currentRoster"), Members.Count)</MudText>
                 <div style="overflow-y: auto; min-height: 0;">
                     @if (Members.Count == 0)
                     {
-                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-2">Tím je momentálne prázdny</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-2">@T("admin.teams.roster.empty")</MudText>
                     }
                     @foreach (var member in Members)
                     {

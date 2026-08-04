@@ -77,7 +77,7 @@ public class DeletePathFixesTests
         });
         await db.SaveChangesAsync();
 
-        var svc = new SeasonService(db);
+        var svc = new SeasonService(db, new FakeCurrentLanguage());
 
         // Before the fix this hit SaveChangesAsync and threw a raw DbUpdateException (FK violation)
         // instead of a message a controller could turn into a 400.
@@ -97,7 +97,7 @@ public class DeletePathFixesTests
         });
         await db.SaveChangesAsync();
 
-        var svc = new TeamService(db, new NoTeamAccess(), new NoopAudit());
+        var svc = new TeamService(db, new NoTeamAccess(), new NoopAudit(), new FakeCurrentLanguage());
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.DeleteTeamAsync(team.Id, AdminUser()));
         Assert.Contains("tréning", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -138,7 +138,7 @@ public class DeletePathFixesTests
         });
         await db.SaveChangesAsync();
 
-        var svc = new UserService(db, userManager, new NoopAudit(), new NoopFileService(), new LoggerFactory().CreateLogger<UserService>());
+        var svc = new UserService(db, userManager, new NoopAudit(), new NoopFileService(), new LoggerFactory().CreateLogger<UserService>(), new FakeCurrentLanguage());
 
         // Before the fix, TrainingSeries.CoachId (a Restrict FK) was never cleaned up here,
         // so this threw a raw DbUpdateException instead of deleting the user.
@@ -204,7 +204,7 @@ public class DeletePathFixesTests
         });
         await db.SaveChangesAsync();
 
-        var svc = new UserService(db, userManager, new NoopAudit(), new NoopFileService(), new LoggerFactory().CreateLogger<UserService>());
+        var svc = new UserService(db, userManager, new NoopAudit(), new NoopFileService(), new LoggerFactory().CreateLogger<UserService>(), new FakeCurrentLanguage());
 
         await svc.DeleteUserAsync(parent.Id, AdminUser());
 
@@ -233,7 +233,7 @@ public class DeletePathFixesTests
 
         // Coach whose accessible teams do not include `team` - this is the exact gap
         // CLAUDE.md documented: TrainingSeriesService never injected ITeamAccessService.
-        var svc = new TrainingSeriesService(db, new RestrictedTeamAccess(otherTeamId), new NoopAudit());
+        var svc = new TrainingSeriesService(db, new RestrictedTeamAccess(otherTeamId), new NoopAudit(), new FakeCurrentLanguage());
         var coachUser = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, "Coach")], "test"));
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.GetSeriesAsync(series.Id, coachUser));
@@ -258,7 +258,7 @@ public class DeletePathFixesTests
         );
         await db.SaveChangesAsync();
 
-        var svc = new TrainingSeriesService(db, new RestrictedTeamAccess(accessibleTeam.Id), new NoopAudit());
+        var svc = new TrainingSeriesService(db, new RestrictedTeamAccess(accessibleTeam.Id), new NoopAudit(), new FakeCurrentLanguage());
         var coachUser = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, "Coach")], "test"));
 
         var result = await svc.GetSeriesAsync(coachUser);

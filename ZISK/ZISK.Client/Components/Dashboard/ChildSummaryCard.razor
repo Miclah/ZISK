@@ -1,3 +1,4 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @using ZISK.Shared.DTOs.Attendance
 @using ZISK.Shared.DTOs.Trainings
 @*
@@ -24,7 +25,7 @@
                 </MudStack>
                 @if (Age.HasValue)
                 {
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">@Age rokov</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@Age @T("dashboard.childSummary.yearsOld")</MudText>
                 }
             </MudStack>
         </MudStack>
@@ -32,10 +33,10 @@
         <MudDivider />
 
         <MudStack Spacing="0">
-            <MudText Typo="Typo.caption" Color="Color.Secondary">Najbližší tréning</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@T("dashboard.childSummary.nextTraining")</MudText>
             @if (NextTraining is null)
             {
-                <MudText Typo="Typo.body2">Žiadne plánované tréningy</MudText>
+                <MudText Typo="Typo.body2">@T("dashboard.childSummary.noPlannedTrainings")</MudText>
             }
             else
             {
@@ -43,18 +44,18 @@
                     @NextTraining.StartTime.ToString("dd.MM. HH:mm")
                 </MudText>
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    @(NextTraining.Location ?? "Bez miesta") — @NextTraining.Title
+                    @(NextTraining.Location ?? T("dashboard.childSummary.noLocation")) — @NextTraining.Title
                 </MudText>
             }
         </MudStack>
 
         <MudStack Row="true" Spacing="4">
             <MudStack Spacing="0">
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Dochádzka tento mesiac</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@T("dashboard.childSummary.attendanceThisMonth")</MudText>
                 <MudText Typo="Typo.body2" Style="font-weight:500;">@MonthlyPresent / @MonthlyTotal</MudText>
             </MudStack>
             <MudStack Spacing="0">
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Nové oznamy</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@T("dashboard.childSummary.newAnnouncements")</MudText>
                 <MudText Typo="Typo.body2" Style="font-weight:500;">@RecentAnnouncementCount</MudText>
             </MudStack>
         </MudStack>
@@ -62,7 +63,7 @@
         <MudButton Variant="Variant.Text" Color="Color.Primary" FullWidth="true"
                    EndIcon="@Icons.Material.Rounded.ChevronRight"
                    OnClick="OnOpenDetail">
-            Zobraziť detaily
+            @T("dashboard.childSummary.viewDetails")
         </MudButton>
     </MudStack>
 </MudPaper>

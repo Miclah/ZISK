@@ -1,0 +1,15 @@
+@using ZISK.Shared.Localization
+@inject ILanguageService LanguageService
+
+<MudMenu Icon="@Icons.Material.Rounded.Language" Color="Color.Inherit" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+    <MudMenuItem OnClick="@(() => Switch(Lang.Sk))">
+        🇸🇰 Slovenčina
+    </MudMenuItem>
+    <MudMenuItem OnClick="@(() => Switch(Lang.En))">
+        🇬🇧 English
+    </MudMenuItem>
+</MudMenu>
+
+@code {
+    private async Task Switch(Lang lang) => await LanguageService.SetAsync(lang);
+}

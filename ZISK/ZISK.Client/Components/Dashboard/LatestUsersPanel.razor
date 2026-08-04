@@ -1,3 +1,4 @@
+@inherits ZISK.Client.Components.LocalizedComponentBase
 @using ZISK.Client.Display
 @using ZISK.Shared.DTOs.Users
 @*
@@ -6,14 +7,14 @@
 *@
 
 <MudPaper Class="pa-5" Elevation="2" Style="height: 100%;">
-    <MudText Typo="Typo.h6" Class="mb-4">@Title</MudText>
+    <MudText Typo="Typo.h6" Class="mb-4">@(Title ?? T("dashboard.latestUsers.title"))</MudText>
 
     <MudHidden Breakpoint="Breakpoint.SmAndDown">
         <MudTable Items="Users" Dense="true" Hover="true" Elevation="0">
             <HeaderContent>
-                <MudTh>Používateľ</MudTh>
-                <MudTh>Rola</MudTh>
-                <MudTh>Dátum registrácie</MudTh>
+                <MudTh>@T("dashboard.latestUsers.user")</MudTh>
+                <MudTh>@T("dashboard.latestUsers.role")</MudTh>
+                <MudTh>@T("dashboard.latestUsers.registrationDate")</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd>@context.FirstName @context.LastName</MudTd>
@@ -21,7 +22,7 @@
                 <MudTd>@context.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
             </RowTemplate>
             <NoRecordsContent>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">@EmptyText</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@(EmptyText ?? T("dashboard.latestUsers.empty"))</MudText>
             </NoRecordsContent>
         </MudTable>
     </MudHidden>
@@ -29,7 +30,7 @@
     <MudHidden Breakpoint="Breakpoint.MdAndUp">
         @if (Users.Count == 0)
         {
-            <MudText Typo="Typo.body2" Color="Color.Secondary">@EmptyText</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@(EmptyText ?? T("dashboard.latestUsers.empty"))</MudText>
         }
         else
         {
@@ -50,7 +51,7 @@
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<UserListDto> Users { get; set; } = [];
 
-    [Parameter] public string Title { get; set; } = "Posledná aktivita v systéme";
+    [Parameter] public string? Title { get; set; }
 
-    [Parameter] public string EmptyText { get; set; } = "Zatiaľ nie je dostupná žiadna aktivita.";
+    [Parameter] public string? EmptyText { get; set; }
 }
