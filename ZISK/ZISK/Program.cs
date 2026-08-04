@@ -14,7 +14,10 @@ using ZISK.Client.Services;
 using ZISK.Data;
 using ZISK.Extensions;
 using ZISK.Filters;
+using ZISK.Middleware;
 using ZISK.Services;
+using ZISK.Services.Demo;
+using ZISK.Shared.Localization;
 
 var slovakCulture = new CultureInfo("sk-SK");
 CultureInfo.DefaultThreadCurrentCulture = slovakCulture;
@@ -30,6 +33,25 @@ builder.Services.AddControllers(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
+
+// DataAnnotations ErrorMessage strings on ZISK.Shared DTOs are translation keys, not literal
+// text (see Translations.cs) - translate them into the requesting client's language (from the
+// Accept-Language header AcceptLanguageHandler stamps on every client call) before the automatic
+// 400 response goes out, instead of leaking raw keys like "validation.name.required" to the UI.
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var lang = context.HttpContext.RequestServices.GetRequiredService<ICurrentLanguage>().Current;
+        var errors = context.ModelState
+            .Where(kvp => kvp.Value?.Errors.Count > 0)
+            .ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value!.Errors.Select(e => Translations.Get(lang, e.ErrorMessage)).ToArray());
+
+        return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(new { errors });
+    };
+});
 
 // Razor Components
 builder.Services.AddRazorComponents()
@@ -53,10 +75,17 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+// Registered before AddDbContext: ApplicationDbContext's constructor takes IDemoSessionContext,
+// and AddDbContext below wires DemoStampingInterceptor in via the (sp, options) overload.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IDemoSessionContext, DemoSessionContext>();
+builder.Services.AddScoped<DemoStampingInterceptor>();
+
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
+builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
+    options.UseSqlServer(connectionString)
+           .AddInterceptors(sp.GetRequiredService<DemoStampingInterceptor>()));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 // Identity
@@ -79,6 +108,9 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
     options.TokenLifespan = TimeSpan.FromHours(1));
 
+// Fixed for the lifetime of the process - the seed mode comes from env/config read at startup.
+var isDemoDeployment = SeedModeResolver.Resolve(builder.Configuration) == SeedMode.Demo;
+
 // Cookie konfiguracia
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -89,6 +121,27 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = true;
     options.Cookie.HttpOnly = true;
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+
+    // In demo mode an anonymous visitor must land on /demo, never on /login (which
+    // DemoAccessGuardMiddleware 404s without the owner cookie).
+    //
+    // This has to be handled here, not only in RedirectToLogin.razor, because [Authorize] on a
+    // routable Blazor component is copied onto its endpoint metadata by MapRazorComponents. On the
+    // very first request the app is still static SSR (App.razor hands out a null render mode), so
+    // the authorization middleware challenges the endpoint and this cookie handler issues the 302
+    // before Routes.razor renders - RedirectToLogin never runs on that path at all. It still runs
+    // for client-side navigation once WASM is interactive, so both paths need the demo check.
+    options.Events.OnRedirectToLogin = context =>
+    {
+        if (DemoAccessGuardMiddleware.ShouldRouteToDemoLanding(context.Request, builder.Configuration))
+        {
+            context.Response.Redirect("/demo");
+            return Task.CompletedTask;
+        }
+
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
 });
 
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
@@ -96,7 +149,7 @@ builder.Services.AddTransient<SmtpEmailSender>();
 builder.Services.AddTransient<LoggingEmailSender>();
 
 // Demo deployments must never send real email - see LoggingEmailSender.
-if (SeedModeResolver.Resolve(builder.Configuration) == SeedMode.Demo)
+if (isDemoDeployment)
 {
     builder.Services.AddTransient<IEmailSender<ApplicationUser>>(sp => sp.GetRequiredService<LoggingEmailSender>());
     builder.Services.AddTransient<IEmailSender>(sp => sp.GetRequiredService<LoggingEmailSender>());
@@ -116,7 +169,10 @@ builder.Services.AddScoped<RegistrationDraftService>();
 builder.Services.AddHostedService<ChildUpgradeService>();
 builder.Services.AddHostedService<TrainingSeriesGeneratorService>();
 builder.Services.AddHostedService<AttendanceAutoCloseService>();
-builder.Services.AddHttpContextAccessor();
+builder.Services.Configure<DemoOptions>(builder.Configuration.GetSection("Demo"));
+builder.Services.AddScoped<IDemoSessionService, DemoSessionService>();
+builder.Services.AddHostedService<DemoTemplateRefreshWorker>();
+builder.Services.AddHostedService<DemoSessionCleanupWorker>();
 builder.Services.AddTransient<ForwardAuthHeaderHandler>();
 
 
@@ -188,6 +244,11 @@ app.UseForwardedHeaders(forwardedHeaderOptions);
 app.UseResponseCompression();
 
 app.UseRequestLocalization();
+
+// Before authentication: guarded paths (login, registration, the Identity scaffold) 404 for
+// anyone without the owner cookie in demo mode, so there's no reason to run auth machinery for
+// them at all. See DemoAccessGuardMiddleware for what this locks down and why.
+app.UseMiddleware<DemoAccessGuardMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

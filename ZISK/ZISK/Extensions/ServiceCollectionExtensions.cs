@@ -8,6 +8,10 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddScoped<ICurrentLanguage, CurrentLanguage>();
+        // MainLayout injects the client's ILanguageService and is static-SSR rendered on the
+        // server before WASM boots - see ServerLanguageService for why it needs its own impl.
+        services.AddScoped<ZISK.Client.Services.ILanguageService, ServerLanguageService>();
         services.AddScoped<IAttendanceService, AttendanceService>();
         services.AddScoped<IStatsService, StatsService>();
         services.AddScoped<IUserService, UserService>();
@@ -30,10 +34,16 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddRefitClients(this IServiceCollection services, IConfiguration configuration)
     {
-        // "http://localhost:5224" is a fallback for local development only; production must set ApiBaseAddress in config.
+        // Mostly a placeholder: ForwardAuthHeaderHandler rewrites the host of every one of these
+        // calls to whatever host the current request arrived on, because they are self-calls back
+        // into this same app. This value only survives for calls made with no HttpContext.
         var baseAddressString = configuration["ApiBaseAddress"] ?? "http://localhost:5224";
         var baseAddress = new Uri(baseAddressString);
 
+        // No explicit RefitSettings here on purpose: Refit's default content serializer already
+        // reads camelCase and string-valued enums, which is what the API emits, so these clients
+        // match ZISK.Client/Program.cs behaviourally even though that one spells the options out.
+        //
         // Every Refit client gets ForwardAuthHeaderHandler so that Blazor SSR requests carry the auth cookie.
         // See ForwardAuthHeaderHandler for a full explanation of why this is needed.
         services.AddRefitClient<IExcusesApi>()
@@ -73,6 +83,9 @@ public static class ServiceCollectionExtensions
             .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
             .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
         services.AddRefitClient<IInvitationsApi>()
+            .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
+            .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
+        services.AddRefitClient<IDemoApi>()
             .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
             .AddHttpMessageHandler<ForwardAuthHeaderHandler>();
 
