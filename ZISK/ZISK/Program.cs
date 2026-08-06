@@ -221,9 +221,9 @@ builder.Services.Configure<Microsoft.AspNetCore.Builder.RequestLocalizationOptio
     options.SupportedUICultures = supported;
 });
 
-// API responses were previously sent uncompressed: MapStaticAssets serves the pre-compressed WASM/static
-// assets, but controller JSON never passed through any compression middleware. The list endpoints return
-// whole collections, so this is the difference between ~525 KB and ~90 KB on /api/users at full club size.
+// MapStaticAssets serves pre-compressed WASM and static files, but controller JSON does not go
+// through it, so API responses need compression of their own. The list endpoints return whole
+// collections: at full club size /api/users is roughly 525 KB uncompressed and 90 KB compressed.
 builder.Services.AddResponseCompression(options =>
 {
     // Restricted to JSON: static assets already ship pre-compressed .br/.gz via MapStaticAssets, and

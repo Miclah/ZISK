@@ -45,7 +45,9 @@ var refitSettings = new RefitSettings
     })
 };
 
-// Pomoc s AI pri robeni Refit klientov
+// One registration per API surface. Each client shares the same JSON settings and the same
+// two handlers: LoadingHttpMessageHandler drives the global progress bar, AcceptLanguageHandler
+// tells the server which language to return error messages in.
 builder.Services.AddRefitClient<IExcusesApi>(refitSettings)
     .ConfigureHttpClient(c => c.BaseAddress = baseAddress)
     .AddHttpMessageHandler<LoadingHttpMessageHandler>()

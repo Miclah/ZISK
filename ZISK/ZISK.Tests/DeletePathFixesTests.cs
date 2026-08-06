@@ -12,9 +12,11 @@ using ZISK.Shared.DTOs.Trainings;
 namespace ZISK.Tests;
 
 /// <summary>
-/// Regression tests for the Fáza 6 delete-path audit: several delete operations either
-/// crashed with a raw DB foreign-key exception instead of a clean error, or silently
-/// destroyed data / skipped authorization checks. See CLAUDE.md "Known authorization gaps".
+/// Delete operations are the easiest place to get a restrict-vs-cascade relationship wrong,
+/// and the failure is ugly: either a raw foreign-key exception reaches the user instead of a
+/// readable message, or a dependent row disappears without anyone asking for it. These tests
+/// pin down the delete path for users, teams, seasons and training series, including the
+/// team-scope check a coach has to pass before deleting a series.
 /// </summary>
 public class DeletePathFixesTests
 {
@@ -231,8 +233,9 @@ public class DeletePathFixesTests
         db.TrainingSeries.Add(series);
         await db.SaveChangesAsync();
 
-        // Coach whose accessible teams do not include `team` - this is the exact gap
-        // CLAUDE.md documented: TrainingSeriesService never injected ITeamAccessService.
+        // A coach whose accessible teams do not include `team`. Reading or deleting a series
+        // that belongs to someone else's team has to be refused at the service layer, not just
+        // hidden in the UI.
         var svc = new TrainingSeriesService(db, new RestrictedTeamAccess(otherTeamId), new NoopAudit(), new FakeCurrentLanguage());
         var coachUser = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, "Coach")], "test"));
 

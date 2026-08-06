@@ -12,8 +12,8 @@ namespace ZISK.Shared.Localization;
 /// WASM's JS-interop-backed language service and instead read the zisk_lang cookie and call
 /// <see cref="Get"/> directly).
 ///
-/// Not every string in the app is in here yet - see CLAUDE.md's localization coverage note.
-/// New keys should follow the existing dotted-namespace convention (nav.*, demo.*, domain.*, ...).
+/// Coverage is not complete: a few screens still carry hardcoded Slovak text. New keys follow
+/// the existing dotted-namespace convention (nav.*, demo.*, domain.*, ...).
 /// </summary>
 public static class Translations
 {

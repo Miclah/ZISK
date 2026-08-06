@@ -66,7 +66,8 @@ public class LanguageService : ILanguageService
     ///
     /// en-GB rather than en-US on purpose: it starts the week on Monday and uses day-first dates,
     /// so the calendar grid and every date in the app keep the same shape in both languages.
-    /// Both shards ship in the pinned icudt_no_CJK.dat (see the globalization note in CLAUDE.md).
+    /// Both cultures ship in icudt_no_CJK.dat, the ICU shard this project pins in
+    /// ZISK.Client.csproj, so switching between them needs no extra download.
     /// </summary>
     private static void ApplyCulture(Lang lang)
     {

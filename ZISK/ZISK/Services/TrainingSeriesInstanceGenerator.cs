@@ -5,13 +5,13 @@ namespace ZISK.Services;
 /// <summary>
 /// Shared weekday-bitmask expansion for a <see cref="TrainingSeries"/>.
 ///
-/// Both the manual "Generate" action (<see cref="TrainingSeriesService.GenerateInstancesAsync"/>) and the
-/// nightly background pass (<see cref="TrainingSeriesGeneratorWorker.GenerateForSeriesAsync"/>) used to
-/// hand-roll this loop separately, and they had drifted: only the worker clamped the requested range to the
-/// season's date span, so the manual path could create trainings outside the season it belonged to.
-/// Keeping the expansion here means both callers get the clamp.
+/// Two callers expand a series into concrete trainings: the manual "Generate" action
+/// (<see cref="TrainingSeriesService.GenerateInstancesAsync"/>) and the nightly background pass
+/// (<see cref="TrainingSeriesGeneratorWorker.GenerateForSeriesAsync"/>). They share this function
+/// rather than each writing the loop, so rules like clamping the requested range to the season's
+/// date span cannot apply on one path and not the other.
 ///
-/// This is deliberately a pure function — it neither reads nor writes the DbContext, so callers stay in
+/// Deliberately a pure function. It neither reads nor writes the DbContext, so callers stay in
 /// charge of loading existing dates and persisting the result.
 /// </summary>
 public static class TrainingSeriesInstanceGenerator

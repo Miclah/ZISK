@@ -8,14 +8,12 @@ namespace ZISK.Client.Display;
 /// Display text and MudBlazor colours for domain enums, in whichever language the visitor has
 /// selected (see <see cref="Current"/>).
 ///
-/// These mappings were previously re-declared inside each page's @code block. That was not merely repetition —
-/// the copies had diverged: <c>AnnouncementPriority.High</c> rendered as "Vysoká" on the admin dashboard but
-/// "Dôležité" on every other page, and <c>Low</c> appeared as "Nízka", "Info" and "Informačné" depending on
-/// where you looked. Centralising them makes the label for a given value the same everywhere.
+/// Every page reads its enum labels from here rather than declaring its own. An enum value that
+/// renders as one word on the dashboard and a different word on the detail page reads like two
+/// different things to a user, and per-page copies drift towards exactly that.
 ///
-/// Text now comes from <see cref="Translations"/> rather than being inlined here, so it is the
-/// single source of truth for both languages - see <see cref="Current"/> for how the ambient
-/// language gets set.
+/// The text itself lives in <see cref="Translations"/>, which keeps both languages in one place.
+/// See <see cref="Current"/> for how the ambient language gets set.
 ///
 /// Note that attendance status is deliberately *not* fully covered here: CoachTrainingDetail derives its label
 /// from a <c>TrainingAttendanceDto</c> using excuse state and how long ago the training started, which is a
@@ -109,8 +107,8 @@ public static class DomainLabels
     // ---- Announcement priority ---------------------------------------------------------------------------
 
     /// <summary>
-    /// Standardised on the wording the announcement pages and both dashboards already used ("Dôležité" /
-    /// "Stredná" / "Info"). The admin dashboard previously said "Vysoká" / "Nízka" for the same values.
+    /// Rendered as "Dôležité" / "Stredná" / "Info" rather than a literal high/medium/low, which is
+    /// how the club talks about announcements.
     /// </summary>
     public static string PriorityText(AnnouncementPriority priority) => priority switch
     {
