@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 990" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="ZISK web application architecture diagram">
+  <title>ZISK web application architecture</title>
+  <style>
+    svg { max-width: 100%; height: auto; }
+    :root {
+      --bg: #ffffff; --surface: #ffffff; --surface-2: #f1f5f9;
+      --stroke: #1e3a5f; --edge: #c3d0de; --text: #1e3a5f; --muted: #64748b;
+      --accent: #d97706; --accent-bg: #fdf3e5; --accent-text: #9a5406;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0e1621; --surface: #16212e; --surface-2: #121b26;
+        --stroke: #a8c4e0; --edge: #2e3f52; --text: #e4edf6; --muted: #93a4b8;
+        --accent: #f0a12e; --accent-bg: #241a0c; --accent-text: #f7c579;
+      }
+    }
+    text { font-family: ui-sans-serif, system-ui, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--text); }
+    .h1 { font-size: 16.5px; font-weight: 650; letter-spacing: .2px; }
+    .h2 { font-size: 15.5px; font-weight: 620; }
+    .sub { font-size: 12.5px; fill: var(--muted); }
+    .item { font-size: 12px; }
+    .item-b { font-size: 13.5px; font-weight: 620; }
+    .body { font-size: 13px; }
+    .cap { font-size: 11.5px; letter-spacing: 1.6px; fill: var(--muted); font-weight: 600; }
+    .band { font-size: 12.5px; letter-spacing: 1.3px; fill: var(--muted); font-weight: 600; }
+    .note, .alab { font-size: 12px; font-style: italic; fill: var(--muted); }
+    .box { fill: var(--surface); stroke: var(--stroke); stroke-width: 1; }
+    .frame { fill: var(--surface-2); stroke: var(--edge); stroke-width: 1; }
+    .ln { stroke: var(--stroke); stroke-width: 1.3; fill: none; }
+    .dash { stroke: var(--stroke); stroke-width: 1.2; fill: none; stroke-dasharray: 5 4; }
+    .dashthin { stroke: var(--edge); stroke-width: 1.2; fill: none; stroke-dasharray: 5 4; }
+    .acc-box { fill: var(--accent-bg); stroke: var(--accent); stroke-width: 1.3; }
+    .acc-ln { stroke: var(--accent); stroke-width: 1.3; fill: none; }
+    .acc-t { fill: var(--accent-text); }
+    .acc-h { fill: var(--accent-text); font-size: 14px; font-weight: 650; }
+  </style>
+  <defs>
+    <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0.6 L9.4,5 L0,9.4 Z" fill="var(--stroke)"></path>
+    </marker>
+    <marker id="arwAcc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0.6 L9.4,5 L0,9.4 Z" fill="var(--accent)"></path>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1000" height="990" fill="var(--bg)"></rect>
+
+  <text class="h1" x="52" y="26">ZISK: sports club management system</text>
+  <text class="sub" x="52" y="46">.NET 10 · Blazor WebAssembly · ASP.NET Core · EF Core · SQL Server</text>
+
+  <text class="cap" x="32" y="166" text-anchor="middle" transform="rotate(-90 32 166)">1 · BROWSER</text>
+  <text class="cap" x="32" y="502" text-anchor="middle" transform="rotate(-90 32 502)">2 · SERVER</text>
+  <text class="cap" x="32" y="761" text-anchor="middle" transform="rotate(-90 32 761)">3 · DATABASE</text>
+
+  <rect class="frame" x="52" y="64" width="708" height="204" rx="8"></rect>
+  <rect class="box" x="66" y="96" width="680" height="26" rx="8"></rect>
+  <text class="item" x="406" y="113" text-anchor="middle">Browser · page load</text>
+
+  <path class="ln" d="M156,122 L156,148" marker-end="url(#arw)"></path>
+  <text class="alab" x="166" y="142">WASM download</text>
+
+  <rect class="box" x="66" y="152" width="420" height="98" rx="8"></rect>
+  <text class="h2" x="86" y="182">Blazor WebAssembly client</text>
+  <text class="h2" x="86" y="202">(ZISK.Client)</text>
+  <text class="sub" x="86" y="226">MudBlazor 9.4 · Heron.MudCalendar</text>
+  <text class="sub" x="86" y="242">14 Refit interfaces</text>
+
+  <rect class="box" x="508" y="152" width="238" height="98" rx="8"></rect>
+  <text class="h2" x="528" y="182">Static SSR pages</text>
+  <text class="sub" x="528" y="206">/login · /registracia · /demo</text>
+  <text class="note" x="528" y="228">they must set the</text>
+  <text class="note" x="528" y="244">HttpOnly cookie</text>
+
+  <path class="ln" d="M276,250 L276,292 L126,292 L126,390" marker-end="url(#arw)"></path>
+  <text class="alab" x="288" y="272">Refit · HTTP + auth cookie</text>
+
+  <path class="ln" d="M627,250 L627,322 L146,322 L146,390" marker-end="url(#arw)"></path>
+  <text class="alab" x="615" y="296" text-anchor="end">Refit via ForwardAuthHeaderHandler</text>
+  <text class="alab" x="615" y="313" text-anchor="end">(forwards the cookie on server-to-server calls)</text>
+
+  <rect class="frame" x="52" y="344" width="708" height="316" rx="8"></rect>
+  <text class="band" x="746" y="366" text-anchor="end">ASP.NET CORE SERVER · SINGLE HOST PROCESS</text>
+  <text class="note" x="746" y="384" text-anchor="end">one project hosts the WASM assets and the REST API, so there is no CORS setup</text>
+
+  <rect class="box" x="66" y="394" width="140" height="144" rx="8"></rect>
+  <text class="h2" x="136" y="442" text-anchor="middle">14 REST</text>
+  <text class="h2" x="136" y="462" text-anchor="middle">controllers</text>
+  <text class="sub" x="136" y="488" text-anchor="middle">thin, they delegate</text>
+  <text class="sub" x="136" y="504" text-anchor="middle">to the services</text>
+
+  <path class="ln" d="M206,466 L232,466" marker-end="url(#arw)"></path>
+
+  <rect class="box" x="236" y="394" width="330" height="144" rx="8"></rect>
+  <text class="h2" x="252" y="420">Service layer</text>
+  <text class="item" x="252" y="446">TeamAccessService</text>
+  <text class="item" x="252" y="464">AttendanceService</text>
+  <text class="item" x="252" y="482">ExcuseService</text>
+  <text class="item" x="252" y="500">TrainingService</text>
+  <text class="item" x="252" y="518">TrainingSeriesService</text>
+  <text class="item" x="410" y="446">UserService</text>
+  <text class="item" x="410" y="464">AnnouncementService</text>
+  <text class="item" x="410" y="482">SeasonService</text>
+  <text class="item" x="410" y="500">DemoSessionService</text>
+
+  <path class="ln" d="M566,466 L592,466" marker-end="url(#arw)"></path>
+
+  <rect class="box" x="596" y="394" width="150" height="144" rx="8"></rect>
+  <text class="h2" x="671" y="452" text-anchor="middle">Application</text>
+  <text class="h2" x="671" y="472" text-anchor="middle">DbContext</text>
+  <text class="sub" x="671" y="496" text-anchor="middle">EF Core</text>
+
+  <rect class="box" x="66" y="566" width="490" height="76" rx="8"></rect>
+  <text class="item-b" x="82" y="590">5 background workers</text>
+  <text class="sub" x="82" y="612">AttendanceAutoClose · TrainingSeriesGenerator · ChildUpgrade</text>
+  <text class="sub" x="82" y="630">DemoTemplateRefresh · DemoSessionCleanup</text>
+
+  <path class="dash" d="M556,592 L610,592 L610,544" marker-end="url(#arw)"></path>
+  <text class="alab" x="552" y="560" text-anchor="end">own DI scope per tick</text>
+
+  <path class="ln" d="M666,538 L666,704" marker-end="url(#arw)"></path>
+
+  <rect class="frame" x="52" y="692" width="708" height="138" rx="8"></rect>
+  <path class="box" d="M578,726 A88,16 0 0 1 754,726 L754,800 A88,16 0 0 1 578,800 Z"></path>
+  <ellipse class="box" cx="666" cy="726" rx="88" ry="16"></ellipse>
+  <text class="h2" x="666" y="775" text-anchor="middle">SQL Server</text>
+
+  <path class="dashthin" d="M296,758 L312,758"></path>
+  <path class="dashthin" d="M542,758 L578,758"></path>
+
+  <rect class="box" x="66" y="736" width="230" height="44" rx="8"></rect>
+  <text class="sub" x="181" y="763" text-anchor="middle">LocalDB / Docker (development)</text>
+  <rect class="box" x="312" y="736" width="230" height="44" rx="8"></rect>
+  <text class="sub" x="427" y="763" text-anchor="middle">Azure SQL serverless (demo)</text>
+
+  <rect class="frame" x="790" y="64" width="190" height="596" rx="8"></rect>
+  <text class="cap" x="806" y="88">4 · SHARED</text>
+  <text class="h2" x="806" y="116">ZISK.Shared</text>
+  <text class="sub" x="806" y="140">DTO record types</text>
+  <text class="sub" x="806" y="159">Enums</text>
+  <text class="sub" x="806" y="178">SK / EN translation table</text>
+  <path class="dashthin" d="M806,198 L964,198"></path>
+  <text class="note" x="806" y="220">Both the client and the</text>
+  <text class="note" x="806" y="238">server reference it, so a</text>
+  <text class="note" x="806" y="256">contract change breaks</text>
+  <text class="note" x="806" y="274">the build on both sides.</text>
+
+  <path class="dash" d="M760,166 L790,166"></path>
+  <path class="dash" d="M760,420 L790,420"></path>
+
+  <path class="acc-ln" d="M746,455 L772,455 L772,850" marker-end="url(#arwAcc)"></path>
+  <rect class="acc-box" x="330" y="856" width="650" height="112" rx="8"></rect>
+  <text class="acc-h" x="354" y="884">Demo mode: isolation lives in the model</text>
+  <text class="body acc-t" x="354" y="910">Global EF Core query filter on DemoSessionId across 14 entities.</text>
+  <text class="body acc-t" x="354" y="931">Every visitor gets their own clone of the entire dataset.</text>
+  <text class="body acc-t" x="354" y="952">Because the filter sits on the model, individual queries never ask for it.</text>
+</svg>
