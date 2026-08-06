@@ -46,9 +46,16 @@ else
     else
     {
         <MudStack Spacing="2">
+            @* Keyed on the training AND the child, not the training alone. A parent with two
+               children in the same team gets one row per child for the same TrainingEvent, so a
+               bare training id repeated as a sibling key threw
+               "More than one sibling has the same key value" out of the renderer - which in
+               WebAssembly kills the whole app, not just this list, leaving every control on the
+               page silently unclickable. UpcomingTrainingsMiniPanel keys the same data the same
+               way. *@
             @foreach (var item in Upcoming.Take(8))
             {
-                <MudPaper @key="item.Training.Id" Class="card-standard pa-3" Elevation="0">
+                <MudPaper @key="@($"{item.Training.Id}-{item.ChildId}")" Class="card-standard pa-3" Elevation="0">
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
                         <MudStack Spacing="0">
                             <MudText Typo="Typo.body1" Style="font-weight:500;">@item.Training.Title</MudText>
