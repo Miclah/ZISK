@@ -29,7 +29,7 @@ Attendance tracking, training scheduling and communication between parents and c
 
 Pick a role and you are signed in. There is no password to enter and no account to create. Each visitor gets a private copy of the data, so anything you change belongs to you alone.
 
-The site runs on the Azure free tier, which stops the app and pauses the database when nobody is using them. First load after an idle period takes roughly 30 seconds while both wake up. After that it responds normally.
+Both the app and its database go to sleep when nobody has used them for a while, so the first visit after an idle period has to wake them. The app itself takes around 30 seconds, and the database another 45 seconds to a minute and a half on top of that. A loading screen covers the whole wait, naming the step it is on and refreshing itself the moment the app is ready. Everything after that responds normally.
 
 
 ![](https://github.com/Miclah/ZISK/blob/main/docs/screenshots/walkthrough.webp)

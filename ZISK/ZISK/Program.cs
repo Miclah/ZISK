@@ -19,9 +19,12 @@ using ZISK.Services;
 using ZISK.Services.Demo;
 using ZISK.Shared.Localization;
 
+// English is the default the whole app now starts from, so server-rendered formatting has to match
+// it. Slovak is still fully supported below, it just has to be asked for.
+var englishCulture = new CultureInfo("en-GB");
 var slovakCulture = new CultureInfo("sk-SK");
-CultureInfo.DefaultThreadCurrentCulture = slovakCulture;
-CultureInfo.DefaultThreadCurrentUICulture = slovakCulture;
+CultureInfo.DefaultThreadCurrentCulture = englishCulture;
+CultureInfo.DefaultThreadCurrentUICulture = englishCulture;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -215,8 +218,10 @@ builder.Services.AddRefitClients(builder.Configuration);
 
 builder.Services.Configure<Microsoft.AspNetCore.Builder.RequestLocalizationOptions>(options =>
 {
-    var supported = new[] { slovakCulture };
-    options.DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture(slovakCulture);
+    // Both, not just one. The list used to hold Slovak alone, which meant a visitor who switched to
+    // English still got Slovak month and weekday names from anything the framework formatted.
+    var supported = new[] { englishCulture, slovakCulture };
+    options.DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture(englishCulture);
     options.SupportedCultures = supported;
     options.SupportedUICultures = supported;
 });

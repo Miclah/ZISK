@@ -28,7 +28,7 @@ public static class DomainLabels
     /// <c>DomainLabels.XxxText(value)</c> call site stay untouched while still becoming
     /// reactive. LanguageService updates this on init and on every language switch.
     /// </summary>
-    public static Lang Current { get; set; } = Lang.Sk;
+    public static Lang Current { get; set; } = Lang.En;
 
     // ---- Roles -------------------------------------------------------------------------------------------
 

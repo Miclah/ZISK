@@ -6,11 +6,14 @@ using MudBlazor.Services;
 using Refit;
 using ZISK.Client.Services;
 
-var slovakCulture = new CultureInfo("sk-SK");
-CultureInfo.DefaultThreadCurrentCulture = slovakCulture;
-CultureInfo.DefaultThreadCurrentUICulture = slovakCulture;
-CultureInfo.CurrentCulture = slovakCulture;
-CultureInfo.CurrentUICulture = slovakCulture;
+// Matches the default language, not the club's country. LanguageService.InitializeAsync overwrites
+// this with ApplyCulture as soon as it has read the cookie; this only covers the moments before
+// that, and pinning it to sk-SK while the UI defaults to English made those moments inconsistent.
+var startupCulture = new CultureInfo("en-GB");
+CultureInfo.DefaultThreadCurrentCulture = startupCulture;
+CultureInfo.DefaultThreadCurrentUICulture = startupCulture;
+CultureInfo.CurrentCulture = startupCulture;
+CultureInfo.CurrentUICulture = startupCulture;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 

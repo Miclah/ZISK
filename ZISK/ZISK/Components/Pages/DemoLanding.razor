@@ -140,7 +140,7 @@
 
     private readonly object _input = new();
     private string? _errorMessage;
-    private Lang _lang = Lang.Sk;
+    private Lang _lang = Lang.En;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -194,8 +194,8 @@
             return;
         }
 
-        if (HttpContext.Request.Cookies.TryGetValue("zisk_lang", out var cookieLang) && cookieLang == "en")
-            _lang = Lang.En;
+        if (HttpContext.Request.Cookies.TryGetValue("zisk_lang", out var cookieLang) && cookieLang == "sk")
+            _lang = Lang.Sk;
     }
 
     private async Task HandleSubmitAsync()

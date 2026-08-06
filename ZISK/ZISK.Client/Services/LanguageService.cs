@@ -9,7 +9,7 @@ public class LanguageService : ILanguageService
 {
     private readonly IJSRuntime _js;
 
-    public Lang Current { get; private set; } = Lang.Sk;
+    public Lang Current { get; private set; } = Lang.En;
     public event Action? Changed;
 
     public LanguageService(IJSRuntime js)
@@ -22,13 +22,13 @@ public class LanguageService : ILanguageService
         try
         {
             var cookie = await _js.InvokeAsync<string?>("ziskLang.getCookie");
-            Current = cookie == "en" ? Lang.En : Lang.Sk;
+            Current = cookie == "sk" ? Lang.Sk : Lang.En;
         }
         catch
         {
             // JS interop unavailable (shouldn't happen post-WASM-boot, but never let a missing
-            // cookie helper crash startup) - default to Slovak.
-            Current = Lang.Sk;
+            // cookie helper crash startup) - fall back to the same default as no cookie at all.
+            Current = Lang.En;
         }
 
         DomainLabels.Current = Current;

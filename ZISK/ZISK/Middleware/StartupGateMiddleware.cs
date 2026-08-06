@@ -62,7 +62,10 @@ public sealed class StartupGateMiddleware
         context.Response.ContentType = "text/html; charset=utf-8";
         context.Response.Headers.CacheControl = "no-store";
 
-        var lang = context.Request.Cookies.TryGetValue("zisk_lang", out var cookie) && cookie == "en" ? "en" : "sk";
+        // English unless the visitor has already chosen otherwise, which is the opposite of the app's
+        // Slovak default. Most people who reach this screen are seeing the project for the first time
+        // and got here from a link that was not in Slovak; the toggle is there for everyone else.
+        var lang = context.Request.Cookies.TryGetValue("zisk_lang", out var cookie) && cookie == "sk" ? "sk" : "en";
         await context.Response.WriteAsync(Page.Replace("__LANG__", lang));
     }
 
@@ -141,6 +144,14 @@ public sealed class StartupGateMiddleware
     font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.06em; color: #fff;
     background: var(--zisk-accent); border-radius: 999px; padding: 0.1875rem 0.5rem; line-height: 1;
   }
+  /* Same position and weights as the demo landing's switch, so the two read as one product. */
+  .lang { display: flex; margin-left: auto; gap: 0.75rem; font-size: 0.8125rem; font-weight: 500; }
+  .lang button {
+    background: none; border: 0; padding: 0; cursor: pointer; font: inherit;
+    color: rgba(255, 255, 255, 0.55); letter-spacing: 0.04em;
+  }
+  .lang button:hover { color: rgba(255, 255, 255, 0.85); }
+  .lang button[aria-pressed="true"] { color: #fff; }
   .body { padding: 2rem 1.75rem 2.25rem; }
   h1 { margin: 0 0 0.625rem; font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; }
   p { margin: 0; color: var(--zisk-text-secondary); font-size: 0.9375rem; line-height: 1.6; }
@@ -171,7 +182,13 @@ public sealed class StartupGateMiddleware
 </head>
 <body>
   <main class="panel">
-    <div class="bar"><span class="wordmark">ZISK</span><span class="badge">DEMO</span></div>
+    <div class="bar">
+      <span class="wordmark">ZISK</span><span class="badge">DEMO</span>
+      <nav class="lang" aria-label="Language">
+        <button type="button" data-lang="sk">SK</button>
+        <button type="button" data-lang="en">EN</button>
+      </nav>
+    </div>
     <div class="body">
       <h1 id="heading"></h1>
       <p id="lead"></p>
@@ -184,11 +201,10 @@ public sealed class StartupGateMiddleware
   </main>
 <script>
 (function () {
-  var lang = document.documentElement.lang === 'en' ? 'en' : 'sk';
-  var t = {
+  var STRINGS = {
     sk: {
       heading: 'Spúšťam demo',
-      lead: 'Demo beží na bezplatnej vrstve Azure, ktorá po nečinnosti uspí server aj databázu. Prvé načítanie preto chvíľu trvá, ďalšie už budú rýchle.',
+      lead: 'Databáza sa prebúdza. Keď ju chvíľu nikto nepoužíva, uspí sa, a prvé načítanie ju musí zobudiť. Ďalšie už budú rýchle.',
       failedHeading: 'Demo sa zatiaľ nespustilo',
       failedLead: 'Databáza sa neozýva dlhšie, než je obvyklé. Skúšame ďalej a stránka sa obnoví sama, len čo bude pripravená.',
       WakingDatabase: 'Prebúdzam databázu', Migrating: 'Pripravujem databázu',
@@ -197,41 +213,65 @@ public sealed class StartupGateMiddleware
     },
     en: {
       heading: 'Starting the demo',
-      lead: 'This demo runs on a free Azure tier that puts both the server and the database to sleep when idle. The first load takes a moment; later ones are quick.',
+      lead: 'The database is waking up. It goes to sleep when nobody has used it for a while, so the first load has to wake it up. Later ones are quick.',
       failedHeading: 'The demo has not started yet',
       failedLead: 'The database is taking longer to respond than usual. We are still retrying and this page will refresh itself as soon as it is ready.',
       WakingDatabase: 'Waking the database', Migrating: 'Preparing the database',
       Seeding: 'Loading sample data', Ready: 'Done', Failed: 'Retrying',
       elapsed: function (s) { return s + 's'; }
     }
-  }[lang];
+  };
+
+  var lang = document.documentElement.lang === 'sk' ? 'sk' : 'en';
+  var t = STRINGS[lang];
 
   var heading = document.getElementById('heading');
   var lead = document.getElementById('lead');
   var phaseEl = document.getElementById('phase');
   var elapsedEl = document.getElementById('elapsed');
+
   var failed = false;
+  var phase = 'WakingDatabase';
+  // Seconds are counted here rather than taken from each poll response. Reading them off the
+  // network made the display jump by however long the gap between polls was; the server value is
+  // still authoritative and resyncs this on every response.
+  var seconds = 0;
 
-  heading.textContent = t.heading;
-  lead.textContent = t.lead;
-
-  function render(s) {
-    if (s.failed !== failed) {
-      failed = s.failed;
-      document.body.classList.toggle('failed', failed);
-      heading.textContent = failed ? t.failedHeading : t.heading;
-      lead.textContent = failed ? t.failedLead : t.lead;
-    }
-    phaseEl.textContent = t[s.phase] || '';
-    elapsedEl.textContent = t.elapsed(s.elapsedSeconds);
+  function paint() {
+    heading.textContent = failed ? t.failedHeading : t.heading;
+    lead.textContent = failed ? t.failedLead : t.lead;
+    phaseEl.textContent = t[phase] || '';
+    elapsedEl.textContent = t.elapsed(seconds);
   }
+
+  function setLang(next) {
+    lang = next;
+    t = STRINGS[next];
+    document.documentElement.lang = next;
+    // Shared with the rest of the app, so a choice made here carries into the app it loads into.
+    document.cookie = 'zisk_lang=' + next + ';path=/;max-age=31536000;samesite=lax';
+    Array.prototype.forEach.call(document.querySelectorAll('.lang button'), function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-lang') === next));
+    });
+    paint();
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.lang button'), function (b) {
+    b.addEventListener('click', function () { setLang(b.getAttribute('data-lang')); });
+  });
+
+  setInterval(function () { seconds += 1; elapsedEl.textContent = t.elapsed(seconds); }, 1000);
 
   function poll() {
     fetch('/api/startup-status', { cache: 'no-store' })
       .then(function (r) { return r.json(); })
       .then(function (s) {
         if (s.ready) { window.location.reload(); return; }
-        render(s);
+        failed = s.failed;
+        phase = s.phase;
+        seconds = s.elapsedSeconds;
+        document.body.classList.toggle('failed', failed);
+        paint();
         setTimeout(poll, 2000);
       })
       // A failed poll means the server went away again (App Service recycling the container is the
@@ -239,6 +279,10 @@ public sealed class StartupGateMiddleware
       .catch(function () { setTimeout(poll, 3000); });
   }
 
+  Array.prototype.forEach.call(document.querySelectorAll('.lang button'), function (b) {
+    b.setAttribute('aria-pressed', String(b.getAttribute('data-lang') === lang));
+  });
+  paint();
   poll();
 })();
 </script>

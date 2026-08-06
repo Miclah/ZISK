@@ -64,5 +64,5 @@
         HttpContext.AcceptsInteractiveRouting() ? InteractiveWasmNoPrerender : null;
 
     private Lang ShellLang =>
-        HttpContext.Request.Cookies.TryGetValue("zisk_lang", out var lang) && lang == "en" ? Lang.En : Lang.Sk;
+        HttpContext.Request.Cookies.TryGetValue("zisk_lang", out var lang) && lang == "sk" ? Lang.Sk : Lang.En;
 }

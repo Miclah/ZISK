@@ -29,7 +29,7 @@ Dochádzka, rozvrh tréningov a komunikácia medzi rodičmi a trénermi v šport
 
 Kliknete na rolu a ste prihlásený. Bez hesla, bez registrácie. Dáta, ktoré uvidíte, sú vaša vlastná kópia, takže si v nich môžete robiť čo chcete.
 
-Beží to na bezplatnej Azure vrstve, ktorá aplikáciu aj databázu uspí, keď ich chvíľu nikto nepoužíva. Prvé načítanie po takej pauze trvá asi pol minúty. Potom už je to normálne rýchle.
+Aplikácia aj databáza sa uspia, keď ich chvíľu nikto nepoužíva, takže prvá návšteva po takej pauze ich musí zobudiť. Samotná aplikácia nabehne asi za 30 sekúnd, databáza k tomu potrebuje ďalších 45 sekúnd až minútu a pol. Celý ten čas je na obrazovke načítavacie okno, ktoré ukazuje, v ktorom kroku sa to práve nachádza, a samo sa obnoví, len čo je aplikácia pripravená. Potom už je to normálne rýchle.
 
 
 ![](https://github.com/Miclah/ZISK/blob/main/docs/screenshots/walkthrough.webp)

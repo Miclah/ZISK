@@ -116,9 +116,12 @@ public static class Translations
         ["demo.role.child.button"] = ("Vyskúšať ako Dieťa", "Try as Child"),
         // The cold start warning is load bearing: without it a visitor stares at a blank tab for
         // half a minute and leaves thinking the app is broken.
+        // No wake-up warning here on purpose. By the time this page renders, the wait is already
+        // over: the loading screen that covers it says so while it is happening, and the README
+        // says so before anyone clicks through.
         ["demo.footerNote"] = (
-            "Aplikácia beží na Azure, prvé načítanie preto môže trvať až pol minúty. Všetky údaje v deme sú ukážkové.",
-            "The app runs on Azure, so the first load can take up to half a minute. All data in the demo is made up."),
+            "Všetky údaje v deme sú ukážkové.",
+            "All data in the demo is made up."),
         ["demo.builtBy"] = ("Autor: Michal Petrán", "Built by Michal Petrán"),
         ["demo.sourceLink"] = ("Zdrojový kód na GitHube", "Source on GitHub"),
         ["demo.error.prepareFailed"] = (
