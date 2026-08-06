@@ -176,6 +176,10 @@ builder.Services.AddScoped<ITeamAccessService, TeamAccessService>();
 builder.Services.Configure<SeedPasswordOptions>(builder.Configuration.GetSection("Seed:Passwords"));
 builder.Services.Configure<SeedInitialAdminOptions>(builder.Configuration.GetSection("Seed:InitialAdmin"));
 builder.Services.AddScoped<DatabaseInitializer>();
+// Singleton, and registered before the workers below that await it: initialization now runs
+// alongside them instead of before them. See DatabaseInitializationService for why it moved.
+builder.Services.AddSingleton<StartupState>();
+builder.Services.AddHostedService<DatabaseInitializationService>();
 builder.Services.AddScoped<UsernameGenerator>();
 builder.Services.AddScoped<RegistrationDraftService>();
 builder.Services.AddHostedService<ChildUpgradeService>();
@@ -251,6 +255,11 @@ forwardedHeaderOptions.KnownIPNetworks.Clear();
 forwardedHeaderOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedHeaderOptions);
 
+// First real middleware in the pipeline, because everything after it assumes a usable database -
+// UseAuthentication resolves the cookie against AspNetUsers on the very first request. Until
+// DatabaseInitializationService reports ready this serves a self-contained waiting page instead.
+app.UseMiddleware<StartupGateMiddleware>();
+
 // Before the endpoints that produce the JSON it compresses, and after UseForwardedHeaders so the
 // EnableForHttps decision sees the real client scheme rather than the proxy hop.
 app.UseResponseCompression();
@@ -290,46 +299,10 @@ app.MapRazorComponents<App>()
 
 app.MapAdditionalIdentityEndpoints();
 
-{
-    var startupLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
-
-    // Azure SQL serverless auto-pauses when idle, and the very first connection into a paused
-    // database fails (it only kicks off the resume). Retrying here matters more than anywhere
-    // else: this is where migrations run, so giving up leaves the app serving traffic against a
-    // schema-less database - which is exactly how /demo used to die with "couldn't prepare the
-    // demo data" instead of failing visibly at startup.
-    const int maxAttempts = 10;
-    var delay = TimeSpan.FromSeconds(5);
-
-    for (var attempt = 1; ; attempt++)
-    {
-        // A fresh scope per attempt: a DbContext that failed mid-migration must not be reused.
-        using var scope = app.Services.CreateScope();
-        var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
-
-        try
-        {
-            await initializer.InitializeAsync();
-            if (attempt > 1)
-                startupLogger.LogInformation("Database initialization succeeded on attempt {Attempt}.", attempt);
-            break;
-        }
-        catch (SeedConfigurationException)
-        {
-            // A demo/production deploy with missing Seed:* configuration must fail loudly at
-            // startup, not silently fall back to hardcoded local passwords or run with no admin.
-            // Retrying cannot help - the configuration is wrong, not the database.
-            throw;
-        }
-        catch (Exception ex) when (attempt < maxAttempts)
-        {
-            startupLogger.LogWarning(ex,
-                "Database initialization failed (attempt {Attempt}/{MaxAttempts}); retrying in {Delay}s.",
-                attempt, maxAttempts, delay.TotalSeconds);
-            await Task.Delay(delay);
-            delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 1.5, 30));
-        }
-    }
-}
+// Database migration and seeding used to run here, between the mapping above and app.Run() below.
+// That blocked Kestrel from binding a port until it finished, which on the demo deployment meant a
+// browser waiting out the whole Azure SQL serverless resume on a request that had not returned a
+// single header. It now runs as DatabaseInitializationService, with StartupGateMiddleware holding
+// requests until it reports ready.
 
 app.Run();

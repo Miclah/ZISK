@@ -135,16 +135,25 @@ public class ChildUpgradeWorker
 public class ChildUpgradeService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly StartupState _startupState;
     private readonly ILogger<ChildUpgradeService> _logger;
 
-    public ChildUpgradeService(IServiceScopeFactory scopeFactory, ILogger<ChildUpgradeService> logger)
+    public ChildUpgradeService(
+        IServiceScopeFactory scopeFactory,
+        StartupState startupState,
+        ILogger<ChildUpgradeService> logger)
     {
         _scopeFactory = scopeFactory;
+        _startupState = startupState;
         _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Same reasoning as TrainingSeriesGeneratorService: the 02:00 schedule makes this safe today
+        // by accident, not by design.
+        await _startupState.WaitForReadyAsync(stoppingToken);
+
         while (!stoppingToken.IsCancellationRequested)
         {
             var now = DateTime.UtcNow;

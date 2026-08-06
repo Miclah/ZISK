@@ -61,16 +61,25 @@ public class AttendanceAutoCloseWorker
 public class AttendanceAutoCloseService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly StartupState _startupState;
     private readonly ILogger<AttendanceAutoCloseService> _logger;
 
-    public AttendanceAutoCloseService(IServiceScopeFactory scopeFactory, ILogger<AttendanceAutoCloseService> logger)
+    public AttendanceAutoCloseService(
+        IServiceScopeFactory scopeFactory,
+        StartupState startupState,
+        ILogger<AttendanceAutoCloseService> logger)
     {
         _scopeFactory = scopeFactory;
+        _startupState = startupState;
         _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // This worker queries in its very first iteration, and migrations no longer finish before
+        // the hosted services start. Without this it would run against a schema-less database.
+        await _startupState.WaitForReadyAsync(stoppingToken);
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try

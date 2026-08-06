@@ -14,16 +14,24 @@ public class DemoSessionCleanupWorker : BackgroundService
     private static readonly TimeSpan StaleAfter = TimeSpan.FromHours(24);
 
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly StartupState _startupState;
     private readonly ILogger<DemoSessionCleanupWorker> _logger;
 
-    public DemoSessionCleanupWorker(IServiceScopeFactory scopeFactory, ILogger<DemoSessionCleanupWorker> logger)
+    public DemoSessionCleanupWorker(
+        IServiceScopeFactory scopeFactory,
+        StartupState startupState,
+        ILogger<DemoSessionCleanupWorker> logger)
     {
         _scopeFactory = scopeFactory;
+        _startupState = startupState;
         _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Reads DemoSessions on the first tick, before any Task.Delay, so it needs the schema.
+        await _startupState.WaitForReadyAsync(stoppingToken);
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try

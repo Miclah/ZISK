@@ -113,9 +113,24 @@ public class DatabaseInitializer
             _initialAdminOptions.FirstName, _initialAdminOptions.LastName);
     }
 
-    public async Task InitializeAsync()
+    /// <param name="onPhase">
+    /// Optional progress callback, reported to the browser by StartupGateMiddleware while the app is
+    /// still starting. Optional so the existing callers and the InMemory tests are unaffected.
+    /// </param>
+    public async Task InitializeAsync(Action<StartupPhase>? onPhase = null)
     {
+        // Explicit reachability probe before MigrateAsync, so the phase reported to a waiting visitor
+        // is the truth. MigrateAsync both connects and migrates, so announcing "Migrating" up front
+        // would show "preparing the database" through the entire Azure SQL serverless resume, which
+        // is the whole window this reporting exists to describe honestly.
+        onPhase?.Invoke(StartupPhase.WakingDatabase);
+        if (!await _context.Database.CanConnectAsync())
+            throw new InvalidOperationException("Database is not reachable yet.");
+
+        onPhase?.Invoke(StartupPhase.Migrating);
         await _context.Database.MigrateAsync();
+
+        onPhase?.Invoke(StartupPhase.Seeding);
         await SeedAsync();
     }
 

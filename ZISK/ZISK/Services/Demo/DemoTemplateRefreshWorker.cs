@@ -13,16 +13,25 @@ namespace ZISK.Services.Demo;
 public class DemoTemplateRefreshWorker : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly StartupState _startupState;
     private readonly ILogger<DemoTemplateRefreshWorker> _logger;
 
-    public DemoTemplateRefreshWorker(IServiceScopeFactory scopeFactory, ILogger<DemoTemplateRefreshWorker> logger)
+    public DemoTemplateRefreshWorker(
+        IServiceScopeFactory scopeFactory,
+        StartupState startupState,
+        ILogger<DemoTemplateRefreshWorker> logger)
     {
         _scopeFactory = scopeFactory;
+        _startupState = startupState;
         _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Refreshing the demo template writes to the database on the first tick, so it has to wait
+        // for the seed it would otherwise be racing.
+        await _startupState.WaitForReadyAsync(stoppingToken);
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
