@@ -7,6 +7,22 @@ Dochádzka, rozvrh tréningov a komunikácia medzi rodičmi a trénermi v šport
 [![CI](https://github.com/Miclah/ZISK/actions/workflows/ci.yml/badge.svg)](https://github.com/Miclah/ZISK/actions/workflows/ci.yml)
 [![Licencia: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-green)](LICENSE)
 
+## Obsah
+
+- [Živé demo](#živé-demo)
+- [O projekte](#o-projekte)
+- [Funkcie podľa rolí](#funkcie-podľa-rolí)
+- [Screenshoty](#screenshoty)
+- [Technológie](#technológie)
+- [Architektúra](#architektúra)
+- [Demo režim](#demo-režim)
+- [Spustenie lokálne](#spustenie-lokálne)
+- [Konfigurácia a citlivé údaje](#konfigurácia-a-citlivé-údaje)
+- [Deployment](#deployment)
+- [Odinštalovanie](#odinštalovanie)
+- [Licencia](#licencia)
+- [Autor](#autor)
+
 ## Živé demo
 
 **[miclah-zisk.azurewebsites.net/demo](https://miclah-zisk.azurewebsites.net/demo)**
@@ -15,8 +31,8 @@ Kliknete na rolu a ste prihlásený. Bez hesla, bez registrácie. Dáta, ktoré 
 
 Beží to na bezplatnej Azure vrstve, ktorá aplikáciu aj databázu uspí, keď ich chvíľu nikto nepoužíva. Prvé načítanie po takej pauze trvá asi pol minúty. Potom už je to normálne rýchle.
 
-<!-- TODO: nahradiť odkazom na video nahraté cez GitHub issue drag-and-drop -->
-![Demo walkthrough](docs/screenshots/walkthrough.gif)
+
+![Demo walkthrough](https://github.com/user-attachments/assets/6b5ee780-162c-4ae9-975e-98900dae85ef)
 
 ## O projekte
 
@@ -198,35 +214,43 @@ Demo beží na Azure App Service na bezplatnom pláne F1 proti Azure SQL serverl
 
 Keďže sa databáza sama pozastavuje, `UseSqlServer` má zapnutý `EnableRetryOnFailure` a 120-sekundový command timeout. Štart aplikácie skúša migráciu desaťkrát s narastajúcimi odstupmi a potom zlyhá nahlas. Alternatíva, teda naštartovať nad databázou bez schémy, je horšia než nenaštartovať vôbec.
 
-## Čo som sa naučil
+## Odinštalovanie
 
-**Najťažšie rozhodnutie bola autorizácia obmedzená na tím.** Každý endpoint musel
-odpovedať na dve nezávislé otázky: dovoľuje táto rola danú akciu, a patrí tento
-používateľ do správneho tímu? Kontrola tímu vnútri každého kontrolera by
-znamenala opakovať to isté v desiatkach metód. Skončil som pri jedinej službe
-`TeamAccessService`, ktorá adminovi nevráti žiadny filter a všetkým ostatným
-konkrétny zoznam tímov. Služby ho potom použijú ako `.Where()` podmienku nad EF
-dotazom. Pravidlo tak žije na jednom mieste, nie roztrúsené po kontroleroch.
-Keď verejné demo neskôr potrebovalo izoláciu na úrovni návštevníka, ten istý
-postup sa zišiel znova: skončila v modeli ako globálny query filter, nie
-v každom dotaze zvlášť.
+Mimo priečinka s repozitárom, databázy a úložiska Dockera sa nič neinštaluje, takže odstránenie projektu znamená vyčistiť tieto tri veci.
 
-**O Refite som pred týmto projektom nepočul.** Chystal som sa napísať servisnú
-triedu ku každému kontroleru a v nej ručne obaľovať volania
-`HttpClient.PostAsJsonAsync`. Až keď som hľadal efektívnejší spôsob, natrafil
-som na Refit na jednom fóre, kde ho niekto odporúčal presne na tento typ
-problému. S Refitom je API kontrakt rozhranie s jednou metódou na endpoint
-a implementáciu dogeneruje kompilátor. Naprieč 14 rozhraniami to ušetrilo
-niekoľko stoviek riadkov opakovaného kódu a preklep v ceste alebo v názve DTO
-poľa sa zmenil z runtime 404 na chybu pri builde.
+### S Dockerom
 
-**Najväčší rozdiel medzi plánom a realitou bol registračný formulár.** Chcel som,
-aby si rodič vedel adresu jednoducho nájsť na mape cez OpenStreetMap a kliknutím
-na ňu by sa vyplnila priamo vo formulári aj so súradnicami. Po pár dňoch
-prototypovania mi došlo, koľko by to stálo: cudzia JavaScriptová knižnica
-v Blazor WebAssembly stránke, iný tvar stĺpcov v databáze a závislosť na tile
-serveri, ktorý nemám pod kontrolou. A načo vlastne, keď tréner ani admin nikdy
-nehľadá rodičov podľa polohy. Tak som to zjednodušil na obyčajné textové pole. Niečo, čo vypadá zaujímavé na spravenie, ešte neznamená, že to stojí za to.
+```bash
+docker compose down -v --rmi all
+```
+
+`-v` zmaže volume `zisk-db-data`, v ktorom drží SQL Server databázu, takže spolu s ním idú preč aj všetky dáta. `--rmi all` odstráni image zostavený pre aplikáciu aj stiahnutý základný image `mcr.microsoft.com/mssql/server:2022-latest`, ktorý má pár gigabajtov.
+
+Ak sa plánujete vrátiť, vynechajte `--rmi all` a images zostanú. Ak chcete zachovať dáta, vynechajte `-v`.
+
+Potom zmažte súbor `.env`, ktorý ste si vytvorili, a naklonovaný repozitár.
+
+### Bez Dockera
+
+Databáza sa volá `ZISK` a beží na inštancii `(localdb)\mssqllocaldb`:
+
+```bash
+dotnet ef database drop --project ZISK/ZISK/ZISK.csproj
+```
+
+Samotnú LocalDB inštanciu cez `sqllocaldb delete` nemažte, zdieľa ju každý ďalší LocalDB projekt na počítači.
+
+Súbory nahraté cez oznamy a dokumenty sa ukladajú do `ZISK/ZISK/wwwroot/uploads/` a spolu s databázou nezmiznú. Priečinok existuje len vtedy, ak sa naozaj niečo nahralo.
+
+Ak ste nastavovali user secrets, vyčistite ich:
+
+```bash
+dotnet user-secrets clear --project ZISK/ZISK/ZISK.csproj
+```
+
+Potom zmažte naklonovaný repozitár, čím pôjdu preč aj `bin/` a `obj/`.
+
+NuGet balíky nie sú uložené v projekte. Sedia v zdieľanej cache v `~/.nuget/packages` a používa ich každý .NET projekt na počítači, takže ich nechajte tak, pokiaľ ju nechcete zámerne vyprázdniť cez `dotnet nuget locals all --clear`.
 
 ## Licencia
 

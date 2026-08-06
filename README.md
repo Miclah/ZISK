@@ -7,6 +7,22 @@ Attendance tracking, training scheduling and communication between parents and c
 [![CI](https://github.com/Miclah/ZISK/actions/workflows/ci.yml/badge.svg)](https://github.com/Miclah/ZISK/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-green)](LICENSE)
 
+## Contents
+
+- [Live demo](#live-demo)
+- [About this project](#about-this-project)
+- [Features by role](#features-by-role)
+- [Screenshots](#screenshots)
+- [Tech stack](#tech-stack)
+- [Architecture](#architecture)
+- [Demo mode](#demo-mode)
+- [Running locally](#running-locally)
+- [Configuration and secrets](#configuration-and-secrets)
+- [Deployment](#deployment)
+- [Uninstalling](#uninstalling)
+- [License](#license)
+- [Author](#author)
+
 ## Live demo
 
 **[miclah-zisk.azurewebsites.net/demo](https://miclah-zisk.azurewebsites.net/demo)**
@@ -15,8 +31,8 @@ Pick a role and you are signed in. There is no password to enter and no account 
 
 The site runs on the Azure free tier, which stops the app and pauses the database when nobody is using them. First load after an idle period takes roughly 30 seconds while both wake up. After that it responds normally.
 
-<!-- TODO: replace with a video uploaded by dragging it into a GitHub issue -->
-![Demo walkthrough](docs/screenshots/walkthrough.gif)
+
+![Demo walkthrough](https://github.com/user-attachments/assets/6b5ee780-162c-4ae9-975e-98900dae85ef)
 
 ## About this project
 
@@ -196,36 +212,43 @@ The demo runs on Azure App Service on the free F1 plan, against an Azure SQL ser
 
 Because the database auto-pauses, `UseSqlServer` is configured with `EnableRetryOnFailure` and a 120 second command timeout, and startup retries the migration ten times with backoff before failing loudly rather than serving an app with no schema.
 
-## What I learned
+## Uninstalling
 
-**Team-scoped authorisation was the hardest design call.** Every endpoint had to
-answer two separate questions: does this role allow the action, and is this user
-attached to the right team? Putting the team check inside each controller meant
-repeating it across dozens of methods. I settled on a single `TeamAccessService`
-that returns no filter for an admin and an explicit set of team IDs for everyone
-else, which services apply as a `.Where()` predicate against the EF query. The
-rule lives in one place instead of being scattered across controllers. When the
-public demo later needed per-visitor isolation, the same approach paid off
-again: it went into the model as a global query filter rather than into every
-query.
+Nothing is installed outside the repository folder, the database and Docker's own storage, so removing the project means clearing those three.
 
-**I had not heard of Refit before this project.** I was about to write a service
-class per controller, each wrapping `HttpClient.PostAsJsonAsync` calls by hand.
-It was only when I went looking for a more efficient way that I came across
-Refit on some forum, where someone had recommended it for exactly this kind of
-problem. With Refit an API contract is an interface with one method per
-endpoint, and the implementation is generated at compile time. Across 14
-interfaces that removed several hundred lines of boilerplate, and it turned a
-typo in a route or a DTO field into a compile error rather than a runtime 404.
+### With Docker
 
-**The biggest gap between plan and reality was the registration form.** I wanted
-parents to be able to find their address visually on an OpenStreetMap and just
-click it to fill in the form, coordinates included. A few days into
-prototyping I realized what that would actually cost: a third-party JavaScript
-library inside a Blazor WebAssembly page, a different column shape in the
-database, and a dependency on a tile server I did not control. And for what,
-when coaches and admins never look up parents by location anyway. So I
-simplified it down to a plain text field. Something that seems interesting to build does not mean it is worth building.
+```bash
+docker compose down -v --rmi all
+```
+
+`-v` deletes the `zisk-db-data` volume, which is where SQL Server keeps the database, so this discards all data with it. `--rmi all` removes both the image built for the app and the `mcr.microsoft.com/mssql/server:2022-latest` base image pulled for the database, the latter being a couple of gigabytes.
+
+Leave off `--rmi all` to keep the images if you expect to come back, or leave off `-v` to keep the data.
+
+Then delete the `.env` file you created and the cloned repository.
+
+### Without Docker
+
+The database is called `ZISK` and lives on the `(localdb)\mssqllocaldb` instance:
+
+```bash
+dotnet ef database drop --project ZISK/ZISK/ZISK.csproj
+```
+
+Do not delete the LocalDB instance itself with `sqllocaldb delete`. It is shared with every other LocalDB project on the machine.
+
+Files uploaded through the announcements and documents screens are stored in `ZISK/ZISK/wwwroot/uploads/` and are not removed along with the database. The folder only exists if something was actually uploaded.
+
+If you set any user secrets, clear them:
+
+```bash
+dotnet user-secrets clear --project ZISK/ZISK/ZISK.csproj
+```
+
+Then delete the cloned repository, which takes `bin/` and `obj/` with it.
+
+NuGet packages are not kept in the project. They live in the shared cache under `~/.nuget/packages` and are used by every .NET project on the machine, so leave them be unless you specifically want to empty it with `dotnet nuget locals all --clear`.
 
 ## License
 
