@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using ZISK.Data.Entities;
 using ZISK.Services.Demo;
 
-// Pomoc s AI
 namespace ZISK.Data
 {
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
@@ -95,13 +94,12 @@ namespace ZISK.Data
 
             // TrainingSeries
             //
-            // Restrict, not Cascade. Team already cascades to TrainingEvent, and TrainingSeries
-            // sets TrainingEvent.SeriesId to null - cascading here too would give SQL Server two
-            // delete paths into TrainingEvents and it rejects the schema outright ("may cause
-            // cycles or multiple cascade paths"). The incremental migration chain never surfaced
-            // this because the FK was created as Restrict and the later model edit to Cascade
-            // was never actually emitted; every real database has Restrict. Nothing depends on
-            // the cascade either: TeamService.DeleteTeamAsync removes the series itself.
+            // Restrict, not Cascade, and it has to stay that way. Team already cascades into
+            // TrainingEvent, and TrainingSeries sets TrainingEvent.SeriesId to null. Cascading
+            // here as well would give SQL Server two delete paths into TrainingEvents, and it
+            // refuses to create the schema at all ("may cause cycles or multiple cascade paths").
+            // Nothing needs the cascade anyway: TeamService.DeleteTeamAsync removes the series
+            // before it removes the team.
             builder.Entity<TrainingSeries>()
                 .HasOne(ts => ts.Team)
                 .WithMany()
@@ -287,12 +285,13 @@ namespace ZISK.Data
                 .ValueGeneratedNever();
 
             // Demo-session isolation: every IDemoScoped entity is filtered to rows whose
-            // DemoSessionId matches the current request's demo session (see DemoSessionId
-            // property above). Applied uniformly and declaratively here so no service or
-            // controller had to be touched to get per-visitor isolation - the same reasoning
-            // behind CLAUDE.md's warning that team-scoping was applied ad hoc per-service and
-            // some endpoints were missed. This can't repeat that mistake because it isn't
-            // opt-in per query.
+            // DemoSessionId matches the current request's demo session (see the DemoSessionId
+            // property above).
+            //
+            // Declared once here rather than added to each query on purpose. Scoping that a
+            // caller has to remember is scoping a caller can forget, and a missed filter here
+            // would leak one visitor's data into another's session. This way a new query is
+            // filtered because it exists, not because someone thought about it.
             builder.Entity<Team>().HasQueryFilter(e => e.DemoSessionId == DemoSessionId);
             builder.Entity<TeamMember>().HasQueryFilter(e => e.DemoSessionId == DemoSessionId);
             builder.Entity<CoachTeam>().HasQueryFilter(e => e.DemoSessionId == DemoSessionId);

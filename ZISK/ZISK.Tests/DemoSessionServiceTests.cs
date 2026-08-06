@@ -11,10 +11,10 @@ using ZISK.Services.Demo;
 namespace ZISK.Tests;
 
 /// <summary>
-/// Regression tests for the public-demo per-visitor isolation (Fáza 6: ZISK_SEED_MODE=demo).
-/// Covers the two things that must never break: cloning a session must not leak into another
-/// session or back into the shared template, and reset/cleanup must not leave orphaned rows
-/// behind for entities with Restrict-delete foreign keys.
+/// Per-visitor isolation in the public demo (ZISK_SEED_MODE=demo). Two things must never break:
+/// cloning a session must not leak into another session or back into the shared template, and
+/// reset or cleanup must not leave orphaned rows behind for entities whose foreign keys are
+/// Restrict rather than Cascade.
 /// </summary>
 public class DemoSessionServiceTests
 {

@@ -19,27 +19,33 @@
 
 <div class="demo-page">
     <main class="demo-panel">
-        <header class="demo-head">
-            @* No separate wordmark here: the h1 below already opens with the product name, and
-               showing both read as a duplicate. *@
-            <div class="demo-brand">
-                @* data-enhance-nav="false" is required: blazor.webassembly.js is loaded for every
-                   page in App.razor, so its enhanced navigation intercepts these links even though
-                   this page is static SSR ([ExcludeFromInteractiveRouting]). The intercepted click
-                   never reaches the server, so ?lang= is never read and the switch appears dead.
-                   Opting out forces a real navigation. *@
-                <nav class="demo-lang" aria-label="Language">
-                    <a href="/demo?lang=sk" data-enhance-nav="false"
-                       class="@(_lang == Lang.Sk ? "is-active" : "")"
-                       aria-current="@(_lang == Lang.Sk ? "true" : null)">SK</a>
-                    <a href="/demo?lang=en" data-enhance-nav="false"
-                       class="@(_lang == Lang.En ? "is-active" : "")"
-                       aria-current="@(_lang == Lang.En ? "true" : null)">EN</a>
-                </nav>
-            </div>
+        @* The top strip is the app's own app bar, reproduced: same navy gradient, same wordmark
+           treatment, the same orange DEMO chip, and the language switch in the same corner. It is
+           the one element a visitor sees on both sides of the sign-in, so it carries the "this is
+           the same product" signal that a shared colour palette alone doesn't. *@
+        <div class="demo-bar">
+            <span class="demo-wordmark">ZISK</span>
+            <span class="demo-badge">DEMO</span>
 
-            <h1>@T("demo.title")</h1>
-            <p>@T("demo.intro")</p>
+            @* data-enhance-nav="false" is required: blazor.webassembly.js is loaded for every
+               page in App.razor, so its enhanced navigation intercepts these links even though
+               this page is static SSR ([ExcludeFromInteractiveRouting]). The intercepted click
+               never reaches the server, so ?lang= is never read and the switch appears dead.
+               Opting out forces a real navigation. *@
+            <nav class="demo-lang" aria-label="Language">
+                <a href="/demo?lang=sk" data-enhance-nav="false"
+                   class="@(_lang == Lang.Sk ? "is-active" : "")"
+                   aria-current="@(_lang == Lang.Sk ? "true" : null)">SK</a>
+                <a href="/demo?lang=en" data-enhance-nav="false"
+                   class="@(_lang == Lang.En ? "is-active" : "")"
+                   aria-current="@(_lang == Lang.En ? "true" : null)">EN</a>
+            </nav>
+        </div>
+
+        <div class="demo-body">
+        <header class="demo-head">
+            <h1 class="demo-tagline">@T("demo.tagline")</h1>
+            <p class="demo-lead">@T("demo.intro")</p>
         </header>
 
         @if (_errorMessage is not null)
@@ -52,45 +58,86 @@
            posts the field twice, and ASP.NET Core reads that multi-value field as a single
            malformed token - the request then fails with "A valid antiforgery token was not
            provided with the request." *@
+        @* Real submit buttons, not clickable divs: they are reachable by Tab, activate on Enter
+           and Space, and a screen reader announces the aria-label as the action. The trailing
+           arrow is decorative only - it exists so the card looks like it leads somewhere. *@
         <EditForm Model="_input" FormName="demo-try" OnSubmit="HandleSubmitAsync" class="demo-roles">
-            <button type="submit" name="Role" value="Admin" class="demo-role">
+            <button type="submit" name="Role" value="Admin" class="demo-role"
+                    aria-label="@T("demo.role.admin.button")">
+                <span class="demo-role-icon" aria-hidden="true">
+                    <MudIcon Icon="@Icons.Material.Rounded.AdminPanelSettings" Size="Size.Medium" Color="Color.Inherit" />
+                </span>
                 <span class="demo-role-text">
                     <span class="demo-role-name">@T("demo.role.admin.title")</span>
                     <span class="demo-role-desc">@T("demo.role.admin.desc")</span>
                 </span>
-                <span class="demo-role-go" aria-hidden="true"></span>
+                <span class="demo-role-go" aria-hidden="true">
+                    <MudIcon Icon="@Icons.Material.Rounded.ArrowForward" Size="Size.Small" Color="Color.Inherit" />
+                </span>
             </button>
 
-            <button type="submit" name="Role" value="Coach" class="demo-role">
+            <button type="submit" name="Role" value="Coach" class="demo-role"
+                    aria-label="@T("demo.role.coach.button")">
+                <span class="demo-role-icon" aria-hidden="true">
+                    <MudIcon Icon="@Icons.Material.Rounded.Groups" Size="Size.Medium" Color="Color.Inherit" />
+                </span>
                 <span class="demo-role-text">
                     <span class="demo-role-name">@T("demo.role.coach.title")</span>
                     <span class="demo-role-desc">@T("demo.role.coach.desc")</span>
                 </span>
-                <span class="demo-role-go" aria-hidden="true"></span>
+                <span class="demo-role-go" aria-hidden="true">
+                    <MudIcon Icon="@Icons.Material.Rounded.ArrowForward" Size="Size.Small" Color="Color.Inherit" />
+                </span>
             </button>
 
-            <button type="submit" name="Role" value="Parent" class="demo-role">
+            <button type="submit" name="Role" value="Parent" class="demo-role"
+                    aria-label="@T("demo.role.parent.button")">
+                <span class="demo-role-icon" aria-hidden="true">
+                    <MudIcon Icon="@Icons.Material.Rounded.FamilyRestroom" Size="Size.Medium" Color="Color.Inherit" />
+                </span>
                 <span class="demo-role-text">
                     <span class="demo-role-name">@T("demo.role.parent.title")</span>
                     <span class="demo-role-desc">@T("demo.role.parent.desc")</span>
                 </span>
-                <span class="demo-role-go" aria-hidden="true"></span>
+                <span class="demo-role-go" aria-hidden="true">
+                    <MudIcon Icon="@Icons.Material.Rounded.ArrowForward" Size="Size.Small" Color="Color.Inherit" />
+                </span>
             </button>
 
-            <button type="submit" name="Role" value="Child" class="demo-role">
+            <button type="submit" name="Role" value="Child" class="demo-role"
+                    aria-label="@T("demo.role.child.button")">
+                <span class="demo-role-icon" aria-hidden="true">
+                    <MudIcon Icon="@Icons.Material.Rounded.DirectionsRun" Size="Size.Medium" Color="Color.Inherit" />
+                </span>
                 <span class="demo-role-text">
                     <span class="demo-role-name">@T("demo.role.child.title")</span>
                     <span class="demo-role-desc">@T("demo.role.child.desc")</span>
                 </span>
-                <span class="demo-role-go" aria-hidden="true"></span>
+                <span class="demo-role-go" aria-hidden="true">
+                    <MudIcon Icon="@Icons.Material.Rounded.ArrowForward" Size="Size.Small" Color="Color.Inherit" />
+                </span>
             </button>
         </EditForm>
 
-        <p class="demo-note">@T("demo.footerNote")</p>
+        <footer class="demo-footer">
+            <p class="demo-note">@T("demo.footerNote")</p>
+            <div class="demo-meta">
+                <span class="demo-author">@T("demo.builtBy")</span>
+                <span class="demo-dot" aria-hidden="true"></span>
+                <a href="@SourceUrl" target="_blank" rel="noopener noreferrer">@T("demo.sourceLink")</a>
+                @* The stack list is what a reviewing developer scans for first, so it is spelled
+                   out rather than hidden behind the GitHub link, and it gets its own line. Not
+                   localized: these are product names, identical in both languages. *@
+                <span class="demo-stack">.NET 10 · Blazor WASM · EF Core · Azure</span>
+            </div>
+        </footer>
+        </div>
     </main>
 </div>
 
 @code {
+    private const string SourceUrl = "https://github.com/Miclah/ZISK";
+
     private readonly object _input = new();
     private string? _errorMessage;
     private Lang _lang = Lang.Sk;
@@ -118,21 +165,9 @@
 
         ResolveLanguage();
 
-        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        if (HttpMethods.IsGet(HttpContext.Request.Method) && HttpContext.User.Identity?.IsAuthenticated == true)
         {
-            // Without no-store, hitting Back after picking a role re-shows this form straight
-            // from the browser's cache (or bfcache). That copy's antiforgery token was minted
-            // for an anonymous visitor, but the request now carries the demo Identity cookie -
-            // tokens are bound to the identity, so UseAntiforgery rejects it with a bare 400
-            // before this component ever runs, and the visitor sees a raw error page. Forcing a
-            // real request means Back lands on the redirect below instead.
-            HttpContext.Response.Headers.CacheControl = "no-store, no-cache";
-            HttpContext.Response.Headers.Pragma = "no-cache";
-
-            if (HttpContext.User.Identity?.IsAuthenticated == true)
-            {
-                NavigationManager.NavigateTo("/", forceLoad: true);
-            }
+            NavigationManager.NavigateTo("/", forceLoad: true);
         }
 
         // POST handling happens via the EditForm's OnSubmit binding below, not here - same

@@ -3,10 +3,9 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
       ACCEPT_EULA: "Y"
-      # Set MSSQL_SA_PASSWORD in your .env file (see .env.example). If it's left unset,
-      # SQL Server's own startup password-complexity check rejects an empty password and
-      # the container exits with a clear error - no `${VAR:?msg}` compose operator needed
-      # here (that syntax previously tripped a GitGuardian false positive, see below).
+      # Comes from .env, which is gitignored. See .env.example for the format.
+      # Leaving it empty is safe: SQL Server refuses to start on a blank password
+      # and says so in the container log.
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
     ports:
       - "1433:1433"
@@ -28,6 +27,13 @@ services:
     environment:
       ConnectionStrings__DefaultConnection: "Server=db;Database=ZISK;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True"
       ZISK_SEED_MODE: ${ZISK_SEED_MODE:-local}
+
+      # Only read when ZISK_SEED_MODE=demo. In local mode the seeded accounts use the
+      # built-in development passwords instead (DatabaseInitializer.SeedPasswordSet).
+      Seed__Passwords__Admin: ${SEED_ADMIN_PASSWORD:-Admin123!}
+      Seed__Passwords__Coach: ${SEED_COACH_PASSWORD:-Coach123!}
+      Seed__Passwords__Parent: ${SEED_PARENT_PASSWORD:-Parent123!}
+      Seed__Passwords__Child: ${SEED_CHILD_PASSWORD:-Child123!}
     depends_on:
       db:
         condition: service_healthy

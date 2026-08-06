@@ -7,8 +7,8 @@ namespace ZISK.Client.Components;
 /// Base class for any translated page/component: <c>@inherits LocalizedComponentBase</c>, then
 /// use <c>@T("some.key")</c> instead of hardcoded Slovak text. Subscribes to
 /// <see cref="ILanguageService.Changed"/> so a language switch re-renders this component
-/// immediately - no page reload, which is the whole point of driving this off a client-side
-/// dictionary instead of .resx satellite assemblies (see CLAUDE.md's localization notes).
+/// immediately, without a page reload. That is why translations live in a client-side
+/// dictionary rather than in .resx satellite assemblies.
 /// </summary>
 public abstract class LocalizedComponentBase : ComponentBase, IDisposable
 {

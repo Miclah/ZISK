@@ -69,16 +69,26 @@ public class TrainingSeriesGeneratorWorker
 public class TrainingSeriesGeneratorService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly StartupState _startupState;
     private readonly ILogger<TrainingSeriesGeneratorService> _logger;
 
-    public TrainingSeriesGeneratorService(IServiceScopeFactory scopeFactory, ILogger<TrainingSeriesGeneratorService> logger)
+    public TrainingSeriesGeneratorService(
+        IServiceScopeFactory scopeFactory,
+        StartupState startupState,
+        ILogger<TrainingSeriesGeneratorService> logger)
     {
         _scopeFactory = scopeFactory;
+        _startupState = startupState;
         _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // The schedule below happens to delay the first pass past initialization, but that is a
+        // property of the chosen run time, not a guarantee. Waiting explicitly keeps a future change
+        // to that schedule from quietly reintroducing a race with the migration.
+        await _startupState.WaitForReadyAsync(stoppingToken);
+
         while (!stoppingToken.IsCancellationRequested)
         {
             var now = DateTime.UtcNow;

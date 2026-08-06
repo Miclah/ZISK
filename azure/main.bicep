@@ -38,7 +38,7 @@ param seedParentPassword string
 param seedChildPassword string
 
 @secure()
-@description('Demo:OwnerKey - shared secret for the one-time /__owner?key=... link that lets you (not recruiters) reach /login and the rest of the Identity scaffold. Visit that URL once per browser after deploying.')
+@description('Demo:OwnerKey - shared secret for the one-time /__owner?key=... link')
 param demoOwnerKey string
 
 var sqlServerName = '${appName}-sql'

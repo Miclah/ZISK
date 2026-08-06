@@ -10,7 +10,13 @@ COPY ZISK/ZISK/ZISK.csproj ZISK/ZISK/ZISK.csproj
 COPY ZISK/ZISK.Client/ZISK.Client.csproj ZISK/ZISK.Client/ZISK.Client.csproj
 COPY ZISK/ZISK.Shared/ZISK.Shared.csproj ZISK/ZISK.Shared/ZISK.Shared.csproj
 COPY ZISK/ZISK.Tests/ZISK.Tests.csproj ZISK/ZISK.Tests/ZISK.Tests.csproj
-RUN dotnet restore ZISK/ZISK/ZISK.csproj
+COPY NuGet.Config ./
+
+ENV NUGET_CERT_REVOCATION_MODE=offline
+ENV DOTNET_NUGET_SIGNATURE_VERIFICATION=false
+
+RUN dotnet restore ZISK/ZISK/ZISK.csproj \
+    --configfile NuGet.Config
 
 # Copy the rest of the source and publish the server project (it references
 # ZISK.Client and ZISK.Shared, so this also builds and bundles the WASM client).
@@ -24,11 +30,8 @@ RUN dotnet publish ZISK/ZISK/ZISK.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
-# Non-root user — the ASP.NET runtime image runs as root by default.
-RUN adduser --disabled-password --gecos "" appuser
 COPY --from=build /app/publish .
-RUN chown -R appuser:appuser /app
-USER appuser
+USER app
 
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080

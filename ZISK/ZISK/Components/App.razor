@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿@using ZISK.Shared.Localization
+
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -26,6 +28,17 @@
 
 <body>
     <Routes @rendermode="PageRenderMode" />
+
+    @* Blazor unhides this element when an exception escapes a component. Without it in the
+       document, a crash in the WebAssembly renderer is completely silent: the page keeps
+       showing whatever it last rendered, and every click, tab and button on it stops working
+       with nothing on screen to say why. Text comes from the same zisk_lang cookie the rest of
+       the app reads, since this markup is outside any component that could localize it. *@
+    <div id="blazor-error-ui" data-nosnippet>
+        <span>@Translations.Get(ShellLang, "errorUi.message")</span>
+        <a href="" class="blazor-error-reload">@Translations.Get(ShellLang, "errorUi.reload")</a>
+    </div>
+
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
     <script src="js/online-status.js"></script>
@@ -49,4 +62,7 @@
 
     private IComponentRenderMode? PageRenderMode =>
         HttpContext.AcceptsInteractiveRouting() ? InteractiveWasmNoPrerender : null;
+
+    private Lang ShellLang =>
+        HttpContext.Request.Cookies.TryGetValue("zisk_lang", out var lang) && lang == "en" ? Lang.En : Lang.Sk;
 }

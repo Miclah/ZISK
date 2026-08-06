@@ -135,6 +135,63 @@ body {
     padding: 0 10px !important;
 }
 
+/* ============================================================
+   UNHANDLED ERROR BAR
+   Hidden until Blazor sets display:block on it. Sits above every MudBlazor layer (dialogs are
+   z-index 1400) because a dead renderer means the dialog on top of it can no longer be closed.
+============================================================ */
+#blazor-error-ui {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 3000;
+    padding: 14px 20px;
+    background: var(--zisk-error-tint);
+    border-top: 1px solid var(--zisk-error);
+    color: var(--zisk-slate-900);
+    font-size: 14px;
+    text-align: center;
+}
+
+/* Blazor shows the bar by setting an inline display:block, which would win over any flex
+   layout declared above, so spacing is done with a margin rather than a gap. */
+#blazor-error-ui .blazor-error-reload {
+    margin-left: 12px;
+    color: var(--zisk-error);
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* Authorship line, demo mode only: quiet enough to sit behind the DEMO chip without competing
+   with it, but present on every screen rather than only on the /demo landing footer. */
+.appbar-credit {
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--zisk-text-on-dark-subtle);
+    white-space: nowrap;
+}
+
+.appbar-credit a {
+    color: var(--zisk-text-on-dark-muted);
+    text-decoration: none;
+}
+
+.appbar-credit a:hover {
+    color: var(--zisk-text-on-dark);
+    text-decoration: underline;
+}
+
+.appbar-credit-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
+}
+
 /* Language switch: a two-segment pill in the app bar. Replaces a globe icon that opened a menu,
    which hid both the available languages and the one currently in use behind a click. */
 .appbar-lang-switch {

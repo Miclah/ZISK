@@ -57,6 +57,16 @@
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="Color.Warning">
                     DEMO
                 </MudChip>
+                @* Authorship follows the visitor into the app. The /demo footer carries it too,
+                   but that screen is three seconds of a reviewer's attention - after the first
+                   click the name and the repo link would otherwise be unreachable. Hidden below
+                   md, where the appbar has no room to spare. *@
+                <div class="appbar-credit d-none d-md-flex">
+                    <span class="appbar-credit-dot" aria-hidden="true"></span>
+                    <span>Michal Petrán</span>
+                    <span class="appbar-credit-dot" aria-hidden="true"></span>
+                    <a href="@SourceUrl" target="_blank" rel="noopener noreferrer">GitHub</a>
+                </div>
             }
             @if (_isCoach && !string.IsNullOrWhiteSpace(_coachTeamName))
             {
@@ -182,6 +192,8 @@
 </ErrorBoundary>
 
 @code {
+    private const string SourceUrl = "https://github.com/Miclah/ZISK";
+
     private bool _drawerOpen = true;
     private bool _isCoach;
     private bool _isParentAthlete;

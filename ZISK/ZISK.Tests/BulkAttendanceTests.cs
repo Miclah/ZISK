@@ -11,11 +11,14 @@ using SharedStatus = ZISK.Shared.Enums.AttendanceStatus;
 namespace ZISK.Tests;
 
 /// <summary>
-/// AttendanceService.BulkMarkAttendanceAsync used to issue one FirstOrDefaultAsync per entry, so saving a
-/// full team's attendance cost one database round-trip per child. It now pre-loads the training's existing
-/// records into a dictionary. These tests pin the observable behaviour that refactor had to preserve
-/// (update-existing vs insert-new), plus the duplicate-ChildId case, which previously produced two rows for
-/// the same child and tripped the unique (TrainingEventId, ChildId) index as a raw DB error.
+/// AttendanceService.BulkMarkAttendanceAsync writes a whole team's attendance in one pass. It
+/// pre-loads the training's existing records into a dictionary rather than querying per child,
+/// which keeps the cost flat as a roster grows.
+///
+/// These tests cover the behaviour that has to hold regardless of how the lookup is done: an
+/// entry for a child who already has a record updates it, an entry for a child who does not
+/// inserts one, and the same child listed twice in one request ends up as a single row rather
+/// than colliding with the unique (TrainingEventId, ChildId) index.
 /// </summary>
 public class BulkAttendanceTests
 {
