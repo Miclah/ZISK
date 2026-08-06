@@ -32,7 +32,7 @@ Kliknete na rolu a ste prihlásený. Bez hesla, bez registrácie. Dáta, ktoré 
 Beží to na bezplatnej Azure vrstve, ktorá aplikáciu aj databázu uspí, keď ich chvíľu nikto nepoužíva. Prvé načítanie po takej pauze trvá asi pol minúty. Potom už je to normálne rýchle.
 
 
-<img width="1200" height="675" alt="walkthrough" src="https://github.com/user-attachments/assets/5705e8c9-0145-4ac4-96cb-0e20e6ae550d" />
+![](https://github.com/Miclah/ZISK/blob/main/docs/screenshots/walkthrough.webp)
 
 ## O projekte
 
