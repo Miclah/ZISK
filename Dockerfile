@@ -30,11 +30,8 @@ RUN dotnet publish ZISK/ZISK/ZISK.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
-# Non-root user — the ASP.NET runtime image runs as root by default.
-RUN adduser --disabled-password --gecos "" appuser
 COPY --from=build /app/publish .
-RUN chown -R appuser:appuser /app
-USER appuser
+USER app
 
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
