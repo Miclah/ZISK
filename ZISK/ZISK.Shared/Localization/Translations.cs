@@ -71,6 +71,12 @@ public static class Translations
             "Pre potvrdenie kliknite na odkaz, ktorý vám prišiel e-mailom.",
             "Click the link that was emailed to you to confirm."),
 
+        // ---- Blazor's built-in unhandled-error bar (App.razor, outside any component) ----
+        ["errorUi.message"] = (
+            "Nastala neočakávaná chyba a aplikácia prestala reagovať. Obnovte prosím stránku.",
+            "An unexpected error occurred and the app stopped responding. Please reload the page."),
+        ["errorUi.reload"] = ("Obnoviť stránku", "Reload"),
+
         // ---- Demo reset dialog ----
         ["demoReset.confirmText"] = (
             "Naozaj chcete obnoviť demo dáta? Všetky vaše zmeny (vytvorené, upravené alebo zmazané záznamy) sa nenávratne stratia a vrátia sa do pôvodného stavu.",
