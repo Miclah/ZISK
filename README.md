@@ -32,7 +32,7 @@ Pick a role and you are signed in. There is no password to enter and no account 
 The site runs on the Azure free tier, which stops the app and pauses the database when nobody is using them. First load after an idle period takes roughly 30 seconds while both wake up. After that it responds normally.
 
 
-<img width="1100" height="619" alt="walkthrough" src="https://github.com/user-attachments/assets/f225d512-59e2-4fb4-98f1-d392652975eb" />
+<img width="1200" height="675" alt="walkthrough" src="https://github.com/user-attachments/assets/171b061a-579a-4323-9418-76cfe269a01a" />
 
 ## About this project
 
