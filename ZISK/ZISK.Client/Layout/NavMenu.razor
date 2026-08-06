@@ -88,6 +88,16 @@
                 @T("nav.myTeam")
             </MudNavLink>
 
+            @* /admin/treningy je [Authorize(Roles = "Admin,Coach")], takže tréner tam mal
+               prístup už predtým, len sa k tomu nevedel preklikať. /admin/ospravedlnenky je
+               tiež Admin,Coach, ale odkaz zámerne nepridávame - tréner už ospravedlnenky
+               svojho tímu vidí v /coach/tim a druhý vstup do toho istého by len mýlil. *@
+            <MudNavLink Href="/admin/treningy"
+                        Icon="@Icons.Material.Rounded.FitnessCenter"
+                        Match="NavLinkMatch.Prefix">
+                @T("nav.trainings")
+            </MudNavLink>
+
             <MudNavLink Href="/coach/oznamy"
                         Icon="@Icons.Material.Rounded.Announcement"
                         Match="NavLinkMatch.Prefix">
