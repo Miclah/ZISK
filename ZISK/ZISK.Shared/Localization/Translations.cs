@@ -54,8 +54,8 @@ public static class Translations
         ["layout.resetTooltip"] = ("Obnoviť demo dáta", "Reset demo data"),
         ["layout.languageSwitch"] = ("Prepnúť jazyk", "Switch language"),
         ["layout.demoBanner"] = (
-            "Verejné demo – vaše zmeny sú súkromné pre vašu reláciu a po 24 hodinách nečinnosti sa vymažú. Všetky mená, telefónne čísla, rodné čísla a adresy sú vymyslené.",
-            "Public demo – your changes are private to your session and are deleted after 24 hours of inactivity. All names, phone numbers, birth numbers and addresses are fictional."),
+            "Verejné demo: vaše zmeny sú súkromné pre vašu reláciu a po 24 hodinách nečinnosti sa vymažú. Všetky mená, telefónne čísla, rodné čísla a adresy sú vymyslené.",
+            "Public demo: your changes are private to your session and are deleted after 24 hours of inactivity. All names, phone numbers, birth numbers and addresses are fictional."),
         ["layout.offlineWarning"] = (
             "Aplikácia vyžaduje pripojenie na internet. Skontrolujte prosím svoje sieťové nastavenia.",
             "This app requires an internet connection. Please check your network settings."),
