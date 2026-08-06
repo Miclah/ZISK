@@ -43,7 +43,7 @@ Core migration a naseeduje databázu. Prvý beh trvá zhruba minútu.
 ## Seed mode
 
 Compose má predvolene `ZISK_SEED_MODE=local`, čo znamená bežnú login stránku a
-development účty popísané v hlavnom [README](README.md#development-accounts).
+development účty popísané v hlavnom [README](README.sk.md#vývojárske-účty).
 
 Keď v `.env` nastavíš `ZISK_SEED_MODE=demo`, prepneš sa na verejný demo build:
 one-click prepínač rolí na `/demo`, oddelené dáta pre každého návštevníka,
