@@ -30,6 +30,14 @@ public sealed class StartupGateMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        // External monitors need an unconditional answer, not the waiting page - health checks must
+        // reach the endpoint even while the database is still coming up.
+        if (context.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase))
+        {
+            await _next(context);
+            return;
+        }
+
         var isStatusRequest = context.Request.Path.Equals(StatusPath, StringComparison.OrdinalIgnoreCase);
 
         if (_state.IsReady && !isStatusRequest)

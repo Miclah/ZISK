@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using System.Globalization;
@@ -303,6 +304,32 @@ app.MapRazorComponents<App>()
     .AddAdditionalAssemblies(typeof(ZISK.Client._Imports).Assembly);
 
 app.MapAdditionalIdentityEndpoints();
+
+// Anonymous by construction, mapped after StartupGateMiddleware bypasses them - external monitors
+// need a trivial, always-reachable answer, not a page that depends on auth or the database.
+app.MapGet("/health", () => Results.Ok());
+
+// A plain ApplicationDbContext would inherit its EnableRetryOnFailure policy and 120s command
+// timeout, so a paused demo database could hold a health check open for minutes. This connects
+// directly instead, with its own short timeout and no retries, so a down database fails the check
+// in seconds rather than hanging it.
+app.MapGet("/health/db", async (IConfiguration configuration, CancellationToken cancellationToken) =>
+{
+    var connectionString = configuration.GetConnectionString("DefaultConnection");
+    await using var connection = new SqlConnection(connectionString);
+    using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+    timeout.CancelAfter(TimeSpan.FromSeconds(5));
+
+    try
+    {
+        await connection.OpenAsync(timeout.Token);
+        return Results.Ok();
+    }
+    catch (Exception)
+    {
+        return Results.StatusCode(503);
+    }
+});
 
 // Database migration and seeding used to run here, between the mapping above and app.Run() below.
 // That blocked Kestrel from binding a port until it finished, which on the demo deployment meant a
