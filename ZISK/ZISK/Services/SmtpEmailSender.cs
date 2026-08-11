@@ -197,7 +197,7 @@ public class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSender
                 <div style="border-top: 1px solid #e0e0e0; padding-top: 15px; margin-top: 30px; 
                             color: #999; font-size: 12px;">
                     <p>Tento email bol odoslaný automaticky systémom ZISK. Neodpovedajte naň.</p>
-                    <p>© 2026 ZISK – Žiarský Informačný Systém pre Kluby</p>
+                    <p>© {DateTime.UtcNow.Year} ZISK – Žiarský Informačný Systém pre Kluby</p>
                 </div>
             </body>
             </html>

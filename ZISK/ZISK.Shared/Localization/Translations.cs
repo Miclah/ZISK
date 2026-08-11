@@ -633,10 +633,13 @@ public static class Translations
         ["coachAnnouncements.contentTextLabel"] = ("Text oznamu", "Announcement text"),
         ["coachAnnouncements.errorLoading"] = ("Chyba pri načítaní oznamov:", "Error loading announcements:"),
 
-        // ---- Forbidden / redirect / accept-invitation pages ----
+        // ---- Forbidden / not found / redirect / accept-invitation pages ----
         ["forbidden.pageTitle"] = ("Nemáte prístup", "Access denied"),
         ["forbidden.text"] = ("K tejto sekcii nemáte dostatočné oprávnenia. Ak si myslíte, že ide o chybu, kontaktujte administrátora.", "You don't have sufficient permissions for this section. If you think this is a mistake, contact an administrator."),
         ["forbidden.home"] = ("Domov", "Home"),
+        ["notFound.pageTitle"] = ("Stránka nenájdená", "Page not found"),
+        ["notFound.text"] = ("Požadovaná stránka neexistuje alebo bola presunutá.", "The page you're looking for doesn't exist or has moved."),
+        ["notFound.home"] = ("Domov", "Home"),
         ["redirect.pageTitle"] = ("Presmerovanie", "Redirecting"),
         ["acceptInvitation.pageTitle"] = ("Prijatie pozvánky", "Accepting invitation"),
         ["acceptInvitation.verifying"] = ("Overujem pozvánku...", "Verifying invitation..."),

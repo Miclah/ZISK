@@ -11,14 +11,14 @@
 @inject ISnackbar Snackbar
 @attribute [Authorize(Roles = "Coach")]
 
-<PageTitle>@T("coachAnnouncements.pageTitle")</PageTitle>
+<PageTitle>@T("coachAnnouncements.pageTitle") - ZISK</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
         <MudIcon Icon="@Icons.Material.Filled.Campaign" Size="Size.Large" Color="Color.Primary" />
         <MudStack Spacing="0">
-            <MudText Typo="Typo.h4">@T("coachAnnouncements.title")</MudText>
+            <MudText Typo="Typo.h4" HtmlTag="h1">@T("coachAnnouncements.title")</MudText>
             <MudText Typo="Typo.caption" Color="Color.Secondary">@T("coachAnnouncements.subtitle")</MudText>
         </MudStack>
     </MudStack>

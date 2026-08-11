@@ -13,6 +13,14 @@
 @inject NavigationManager NavigationManager
 
 <PageTitle>Prihlásenie - ZISK</PageTitle>
+<HeadContent>
+    <meta name="description" content="ZISK - systém na správu športového klubu. Dochádzka, rozvrhy tréningov a komunikácia trénera s rodičmi." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="@NavigationManager.Uri" />
+    <meta property="og:title" content="ZISK - systém na správu športového klubu" />
+    <meta property="og:description" content="Dochádzka, rozvrhy tréningov a komunikácia trénera s rodičmi." />
+    <meta property="og:image" content="@($"{NavigationManager.BaseUri}og-image.png")" />
+</HeadContent>
 
 <div class="login-page">
     <div class="login-card">

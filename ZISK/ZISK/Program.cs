@@ -331,6 +331,24 @@ app.MapGet("/health/db", async (IConfiguration configuration, CancellationToken 
     }
 });
 
+// MapRazorComponents only registers endpoints for paths that actually match a @page route, so a
+// URL that matches nothing at all (not a component, not a controller, not a static asset) would
+// otherwise fall through routing entirely and get ASP.NET Core's bare, empty-bodied 404 - the
+// Blazor Router's own <NotFound> content only ever runs for client-side navigation inside an
+// already-booted session, never for the first request to a bad URL. This is also what makes a
+// guarded path in DemoAccessGuardMiddleware indistinguishable from one that plain doesn't exist:
+// both routes end up serving the exact same branded 404 through NotFoundResponseWriter.
+app.MapFallback(context =>
+{
+    if (context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return Task.CompletedTask;
+    }
+
+    return NotFoundResponseWriter.WriteAsync(context);
+});
+
 // Database migration and seeding used to run here, between the mapping above and app.Run() below.
 // That blocked Kestrel from binding a port until it finished, which on the demo deployment meant a
 // browser waiting out the whole Azure SQL serverless resume on a request that had not returned a

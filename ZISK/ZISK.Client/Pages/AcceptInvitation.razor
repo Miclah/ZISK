@@ -5,7 +5,7 @@
 @inject UserContextService UserContextService
 @inject NavigationManager Navigation
 
-<PageTitle>@T("acceptInvitation.pageTitle")</PageTitle>
+<PageTitle>@T("acceptInvitation.pageTitle") - ZISK</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
     <MudPaper Class="pa-8 text-center" Elevation="2">
@@ -17,7 +17,7 @@
         else if (_status == Status.Success)
         {
             <MudIcon Icon="@Icons.Material.Rounded.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mb-4" Style="font-size: 4rem;" />
-            <MudText Typo="Typo.h5" Class="mb-2">@T("acceptInvitation.acceptedTitle")</MudText>
+            <MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-2">@T("acceptInvitation.acceptedTitle")</MudText>
             <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">@T("acceptInvitation.acceptedText")</MudText>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => Navigation.NavigateTo("/domov"))">
                 @T("acceptInvitation.continueButton")
@@ -26,7 +26,7 @@
         else
         {
             <MudIcon Icon="@Icons.Material.Rounded.ErrorOutline" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 4rem;" />
-            <MudText Typo="Typo.h5" Class="mb-2">@T("acceptInvitation.failedTitle")</MudText>
+            <MudText Typo="Typo.h5" HtmlTag="h1" Class="mb-2">@T("acceptInvitation.failedTitle")</MudText>
             <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">@_errorMessage</MudText>
             <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => Navigation.NavigateTo("/domov"))">
                 @T("forbidden.home")

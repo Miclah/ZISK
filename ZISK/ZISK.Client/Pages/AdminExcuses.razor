@@ -8,13 +8,13 @@
 @inject ISnackbar Snackbar
 @attribute [Authorize(Roles = "Admin,Coach")]
 
-<PageTitle>@T("admin.excuses.pageTitle")</PageTitle>
+<PageTitle>@T("admin.excuses.pageTitle") - ZISK</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2" Wrap="Wrap.Wrap">
     <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" Color="Color.Warning" />
-    <MudText Typo="Typo.h4">@T("admin.excuses.pageTitle")</MudText>
+    <MudText Typo="Typo.h4" HtmlTag="h1">@T("admin.excuses.pageTitle")</MudText>
     <MudChip T="string" Color="Color.Info" Size="Size.Small">@T("admin.excuses.totalLabel") @_excuses.Count</MudChip>
     <MudSpacer />
     <MudButton Variant="Variant.Outlined" Color="Color.Primary"

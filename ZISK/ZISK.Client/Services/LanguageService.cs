@@ -47,6 +47,7 @@ public class LanguageService : ILanguageService
         try
         {
             await _js.InvokeVoidAsync("ziskLang.setCookie", lang == Lang.En ? "en" : "sk");
+            await _js.InvokeVoidAsync("ziskLang.setHtmlLang", lang == Lang.En ? "en-GB" : "sk-SK");
         }
         catch { }
 

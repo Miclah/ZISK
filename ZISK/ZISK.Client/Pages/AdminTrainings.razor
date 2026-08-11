@@ -9,14 +9,14 @@
 @using ZISK.Shared.Enums
 @attribute [Authorize(Roles = "Admin,Coach")]
 
-<PageTitle>@T("admin.trainings.pageTitle")</PageTitle>
+<PageTitle>@T("admin.trainings.pageTitle") - ZISK</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4" Spacing="2" Wrap="Wrap.Wrap">
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
         <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Size="Size.Large" Color="Color.Primary" />
-        <MudText Typo="Typo.h4">@T("admin.trainings.pageTitle")</MudText>
+        <MudText Typo="Typo.h4" HtmlTag="h1">@T("admin.trainings.pageTitle")</MudText>
     </MudStack>
     @if (_activeTab == 0)
     {

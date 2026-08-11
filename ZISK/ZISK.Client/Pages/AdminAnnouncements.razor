@@ -12,14 +12,14 @@
 @inject NavigationManager NavigationManager
 @attribute [Authorize(Roles = "Admin")]
 
-<PageTitle>@T("admin.announcements.pageTitle")</PageTitle>
+<PageTitle>@T("admin.announcements.pageTitle") - ZISK</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
         <MudIcon Icon="@Icons.Material.Filled.Campaign" Size="Size.Large" Color="Color.Primary" />
-        <MudText Typo="Typo.h4">@T("admin.announcements.pageTitle")</MudText>
+        <MudText Typo="Typo.h4" HtmlTag="h1">@T("admin.announcements.pageTitle")</MudText>
     </MudStack>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
         @T("admin.announcements.create")

@@ -36,7 +36,7 @@
                     @AvatarInitials
                 </MudAvatar>
                 <MudStack Spacing="0" Class="flex-grow-1">
-                    <MudText Typo="Typo.h5" Style="color:#fff;">@_profile.FirstName @_profile.LastName</MudText>
+                    <MudText Typo="Typo.h5" HtmlTag="h1" Style="color:#fff;">@_profile.FirstName @_profile.LastName</MudText>
                     <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.85);">@_profile.Email</MudText>
                 </MudStack>
                 @if (!string.IsNullOrEmpty(_profile.Role))

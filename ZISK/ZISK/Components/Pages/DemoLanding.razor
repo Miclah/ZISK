@@ -16,6 +16,14 @@
 @inject ILogger<DemoLanding> Logger
 
 <PageTitle>@T("demo.title")</PageTitle>
+<HeadContent>
+    <meta name="description" content="@T("demo.intro")" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="@NavigationManager.Uri" />
+    <meta property="og:title" content="@T("demo.title")" />
+    <meta property="og:description" content="@T("demo.intro")" />
+    <meta property="og:image" content="@($"{NavigationManager.BaseUri}og-image.png")" />
+</HeadContent>
 
 <div class="demo-page">
     <main class="demo-panel">

@@ -1,0 +1,21 @@
+@inherits LocalizedComponentBase
+@inject NavigationManager Navigation
+
+@* Rendered from Routes.razor's <NotFound> for any route the client-side router can't match.
+   Deliberately styled and worded the same as Forbidden.razor's "no access" page - a visitor
+   can't tell "this route doesn't exist" from "you can't see this route" apart, which matters
+   because DemoAccessGuardMiddleware serves a matching 404 for guarded paths (login,
+   registration, the Identity scaffold) in demo mode. Two different-looking dead ends would be
+   the tell that gives those paths away. *@
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+    <MudPaper Class="pa-8 text-center" Elevation="2">
+        <MudIcon Icon="@Icons.Material.Rounded.SearchOff" Color="Color.Secondary" Size="Size.Large" Class="mb-4" Style="font-size: 4rem;" />
+        <h1 class="mud-typography-h4 mb-2">@T("notFound.pageTitle")</h1>
+        <MudText Typo="Typo.body1" Class="mb-6" Color="Color.Secondary">
+            @T("notFound.text")
+        </MudText>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => Navigation.NavigateTo("/"))">
+            @T("notFound.home")
+        </MudButton>
+    </MudPaper>
+</MudContainer>

@@ -12,10 +12,10 @@
 @inject ISnackbar Snackbar
 @attribute [Authorize(Roles = "Admin,Coach")]
 
-<PageTitle>@T("announcementForm.editTitle")</PageTitle>
+<PageTitle>@T("announcementForm.editTitle") - ZISK</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
-    <MudText Typo="Typo.h4" Class="mb-4">@T("announcementForm.editTitle")</MudText>
+    <MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-4">@T("announcementForm.editTitle")</MudText>
 
     @if (_isLoading)
 {

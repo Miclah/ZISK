@@ -8,11 +8,11 @@
 @inject ISnackbar Snackbar
 @attribute [Authorize]
 
-<PageTitle>@T("announcements.pageTitle")</PageTitle>
+<PageTitle>@T("announcements.pageTitle") - ZISK</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-2">
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="mb-4">
-    <MudText Typo="Typo.h4">@T("announcements.pageTitle")</MudText>
+    <MudText Typo="Typo.h4" HtmlTag="h1">@T("announcements.pageTitle")</MudText>
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
         <MudSelect T="AnnouncementPriority?" @bind-Value="_filterPriority" Label="@T("announcements.priorityFilterLabel")"
                    Variant="Variant.Outlined" Dense="true" Clearable="true" Style="min-width:200px;">

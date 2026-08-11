@@ -15,7 +15,7 @@
 @inject NavigationManager NavigationManager
 @attribute [Authorize(Roles = "Parent,Admin,Coach")]
 
-<PageTitle>@T("childDetail.pageTitle")</PageTitle>
+<PageTitle>@T("childDetail.pageTitle") - ZISK</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
     @if (_isLoading)
@@ -38,7 +38,7 @@
     {
         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2" Class="mb-4">
             <MudStack Spacing="0" Style="min-width:0;">
-                <MudText Typo="Typo.h5">@_detail.FirstName @_detail.LastName</MudText>
+                <MudText Typo="Typo.h5" HtmlTag="h1">@_detail.FirstName @_detail.LastName</MudText>
                 @if (!string.IsNullOrWhiteSpace(_detail.TeamName))
                 {
                     <MudText Typo="Typo.body2" Color="Color.Secondary">@T("childDetail.teamPrefix") @_detail.TeamName</MudText>

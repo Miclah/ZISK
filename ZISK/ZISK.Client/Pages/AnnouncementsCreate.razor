@@ -7,10 +7,10 @@
 @using ZISK.Shared.Enums
 @attribute [Authorize(Roles = "Admin,Coach")]
 
-<PageTitle>@T("announcementForm.createTitle")</PageTitle>
+<PageTitle>@T("announcementForm.createTitle") - ZISK</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
-    <MudText Typo="Typo.h4" Class="mb-4">@T("announcementForm.createTitle")</MudText>
+    <MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-4">@T("announcementForm.createTitle")</MudText>
 
     <MudGrid>
     <MudItem xs="12" md="8">

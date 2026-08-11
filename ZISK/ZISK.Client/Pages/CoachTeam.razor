@@ -10,7 +10,7 @@
 @inject ISnackbar Snackbar
 @attribute [Authorize(Roles = "Coach")]
 
-<PageTitle>@T("coachTeam.pageTitle")</PageTitle>
+<PageTitle>@T("coachTeam.pageTitle") - ZISK</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
 
@@ -18,7 +18,7 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="min-width:0; flex:1 1 240px;">
         <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Large" Color="Color.Primary" />
         <MudStack Spacing="0" Style="min-width:0;">
-            <MudText Typo="Typo.h4" Style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@(_teamName ?? T("coachTeam.pageTitle"))</MudText>
+            <MudText Typo="Typo.h4" HtmlTag="h1" Style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@(_teamName ?? T("coachTeam.pageTitle"))</MudText>
             <MudText Typo="Typo.caption" Style="@_styleMuted">@T("coachTeam.subtitle")</MudText>
         </MudStack>
     </MudStack>

@@ -1,7 +1,7 @@
 ﻿@using ZISK.Shared.Localization
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="@(ShellLang == Lang.Sk ? "sk-SK" : "en-GB")">
 
 <head>
     <meta charset="utf-8" />
@@ -15,13 +15,14 @@
     <link href="@Assets["_content/MudBlazor/MudBlazor.min.css"]" rel="stylesheet" />
     <link href="_content/Heron.MudCalendar/Heron.MudCalendar.min.css" rel="stylesheet" />
     <ImportMap />
-    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <meta name="theme-color" content="#1f2937" />
+    <meta name="theme-color" content="#1E3A5F" />
     <meta name="application-name" content="ZISK" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="ZISK" />
-    <link rel="apple-touch-icon" href="icons/icon-192.png" />
     <HeadOutlet @rendermode="PageRenderMode" />
 </head>
 

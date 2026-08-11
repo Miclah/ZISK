@@ -10,12 +10,12 @@
 
     @if (string.IsNullOrWhiteSpace(Subtitle))
     {
-        <MudText Typo="Typo.h4">@Title</MudText>
+        <MudText Typo="Typo.h4" HtmlTag="h1">@Title</MudText>
     }
     else
     {
         <MudStack Spacing="0" Style="min-width:0;">
-            <MudText Typo="Typo.h4" Style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@Title</MudText>
+            <MudText Typo="Typo.h4" HtmlTag="h1" Style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@Title</MudText>
             <MudText Typo="Typo.caption" Color="Color.Secondary">@Subtitle</MudText>
         </MudStack>
     }

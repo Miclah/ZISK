@@ -69,21 +69,21 @@ public class DemoAccessGuardMiddleware
 
         if (path.StartsWithSegments("/__owner", StringComparison.OrdinalIgnoreCase))
         {
-            GrantOwnerAccess(context, configuration);
+            await GrantOwnerAccessAsync(context, configuration);
             return;
         }
 
         var isGuarded = GuardedPathPrefixes.Any(prefix => path.StartsWithSegments(prefix, StringComparison.OrdinalIgnoreCase));
         if (isGuarded && !context.Request.Cookies.ContainsKey(OwnerCookieName))
         {
-            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            await NotFoundResponseWriter.WriteAsync(context);
             return;
         }
 
         await _next(context);
     }
 
-    private static void GrantOwnerAccess(HttpContext context, IConfiguration configuration)
+    private static async Task GrantOwnerAccessAsync(HttpContext context, IConfiguration configuration)
     {
         var expectedKey = configuration["Demo:OwnerKey"];
         var providedKey = QueryHelpers.ParseQuery(context.Request.QueryString.Value ?? "")
@@ -94,7 +94,7 @@ public class DemoAccessGuardMiddleware
                 Encoding.UTF8.GetBytes(expectedKey),
                 Encoding.UTF8.GetBytes(providedKey)))
         {
-            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            await NotFoundResponseWriter.WriteAsync(context);
             return;
         }
 

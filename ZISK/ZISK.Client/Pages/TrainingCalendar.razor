@@ -13,11 +13,11 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
 
-<PageTitle>@T("calendar.pageTitle")</PageTitle>
+<PageTitle>@T("calendar.pageTitle") - ZISK</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-2">
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3" Wrap="Wrap.Wrap">
-    <MudText Typo="Typo.h5">@T("calendar.pageTitle")</MudText>
+    <MudText Typo="Typo.h5" HtmlTag="h1">@T("calendar.pageTitle")</MudText>
 
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
         <AuthorizeView Roles="Parent">

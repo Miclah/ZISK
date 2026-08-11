@@ -9,5 +9,10 @@ window.ziskLang = {
     },
     setCookie: function (value) {
         document.cookie = `zisk_lang=${value}; path=/; max-age=2592000; samesite=lax`;
+    },
+    // The <html lang> attribute is set server-side on first render (App.razor), but a language
+    // switch inside the running WASM app never reloads the page, so nothing else updates it.
+    setHtmlLang: function (value) {
+        document.documentElement.lang = value;
     }
 };

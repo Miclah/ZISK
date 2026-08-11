@@ -4,12 +4,12 @@
 @attribute [AllowAnonymous]
 @inject NavigationManager Navigation
 
-<PageTitle>@T("forbidden.pageTitle")</PageTitle>
+<PageTitle>@T("forbidden.pageTitle") - ZISK</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
     <MudPaper Class="pa-8 text-center" Elevation="2">
         <MudIcon Icon="@Icons.Material.Rounded.Block" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 4rem;" />
-        <MudText Typo="Typo.h4" Class="mb-2">@T("forbidden.pageTitle")</MudText>
+        <MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-2">@T("forbidden.pageTitle")</MudText>
         <MudText Typo="Typo.body1" Class="mb-6" Color="Color.Secondary">
             @T("forbidden.text")
         </MudText>
