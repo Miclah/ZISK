@@ -38,18 +38,18 @@ internal static class SeedPersonDirectory
 
     private static readonly Dictionary<string, SeedPerson> ByEmail = new(StringComparer.OrdinalIgnoreCase)
     {
-        // Základné účty
+        // Core accounts
         ["admin@zisk.sk"]                = new("+421 905 214 336", "Vysokoškolákov 8, 010 08 Žilina", false, 1001),
         ["trener@zisk.sk"]               = new("+421 903 447 121", "Hálkova 22, 010 01 Žilina",       false, 1011),
         ["rodic@zisk.sk"]                = new("+421 907 512 908", NovakHome,                          false, 1021),
         ["dieta@zisk.sk"]                = new("+421 948 330 517", NovakHome,                          false, 1031),
 
-        // Tréneri
+        // Coaches
         ["rastislav.horvath@zisk.sk"]    = new("+421 905 661 042", "Predmestská 51, 010 01 Žilina",   false, 1041),
         ["tomas.balaz@zisk.sk"]          = new("+421 918 274 630", "Kysucká 9, 010 01 Žilina",        false, 1051),
         ["jan.minac@zisk.sk"]            = new("+421 949 118 725", "Nám. A. Hlinku 3, 015 01 Rajec",  false, 1061),
 
-        // Rodičia
+        // Parents
         ["jana.novakova@zisk.sk"]        = new("+421 911 604 238", NovakHome,  true,  1071),
         ["milan.horak@zisk.sk"]          = new("+421 902 375 419", HorakHome,  false, 1081),
         ["andrea.blahova@zisk.sk"]       = new("+421 940 223 861", BlahaHome,  true,  1091),
@@ -62,7 +62,7 @@ internal static class SeedPersonDirectory
         ["marta.cierna@zisk.sk"]         = new("+421 944 512 078", CiernyHome, true,  1161),
         ["vladimir.holub@zisk.sk"]       = new("+421 918 603 945", HolubHome,  false, 1171),
 
-        // Športovci
+        // Athletes
         ["lukas.maly@zisk.sk"]           = new("+421 949 802 316", MalyHome,   false, 1181),
         ["martin.horak@zisk.sk"]         = new("+421 902 148 570", HorakHome,  false, 1191),
         ["jakub.blaha@zisk.sk"]          = new("+421 911 375 924", BlahaHome,  false, 1201),
@@ -71,7 +71,7 @@ internal static class SeedPersonDirectory
         ["juraj.balog.jr@zisk.sk"]       = new("+421 903 471 265", BalogHome,  false, 1231),
         ["richard.varga@zisk.sk"]        = new("+421 940 837 512", VargaHome,  false, 1241),
 
-        // Deti
+        // Children
         ["petra.horakova@zisk.sk"]       = new("+421 902 619 483", HorakHome,  true,  1251),
         ["klara.oravec@zisk.sk"]         = new("+421 950 726 184", OravecHome, true,  1261),
         ["filip.cerny@zisk.sk"]          = new("+421 944 108 357", CiernyHome, false, 1271),

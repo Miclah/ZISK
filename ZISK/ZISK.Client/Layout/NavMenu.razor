@@ -88,10 +88,10 @@
                 @T("nav.myTeam")
             </MudNavLink>
 
-            @* /admin/treningy je [Authorize(Roles = "Admin,Coach")], takže tréner tam mal
-               prístup už predtým, len sa k tomu nevedel preklikať. /admin/ospravedlnenky je
-               tiež Admin,Coach, ale odkaz zámerne nepridávame - tréner už ospravedlnenky
-               svojho tímu vidí v /coach/tim a druhý vstup do toho istého by len mýlil. *@
+            @* /admin/treningy is already [Authorize(Roles = "Admin,Coach")], so a coach had access
+               before this link existed, they just had no way to click through to it. /admin/ospravedlnenky
+               is also Admin,Coach, but the link is deliberately left out - a coach already sees their
+               team's excuses in /coach/tim, and a second entry point to the same data would only confuse. *@
             <MudNavLink Href="/admin/treningy"
                         Icon="@Icons.Material.Rounded.FitnessCenter"
                         Match="NavLinkMatch.Prefix">

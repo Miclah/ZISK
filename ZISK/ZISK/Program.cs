@@ -127,7 +127,7 @@ builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
 // Fixed for the lifetime of the process - the seed mode comes from env/config read at startup.
 var isDemoDeployment = SeedModeResolver.Resolve(builder.Configuration) == SeedMode.Demo;
 
-// Cookie konfiguracia
+// Cookie configuration
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/login";

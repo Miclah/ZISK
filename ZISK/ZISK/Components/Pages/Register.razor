@@ -171,20 +171,6 @@
     [SupplyParameterFromQuery]
     private string? Invite { get; set; }
 
-    // zatial vypnutie email overenia
-    // protected override void OnInitialized()
-    // {
-    //     if (_input is null)
-    //     {
-    //         var draft = Drafts.Get();
-    //         if (draft is not null)
-    //         {
-    //             _input = new InputModel { ... };
-    //             ReturnUrl ??= draft.ReturnUrl;
-    //         }
-    //     }
-    // }
-
     private async Task RegisterUser()
     {
         _globalError = null;
@@ -254,13 +240,6 @@
             return;
         }
 
-        // zatial vypnutie email overenia
-        // var code = Drafts.GenerateCode();
-        // var draft = new RegistrationDraft { FirstName, LastName, Email, ... };
-        // Drafts.Save(draft);
-        // await EmailSender.SendEmailAsync(email, "ZISK – Potvrdenie e-mailu", BuildConfirmationEmailBody(...));
-        // NavigationManager.NavigateTo("/overenie/email", ...);
-
         var user = new ApplicationUser
         {
             UserName = username,
@@ -299,12 +278,6 @@
         var target = string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : ReturnUrl;
         NavigationManager.NavigateTo(target, forceLoad: true);
     }
-
-    // zatial vypnutie email overenia
-    // private static string BuildConfirmationEmailBody(string firstName, string code)
-    // {
-    //     return $"<h2>Vitajte v ZISK, {firstName}!</h2> ... <p>{code}</p> ...";
-    // }
 
     private sealed class InputModel
     {

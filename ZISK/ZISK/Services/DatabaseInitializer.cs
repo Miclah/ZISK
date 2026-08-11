@@ -320,7 +320,7 @@ public class DatabaseInitializer
         var hasTeam = await _context.TeamMembers.AnyAsync(tm => tm.UserId == childUser.Id);
         if (!hasTeam)
         {
-            // Tomáš Novák patrí do Prípravky
+            // Tomáš Novák belongs to Prípravka
             var teamId = await _context.Teams
                 .Where(t => t.IsActive && t.Name == "Prípravka")
                 .Select(t => (Guid?)t.Id)
@@ -467,7 +467,7 @@ public class DatabaseInitializer
         if (coach == null)
             return;
 
-        // Marek Kováčik je primárny tréner A-tímu
+        // Marek Kováčik is the primary coach of team A
         var aTeamId = await _context.Teams
             .Where(t => t.IsActive && t.Name == "A-tím")
             .Select(t => (Guid?)t.Id)
@@ -512,7 +512,7 @@ public class DatabaseInitializer
         var sampleUsers   = await EnsureSampleUsersAsync(passwords, anchor);
         var sampleChildren = await EnsureSampleChildrenAsync(teams, sampleUsers);
 
-        // Zahrnúť aj hlavného testovacie dieťa do zoznamu pre dochádzku
+        // Include the core test child in the attendance list too
         if (coreChild != null && !sampleChildren.Any(c => c.Id == coreChild.Id))
             sampleChildren.Insert(0, coreChild);
 
@@ -548,7 +548,7 @@ public class DatabaseInitializer
         var anchorDate = DateOnly.FromDateTime(anchor);
         DateOnly BirthDate(int ageYears, int dayOffset) => anchorDate.AddYears(-ageYears).AddDays(-dayOffset);
 
-        // Tréneri
+        // Coaches
         foreach (var (email, fn, ln, dob) in new[]
         {
             ("rastislav.horvath@zisk.sk", "Rastislav", "Horváth", BirthDate(45, 172)),
@@ -560,7 +560,7 @@ public class DatabaseInitializer
             if (u != null) coaches.Add(u);
         }
 
-        // Rodičia
+        // Parents
         foreach (var (email, fn, ln, dob) in new[]
         {
             ("jana.novakova@zisk.sk",   "Jana",     "Nováková", BirthDate(39, 214)),
@@ -580,7 +580,7 @@ public class DatabaseInitializer
             if (u != null) parents.Add(u);
         }
 
-        // Starší športovci (Athlete) — A-tím a B-tím
+        // Older athletes (Athlete role) - team A and team B
         foreach (var (email, fn, ln, dob) in new[]
         {
             ("lukas.maly@zisk.sk",      "Lukáš",   "Malý",   BirthDate(22, 74)),
@@ -596,7 +596,7 @@ public class DatabaseInitializer
             if (u != null) athletes.Add(u);
         }
 
-        // Mladší deti (Child) — Žiaci a Prípravka
+        // Younger children (Child role) - Žiaci and Prípravka
         foreach (var (email, fn, ln, dob) in new[]
         {
             ("petra.horakova@zisk.sk",  "Petra",   "Horáková", BirthDate(16, 97)),
@@ -627,22 +627,22 @@ public class DatabaseInitializer
         var ziaciTeamId    = teamByName.GetValueOrDefault("Žiaci",     teams.Count > 2 ? teams[2].Id : teams[0].Id);
         var pripravkaTeamId = teamByName.GetValueOrDefault("Prípravka", teams.Count > 3 ? teams[3].Id : teams[0].Id);
 
-        // A-tím: prví 4 športovci
+        // Team A: first 4 athletes
         var aTeamAthletes = sampleUsers.Athletes.Take(4).ToList();
         foreach (var u in aTeamAthletes)
             await EnsureTeamMembership(u, aTeamId, result);
 
-        // B-tím: ďalší 3 športovci
+        // Team B: next 3 athletes
         var bTeamAthletes = sampleUsers.Athletes.Skip(4).Take(3).ToList();
         foreach (var u in bTeamAthletes)
             await EnsureTeamMembership(u, bTeamId, result);
 
-        // Žiaci: prvé 4 deti
+        // Žiaci: first 4 children
         var ziaciChildren = sampleUsers.Children.Take(4).ToList();
         foreach (var u in ziaciChildren)
             await EnsureTeamMembership(u, ziaciTeamId, result);
 
-        // Prípravka: ďalšie 4 deti
+        // Prípravka: next 4 children
         var pripravkaChildren = sampleUsers.Children.Skip(4).Take(4).ToList();
         foreach (var u in pripravkaChildren)
             await EnsureTeamMembership(u, pripravkaTeamId, result);
@@ -687,33 +687,33 @@ public class DatabaseInitializer
         // a bug rather than as an intentionally empty state.
         var links = new List<(string ParentEmail, string ChildEmail, bool IsPrimary)>
         {
-            // Novákovci: otec Peter (primárny, linknutý cez EnsureChildSeedUserAsync), mama Jana
+            // The Novák family: father Peter (primary, linked via EnsureChildSeedUserAsync), mother Jana
             ("jana.novakova@zisk.sk",  "dieta@zisk.sk",          false),
             ("rodic@zisk.sk",          "samuel.novak@zisk.sk",   true),
             ("jana.novakova@zisk.sk",  "samuel.novak@zisk.sk",   false),
-            // Horákovci: Martin a Petra
+            // The Horák family: Martin and Petra
             ("milan.horak@zisk.sk",    "martin.horak@zisk.sk",   true),
             ("milan.horak@zisk.sk",    "petra.horakova@zisk.sk", true),
-            // Bláhovci: Jakub a Nina
+            // The Bláha family: Jakub and Nina
             ("andrea.blahova@zisk.sk", "jakub.blaha@zisk.sk",    true),
             ("andrea.blahova@zisk.sk", "nina.blahova@zisk.sk",   true),
-            // Kráľovci: Adam a Zuzana
+            // The Kráľ family: Adam and Zuzana
             ("lukas.kral@zisk.sk",     "adam.kral@zisk.sk",      true),
             ("lukas.kral@zisk.sk",     "zuzana.kralova@zisk.sk", true),
-            // Šimonovci: Michal
+            // The Šimon family: Michal
             ("monika.simonova@zisk.sk","michal.simon@zisk.sk",   true),
-            // Balogovci: Juraj ml.
+            // The Balog family: Juraj Jr.
             ("juraj.balog@zisk.sk",    "juraj.balog.jr@zisk.sk", true),
-            // Oravcovci: Klára
+            // The Oravec family: Klára
             ("zuzana.oravec@zisk.sk",  "klara.oravec@zisk.sk",   true),
-            // Malí: Lukáš a Ondrej, súrodenci naprieč A-tímom a Prípravkou
+            // The Malý family: Lukáš and Ondrej, siblings split across team A and Prípravka
             ("eva.mala@zisk.sk",       "lukas.maly@zisk.sk",     true),
             ("eva.mala@zisk.sk",       "ondrej.maly@zisk.sk",    true),
-            // Vargovci: Richard
+            // The Varga family: Richard
             ("ivan.varga@zisk.sk",     "richard.varga@zisk.sk",  true),
-            // Čierni: Filip
+            // The Čierny family: Filip
             ("marta.cierna@zisk.sk",   "filip.cerny@zisk.sk",    true),
-            // Holúbovci: Ema
+            // The Holúb family: Ema
             ("vladimir.holub@zisk.sk", "ema.holubova@zisk.sk",   true)
         };
 
@@ -744,7 +744,7 @@ public class DatabaseInitializer
     {
         var teamByName = teams.ToDictionary(t => t.Name, t => t.Id);
 
-        // Každý tréner má primárny tím
+        // Every coach has a primary team
         var assignments = new List<(string CoachEmail, string TeamName, bool IsPrimary)>
         {
             ("rastislav.horvath@zisk.sk", "B-tím",     true),
@@ -782,7 +782,7 @@ public class DatabaseInitializer
 
     private async Task<List<TrainingEvent>> EnsureSampleTrainingsAsync(List<Team> teams, DateTime anchor)
     {
-        // Ak už existujú tréningy, preskočíme (rich history ich vytvorí neskôr)
+        // Skip if trainings already exist - rich history creates them later
         if (await _context.TrainingEvents.AnyAsync())
             return [];
 
@@ -1041,7 +1041,7 @@ public class DatabaseInitializer
         if (!teams.Any() || !sampleChildren.Any())
             return;
 
-        // Guard: ak existuje viac ako 3 tréningy, história už bola naseedovaná
+        // Guard: more than 3 trainings already means the history was seeded before
         if (await _context.TrainingEvents.CountAsync() > 3)
             return;
 
@@ -1088,14 +1088,14 @@ public class DatabaseInitializer
             // look like it was created this morning.
             training.CreatedAt = training.StartTime.AddDays(-14);
 
-            // Dochádzka len pre minulé tréningy
+            // Attendance only for past trainings
             if (training.StartTime > now)
                 continue;
 
             var members = teamMemberCache.GetValueOrDefault(training.TeamId) ?? [];
             foreach (var childId in members)
             {
-                // Distribúcia: 70 % Prítomný / 18 % Ospravedlnený / 12 % Neprítomný
+                // Distribution: 70% Present / 18% Excused / 12% Absent
                 var roll   = rng.Next(100);
                 var status = roll < 70 ? AttendanceStatus.Present
                            : roll < 88 ? AttendanceStatus.Excused
@@ -1114,7 +1114,7 @@ public class DatabaseInitializer
             }
         }
 
-        // Ospravedlnenky pre nadchádzajúce tréningy
+        // Excuses for upcoming trainings
         if (parent != null)
         {
             var futureTrainings = trainings

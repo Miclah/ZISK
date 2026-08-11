@@ -308,19 +308,6 @@ public partial class AdminUsers
         return $"{suffix}@zisk.local";
     }
 
-    // Zatial pre testovanie vypnute - heslo sa zadava priamo v dialogu
-    // private static string GenerateInitialPassword(AddUserDialog.AddUserDialogModel model)
-    // {
-    //     var phoneDigits = new string((model.PhoneNumber ?? string.Empty).Where(char.IsDigit).ToArray());
-    //
-    //     if (model.GeneratePassword)
-    //         return $"Zisk!{Random.Shared.Next(1000, 9999)}";
-    //
-    //     var datePart = model.DateOfBirth?.ToString("ddMMyyyy") ?? "01011990";
-    //     var phonePart = phoneDigits.Length >= 4 ? phoneDigits[^4..] : phoneDigits.PadLeft(4, '0');
-    //     return $"{datePart}{phonePart}";
-    // }
-
     private void OnSelectedParentsChanged(IEnumerable<string> parentIds)
     {
         _selectedParentIds = parentIds.ToHashSet();
