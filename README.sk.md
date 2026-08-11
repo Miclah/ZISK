@@ -153,7 +153,7 @@ Aplikácia beží na **http://localhost:8080**. Prvý štart spustí SQL Server,
 
 Compose má predvolené `ZISK_SEED_MODE=local`, čiže bežné prihlasovanie a naseedované vývojárske účty. Ak chcete vidieť verejnú demo verziu, prepnite v `.env` na `ZISK_SEED_MODE=demo`.
 
-Rebuild po zmene závislostí, mazanie databázového volume a chybu validácie NuGet podpisov, na ktorú sa dá pri čistom builde naraziť, rieši [DOCKER.md](DOCKER.md).
+Rebuild po zmene závislostí, mazanie databázového volume a chybu validácie NuGet podpisov, na ktorú sa dá pri čistom builde naraziť, rieši [DOCKER.md](DOCKER.sk.md).
 
 ### Bez Dockera
 
