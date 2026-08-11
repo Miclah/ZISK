@@ -59,6 +59,7 @@ public class ExcusesController : ControllerBase
             return NoContent();
         }
         catch (KeyNotFoundException) { return NotFound(); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
     }
 
     [HttpPut("{id:guid}")]

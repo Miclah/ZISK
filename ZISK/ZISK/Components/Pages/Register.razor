@@ -216,17 +216,20 @@
             return;
         }
 
+        // Phone and RodneCislo (a Slovak national ID) are sensitive enough that confirming "this
+        // value is already registered" would let a public form be used to enumerate them.
+        // Both conflicts share one generic message so a probing attempt cannot tell which field hit.
         var phone = string.IsNullOrWhiteSpace(Input.PhoneNumber) ? null : Input.PhoneNumber.Trim();
         if (phone is not null && await UserManager.Users.AnyAsync(u => u.PhoneNumber == phone))
         {
-            _globalError = "Toto telefónne číslo už používa iný účet.";
+            _globalError = "Registráciu sa nepodarilo dokončiť. Skontrolujte zadané údaje.";
             return;
         }
 
         var rodneCislo = Input.RodneCislo!.Trim();
         if (await UserManager.Users.AnyAsync(u => u.RodneCislo == rodneCislo))
         {
-            _globalError = "Toto rodné číslo už používa iný účet.";
+            _globalError = "Registráciu sa nepodarilo dokončiť. Skontrolujte zadané údaje.";
             return;
         }
 

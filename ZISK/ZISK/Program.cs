@@ -137,6 +137,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = true;
     options.Cookie.HttpOnly = true;
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.SameSite = SameSiteMode.Lax;
 
     // In demo mode an anonymous visitor must land on /demo, never on /login (which
     // DemoAccessGuardMiddleware 404s without the owner cookie).
@@ -207,6 +208,27 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromHours(1),
                 QueueLimit = 0
             }));
+
+    options.AddPolicy("invitation-redeem", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0
+            }));
+
+    options.AddPolicy("health-db", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 60,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
@@ -329,7 +351,7 @@ app.MapGet("/health/db", async (IConfiguration configuration, CancellationToken 
     {
         return Results.StatusCode(503);
     }
-});
+}).RequireRateLimiting("health-db");
 
 // MapRazorComponents only registers endpoints for paths that actually match a @page route, so a
 // URL that matches nothing at all (not a component, not a controller, not a static asset) would

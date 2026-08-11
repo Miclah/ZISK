@@ -178,6 +178,17 @@ public class ExcuseService : IExcuseService
         var excuse = await _context.AbsenceRequests.FindAsync(id)
             ?? throw new KeyNotFoundException();
 
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
+        if (accessibleTeamIds is not null)
+        {
+            var childTeamIds = await _context.TeamMembers
+                .Where(tm => tm.UserId == excuse.ChildId)
+                .Select(tm => tm.TeamId)
+                .ToListAsync();
+            if (!childTeamIds.Any(tId => accessibleTeamIds.Contains(tId)))
+                throw new UnauthorizedAccessException();
+        }
+
         excuse.ReviewNote = request.ReviewNote;
         excuse.ReviewedByUserId = userId;
         excuse.ProcessedAt = DateTime.UtcNow;

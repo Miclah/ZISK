@@ -74,6 +74,12 @@ public class BulkAttendanceTests
         db.Teams.Add(team);
         db.Users.Add(coach);
         db.Users.AddRange(children);
+        db.TeamMembers.AddRange(children.Select(c => new TeamMember
+        {
+            TeamId = team.Id,
+            UserId = c.Id,
+            JoinedAt = DateTime.UtcNow.AddDays(-10)
+        }));
 
         var training = new TrainingEvent
         {

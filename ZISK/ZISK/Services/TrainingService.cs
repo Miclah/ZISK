@@ -251,6 +251,11 @@ public class TrainingService : ITrainingService
     public async Task LockTrainingAsync(Guid id, ClaimsPrincipal user)
     {
         var training = await _context.TrainingEvents.FindAsync(id) ?? throw new KeyNotFoundException();
+
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
+        if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(training.TeamId))
+            throw new UnauthorizedAccessException();
+
         training.IsLocked = true;
         await _context.SaveChangesAsync();
         _auditService.Log("Lock", "Training", training.Id.ToString(), user);
@@ -259,6 +264,11 @@ public class TrainingService : ITrainingService
     public async Task UnlockTrainingAsync(Guid id, ClaimsPrincipal user)
     {
         var training = await _context.TrainingEvents.FindAsync(id) ?? throw new KeyNotFoundException();
+
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
+        if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(training.TeamId))
+            throw new UnauthorizedAccessException();
+
         training.IsLocked = false;
         await _context.SaveChangesAsync();
         _auditService.Log("Unlock", "Training", training.Id.ToString(), user);

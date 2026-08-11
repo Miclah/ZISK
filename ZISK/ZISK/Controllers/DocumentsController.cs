@@ -28,7 +28,7 @@ public class DocumentsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<List<DocumentDto>>> GetDocuments([FromQuery] DocumentCategory? category = null)
     {
-        var result = await _documentService.GetDocumentsAsync(category);
+        var result = await _documentService.GetDocumentsAsync(category, User);
         return Ok(result);
     }
 
@@ -37,10 +37,11 @@ public class DocumentsController : ControllerBase
     {
         try
         {
-            var result = await _documentService.GetDocumentAsync(id);
+            var result = await _documentService.GetDocumentAsync(id, User);
             return Ok(result);
         }
         catch (KeyNotFoundException) { return NotFound(); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
     }
 
     [HttpPost]
@@ -53,6 +54,7 @@ public class DocumentsController : ControllerBase
 
     [HttpPost("{id:guid}/upload")]
     [Authorize(Roles = "Admin")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<IActionResult> UploadFile(Guid id, IFormFile file)
     {
         // No client page reaches this today, but it's directly callable via the API - see
@@ -98,7 +100,7 @@ public class DocumentsController : ControllerBase
     {
         try
         {
-            var (relativePath, contentType, fileName) = await _documentService.GetDocumentFileAsync(id);
+            var (relativePath, contentType, fileName) = await _documentService.GetDocumentFileAsync(id, User);
             var fullPath = Path.Combine(_environment.WebRootPath ?? "wwwroot", relativePath.TrimStart('/'));
             if (!System.IO.File.Exists(fullPath))
                 return NotFound(Translations.Get(_currentLanguage.Current, "errors.file.notFound"));
@@ -106,5 +108,6 @@ public class DocumentsController : ControllerBase
         }
         catch (KeyNotFoundException) { return NotFound(); }
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
     }
 }

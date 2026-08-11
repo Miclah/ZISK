@@ -413,3 +413,6 @@ azure/main.json
 azure/README.md
 docs/DEMO_MODE_HANDOFF.md
 scripts/
+
+# Markdown scratch/report files (README.md, DOCKER.md etc. are already tracked and unaffected)
+*.md

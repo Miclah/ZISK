@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.WebUtilities;
 using ZISK.Services;
 
@@ -37,6 +39,21 @@ public class DemoAccessGuardMiddleware
         "/Account"
     ];
 
+    // Runs ahead of app.UseRateLimiter() in the pipeline (see Program.cs) and answers /__owner
+    // itself without calling _next, so the app-wide limiter never sees these requests. This
+    // partitioned limiter is the only throttle standing between the pipeline and an attacker
+    // hammering /__owner with guessed keys.
+    private static readonly PartitionedRateLimiter<HttpContext> OwnerAccessLimiter =
+        PartitionedRateLimiter.Create<HttpContext, string>(context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueLimit = 0
+                }));
+
     private readonly RequestDelegate _next;
 
     public DemoAccessGuardMiddleware(RequestDelegate next)
@@ -57,7 +74,7 @@ public class DemoAccessGuardMiddleware
         SeedModeResolver.Resolve(configuration) == SeedMode.Demo
         && !request.Cookies.ContainsKey(OwnerCookieName);
 
-    public async Task InvokeAsync(HttpContext context, IConfiguration configuration)
+    public async Task InvokeAsync(HttpContext context, IConfiguration configuration, IAuditService auditService)
     {
         if (SeedModeResolver.Resolve(configuration) != SeedMode.Demo)
         {
@@ -69,7 +86,14 @@ public class DemoAccessGuardMiddleware
 
         if (path.StartsWithSegments("/__owner", StringComparison.OrdinalIgnoreCase))
         {
-            await GrantOwnerAccessAsync(context, configuration);
+            using var lease = await OwnerAccessLimiter.AcquireAsync(context, 1, context.RequestAborted);
+            if (!lease.IsAcquired)
+            {
+                context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                return;
+            }
+
+            await GrantOwnerAccessAsync(context, configuration, auditService);
             return;
         }
 
@@ -83,8 +107,9 @@ public class DemoAccessGuardMiddleware
         await _next(context);
     }
 
-    private static async Task GrantOwnerAccessAsync(HttpContext context, IConfiguration configuration)
+    private static async Task GrantOwnerAccessAsync(HttpContext context, IConfiguration configuration, IAuditService auditService)
     {
+        var remoteIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         var expectedKey = configuration["Demo:OwnerKey"];
         var providedKey = QueryHelpers.ParseQuery(context.Request.QueryString.Value ?? "")
             .TryGetValue("key", out var values) ? values.ToString() : null;
@@ -94,9 +119,12 @@ public class DemoAccessGuardMiddleware
                 Encoding.UTF8.GetBytes(expectedKey),
                 Encoding.UTF8.GetBytes(providedKey)))
         {
+            auditService.Log("OwnerAccessDenied", "DemoOwnerKey", remoteIp, null);
             await NotFoundResponseWriter.WriteAsync(context);
             return;
         }
+
+        auditService.Log("OwnerAccessGranted", "DemoOwnerKey", remoteIp, null);
 
         context.Response.Cookies.Append(OwnerCookieName, "1", new CookieOptions
         {

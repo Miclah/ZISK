@@ -4,6 +4,23 @@ namespace ZISK.Services;
 
 public class FileService : IFileService
 {
+    // Magic-byte signatures for every extension SaveFileAsync callers currently allow. A renamed
+    // file (e.g. a script saved as "evil.jpg") passes the extension check but fails this one.
+    // .doc/.xls share the OLE2 container signature and .docx/.xlsx share the ZIP signature, since
+    // both pairs are literally the same underlying container format.
+    private static readonly Dictionary<string, byte[][]> MagicBytesByExtension = new()
+    {
+        [".pdf"] = [new byte[] { 0x25, 0x50, 0x44, 0x46 }],
+        [".png"] = [new byte[] { 0x89, 0x50, 0x4E, 0x47 }],
+        [".jpg"] = [new byte[] { 0xFF, 0xD8, 0xFF }],
+        [".jpeg"] = [new byte[] { 0xFF, 0xD8, 0xFF }],
+        [".gif"] = [new byte[] { 0x47, 0x49, 0x46, 0x38 }],
+        [".doc"] = [new byte[] { 0xD0, 0xCF, 0x11, 0xE0 }],
+        [".xls"] = [new byte[] { 0xD0, 0xCF, 0x11, 0xE0 }],
+        [".docx"] = [new byte[] { 0x50, 0x4B, 0x03, 0x04 }],
+        [".xlsx"] = [new byte[] { 0x50, 0x4B, 0x03, 0x04 }],
+    };
+
     private readonly IWebHostEnvironment _environment;
     private readonly ICurrentLanguage _currentLanguage;
 
@@ -27,7 +44,21 @@ public class FileService : IFileService
         if (file.Length > maxSizeBytes)
             return (false, string.Format(Translations.Get(lang, "errors.file.tooLarge"), maxSizeBytes / 1024 / 1024));
 
+        if (MagicBytesByExtension.TryGetValue(extension, out var signatures) && !HasMatchingSignature(file, signatures))
+            return (false, Translations.Get(lang, "errors.file.unsupportedType"));
+
         return (true, null);
+    }
+
+    private static bool HasMatchingSignature(IFormFile file, byte[][] signatures)
+    {
+        var maxSignatureLength = signatures.Max(s => s.Length);
+        var header = new byte[maxSignatureLength];
+
+        using var stream = file.OpenReadStream();
+        var bytesRead = stream.Read(header, 0, header.Length);
+
+        return signatures.Any(sig => bytesRead >= sig.Length && header.AsSpan(0, sig.Length).SequenceEqual(sig));
     }
 
     public async Task<string> SaveFileAsync(IFormFile file, string subfolder)

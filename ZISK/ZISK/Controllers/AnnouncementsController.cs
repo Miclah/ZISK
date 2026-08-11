@@ -39,10 +39,11 @@ public class AnnouncementsController : ControllerBase
     {
         try
         {
-            var result = await _announcementService.GetAnnouncementAsync(id);
+            var result = await _announcementService.GetAnnouncementAsync(id, User);
             return Ok(result);
         }
         catch (KeyNotFoundException) { return NotFound(); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
     }
 
     [HttpPost]
@@ -94,6 +95,7 @@ public class AnnouncementsController : ControllerBase
 
     [HttpPost("{id:guid}/attachments")]
     [Authorize(Roles = "Admin,Coach")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<ActionResult<AttachmentDto>> UploadAttachment(Guid id, IFormFile file)
     {
         // Belt-and-suspenders: AnnouncementsCreate.razor already hides the file picker in demo
@@ -116,13 +118,14 @@ public class AnnouncementsController : ControllerBase
     {
         try
         {
-            var (relativePath, contentType, fileName) = await _announcementService.GetAttachmentFileAsync(announcementId, attachmentId);
+            var (relativePath, contentType, fileName) = await _announcementService.GetAttachmentFileAsync(announcementId, attachmentId, User);
             var fullPath = Path.Combine(_environment.WebRootPath ?? "wwwroot", relativePath.TrimStart('/'));
             if (!System.IO.File.Exists(fullPath))
                 return NotFound(Translations.Get(_currentLanguage.Current, "errors.file.notFound"));
             return PhysicalFile(fullPath, contentType, fileName);
         }
         catch (KeyNotFoundException) { return NotFound(); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
     }
 
     [HttpDelete("{announcementId:guid}/attachments/{attachmentId:guid}")]

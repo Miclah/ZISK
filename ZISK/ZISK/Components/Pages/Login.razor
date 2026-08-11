@@ -160,8 +160,16 @@
             return;
         }
 
-        var passwordOk = await UserManager.CheckPasswordAsync(user, Input.Password);
-        if (!passwordOk)
+        var checkResult = await SignInManager.CheckPasswordSignInAsync(user, Input.Password, lockoutOnFailure: true);
+
+        if (checkResult.IsLockedOut)
+        {
+            Logger.LogWarning("User account {UserId} locked out.", user.Id);
+            errorMessage = "Váš účet je dočasne uzamknutý.";
+            return;
+        }
+
+        if (!checkResult.Succeeded)
         {
             errorMessage = "Nesprávne prihlasovacie údaje.";
             return;
@@ -176,23 +184,9 @@
             return;
         }
 
-        var result = await SignInManager.PasswordSignInAsync(user.UserName!, Input.Password, Input.RememberMe, lockoutOnFailure: false);
-
-        if (result.Succeeded)
-        {
-            Logger.LogInformation("User {UserId} logged in successfully.", user.Id);
-            NavigationManager.NavigateTo(GetSafeRedirectUrl(), forceLoad: true);
-            return;
-        }
-
-        if (result.IsLockedOut)
-        {
-            Logger.LogWarning("User account {UserId} locked out.", user.Id);
-            errorMessage = "Váš účet je dočasne uzamknutý.";
-            return;
-        }
-
-        errorMessage = "Nesprávne prihlasovacie údaje.";
+        await SignInManager.SignInAsync(user, Input.RememberMe);
+        Logger.LogInformation("User {UserId} logged in successfully.", user.Id);
+        NavigationManager.NavigateTo(GetSafeRedirectUrl(), forceLoad: true);
     }
 
     private string GetSafeRedirectUrl()

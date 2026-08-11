@@ -48,8 +48,12 @@ public class AttendanceController : ControllerBase
         [FromQuery] DateTime? from = null,
         [FromQuery] DateTime? to = null)
     {
-        var result = await _attendanceService.GetMemberStatsAsync(childId, from, to);
-        return Ok(result);
+        try
+        {
+            var result = await _attendanceService.GetMemberStatsAsync(childId, from, to, User);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException) { return Forbid(); }
     }
 
     [HttpGet("stats/team/{teamId:guid}")]
@@ -59,8 +63,12 @@ public class AttendanceController : ControllerBase
         [FromQuery] DateTime? from = null,
         [FromQuery] DateTime? to = null)
     {
-        var result = await _attendanceService.GetTeamStatsAsync(teamId, from, to);
-        return Ok(result);
+        try
+        {
+            var result = await _attendanceService.GetTeamStatsAsync(teamId, from, to, User);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException) { return Forbid(); }
     }
 
     [HttpPost]

@@ -114,6 +114,8 @@ public class ChildrenController : ControllerBase
     [Authorize(Roles = "Admin,Coach")]
     public async Task<ActionResult<List<ChildDto>>> GetAllChildren()
     {
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(User);
+
         var childRoleIds = await _context.Roles
             .Where(r => r.Name == "Child" || r.Name == "Athlete")
             .Select(r => r.Id)
@@ -127,6 +129,16 @@ public class ChildrenController : ControllerBase
             .Select(ur => ur.UserId)
             .Distinct()
             .ToListAsync();
+
+        // accessibleTeamIds is null for Admin (unrestricted); Coach is scoped to children on their own teams.
+        if (accessibleTeamIds is not null)
+        {
+            childUserIds = await _context.TeamMembers
+                .Where(tm => childUserIds.Contains(tm.UserId) && accessibleTeamIds.Contains(tm.TeamId))
+                .Select(tm => tm.UserId)
+                .Distinct()
+                .ToListAsync();
+        }
 
         var memberships = await _context.TeamMembers
             .Include(tm => tm.Team)

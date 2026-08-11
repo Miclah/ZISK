@@ -90,6 +90,7 @@ public class TrainingsController : ControllerBase
             return NoContent();
         }
         catch (KeyNotFoundException) { return NotFound(); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
     }
 
     [HttpPut("{id:guid}/unlock")]
@@ -102,6 +103,7 @@ public class TrainingsController : ControllerBase
             return NoContent();
         }
         catch (KeyNotFoundException) { return NotFound(); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
     }
 
     [HttpDelete("{id:guid}")]

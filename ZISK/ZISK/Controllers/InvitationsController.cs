@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using ZISK.Data;
@@ -134,6 +135,7 @@ public class InvitationsController : ControllerBase
     }
 
     [HttpPost("invitations/accept")]
+    [EnableRateLimiting("invitation-redeem")]
     public async Task<IActionResult> Accept([FromQuery] string token)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -153,6 +155,7 @@ public class InvitationsController : ControllerBase
     }
 
     [HttpPost("invitations/redeem-code")]
+    [EnableRateLimiting("invitation-redeem")]
     public async Task<IActionResult> RedeemCode([FromBody] RedeemCodeRequest request)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);

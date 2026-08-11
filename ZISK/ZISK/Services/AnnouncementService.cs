@@ -68,7 +68,7 @@ public class AnnouncementService : IAnnouncementService
             .ToListAsync();
     }
 
-    public async Task<AnnouncementDto> GetAnnouncementAsync(Guid id)
+    public async Task<AnnouncementDto> GetAnnouncementAsync(Guid id, ClaimsPrincipal user)
     {
         var announcement = await _context.Announcements
             .Include(a => a.AuthorUser)
@@ -77,6 +77,11 @@ public class AnnouncementService : IAnnouncementService
             .AsNoTracking()
             .FirstOrDefaultAsync(a => a.Id == id)
             ?? throw new KeyNotFoundException();
+
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
+        if (accessibleTeamIds is not null && announcement.TargetTeamId.HasValue
+            && !accessibleTeamIds.Contains(announcement.TargetTeamId.Value))
+            throw new UnauthorizedAccessException();
 
         return MapToDto(announcement);
     }
@@ -201,7 +206,7 @@ public class AnnouncementService : IAnnouncementService
             AnnouncementId = announcementId,
             FileName = file.FileName,
             FilePath = relativePath,
-            ContentType = file.ContentType,
+            ContentType = _fileService.GetContentType(relativePath),
             FileSize = file.Length,
             UploadedAt = DateTime.UtcNow
         };
@@ -212,11 +217,17 @@ public class AnnouncementService : IAnnouncementService
         return new AttachmentDto(attachment.Id, attachment.FileName, attachment.ContentType, attachment.FileSize);
     }
 
-    public async Task<(string FullPath, string ContentType, string FileName)> GetAttachmentFileAsync(Guid announcementId, Guid attachmentId)
+    public async Task<(string FullPath, string ContentType, string FileName)> GetAttachmentFileAsync(Guid announcementId, Guid attachmentId, ClaimsPrincipal user)
     {
         var attachment = await _context.AnnouncementAttachments
+            .Include(a => a.Announcement)
             .FirstOrDefaultAsync(a => a.Id == attachmentId && a.AnnouncementId == announcementId)
             ?? throw new KeyNotFoundException();
+
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
+        if (accessibleTeamIds is not null && attachment.Announcement.TargetTeamId.HasValue
+            && !accessibleTeamIds.Contains(attachment.Announcement.TargetTeamId.Value))
+            throw new UnauthorizedAccessException();
 
         return (attachment.FilePath, attachment.ContentType ?? "application/octet-stream", attachment.FileName);
     }

@@ -6,11 +6,11 @@ namespace ZISK.Services;
 
 public interface IDocumentService
 {
-    Task<List<DocumentDto>> GetDocumentsAsync(DocumentCategory? category);
-    Task<DocumentDto> GetDocumentAsync(Guid id);
+    Task<List<DocumentDto>> GetDocumentsAsync(DocumentCategory? category, ClaimsPrincipal user);
+    Task<DocumentDto> GetDocumentAsync(Guid id, ClaimsPrincipal user);
     Task<DocumentDto> CreateDocumentAsync(CreateDocumentRequest request);
     Task<string> UploadFileAsync(Guid id, IFormFile file);
     Task UpdateDocumentAsync(Guid id, UpdateDocumentRequest request);
     Task DeleteDocumentAsync(Guid id);
-    Task<(string FullPath, string ContentType, string FileName)> GetDocumentFileAsync(Guid id);
+    Task<(string FullPath, string ContentType, string FileName)> GetDocumentFileAsync(Guid id, ClaimsPrincipal user);
 }

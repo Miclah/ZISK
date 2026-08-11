@@ -107,8 +107,10 @@ public class AttendanceService : IAttendanceService
             .ToListAsync();
     }
 
-    public async Task<AttendanceStatsDto> GetMemberStatsAsync(string childId, DateTime? from, DateTime? to)
+    public async Task<AttendanceStatsDto> GetMemberStatsAsync(string childId, DateTime? from, DateTime? to, ClaimsPrincipal user)
     {
+        await EnsureChildAccessibleAsync(childId, user);
+
         var query = _context.AttendanceRecords
             .Include(ar => ar.TrainingEvent)
             .Where(ar => ar.ChildId == childId);
@@ -131,8 +133,12 @@ public class AttendanceService : IAttendanceService
         );
     }
 
-    public async Task<List<MemberAttendanceStatsDto>> GetTeamStatsAsync(Guid teamId, DateTime? from, DateTime? to)
+    public async Task<List<MemberAttendanceStatsDto>> GetTeamStatsAsync(Guid teamId, DateTime? from, DateTime? to, ClaimsPrincipal user)
     {
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
+        if (accessibleTeamIds is not null && !accessibleTeamIds.Contains(teamId))
+            throw new UnauthorizedAccessException();
+
         var teamMemberIds = await _context.TeamMembers
             .Where(tm => tm.TeamId == teamId)
             .Select(tm => tm.UserId)
@@ -202,6 +208,11 @@ public class AttendanceService : IAttendanceService
         var child = await _context.Users.FindAsync(request.ChildId)
             ?? throw new KeyNotFoundException(Translations.Get(_currentLanguage.Current, "errors.attendance.memberNotFound"));
 
+        var isTeamMember = await _context.TeamMembers
+            .AnyAsync(tm => tm.TeamId == training.TeamId && tm.UserId == request.ChildId);
+        if (!isTeamMember)
+            throw new KeyNotFoundException(Translations.Get(_currentLanguage.Current, "errors.attendance.memberNotFound"));
+
         var existingRecord = await _context.AttendanceRecords
             .FirstOrDefaultAsync(ar => ar.TrainingEventId == request.TrainingEventId && ar.ChildId == request.ChildId);
 
@@ -263,6 +274,14 @@ public class AttendanceService : IAttendanceService
         // Load every existing record for this training up front. Looking each one up inside the loop
         // issued one round-trip per child, so marking a full team's attendance cost N queries.
         var entryChildIds = request.Entries.Select(e => e.ChildId).ToList();
+
+        var memberChildIds = await _context.TeamMembers
+            .Where(tm => tm.TeamId == training.TeamId && entryChildIds.Contains(tm.UserId))
+            .Select(tm => tm.UserId)
+            .ToListAsync();
+        if (memberChildIds.Count != entryChildIds.Distinct().Count())
+            throw new KeyNotFoundException(Translations.Get(_currentLanguage.Current, "errors.attendance.memberNotFound"));
+
         var existingRecords = await _context.AttendanceRecords
             .Where(ar => ar.TrainingEventId == request.TrainingEventId && entryChildIds.Contains(ar.ChildId))
             .ToDictionaryAsync(ar => ar.ChildId);
@@ -359,5 +378,27 @@ public class AttendanceService : IAttendanceService
             training.IsLocked = true;
 
         await _context.SaveChangesAsync();
+    }
+
+    private async Task EnsureChildAccessibleAsync(string childId, ClaimsPrincipal user)
+    {
+        if (user.IsInRole("Athlete") || user.IsInRole("Child"))
+        {
+            if (childId != user.GetRequiredUserId())
+                throw new UnauthorizedAccessException();
+            return;
+        }
+
+        var accessibleTeamIds = await _teamAccessService.GetAccessibleTeamIdsAsync(user);
+        if (accessibleTeamIds is null)
+            return;
+
+        var childTeamIds = await _context.TeamMembers
+            .Where(tm => tm.UserId == childId)
+            .Select(tm => tm.TeamId)
+            .ToListAsync();
+
+        if (!childTeamIds.Any(tId => accessibleTeamIds.Contains(tId)))
+            throw new UnauthorizedAccessException();
     }
 }
