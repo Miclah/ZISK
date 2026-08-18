@@ -259,4 +259,4 @@ Apache License 2.0. Pozri [LICENSE](LICENSE).
 ## Autor
 
 Michal Petrán
-[GitHub](https://github.com/Miclah) · [LinkedIn](https://www.linkedin.com/in/mpetran)
+[GitHub](https://github.com/Miclah) · [LinkedIn](https://www.linkedin.com/in/michalpetran)
